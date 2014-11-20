@@ -13,7 +13,7 @@ from . import version_info, greenpool
 from .support import get_errno
 from .server import ServerLoop
 
-log = logging.getLogger('guv')
+log = logging.getLogger('guv.wsgi')
 log.setLevel(logging.INFO)
 
 DEFAULT_MAX_SIMULTANEOUS_REQUESTS = 1024
