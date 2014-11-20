@@ -7,7 +7,6 @@ try:
     from . import queue
     from . import timeout
     from . import patcher
-    from . import convenience
     from . import server
     import greenlet
 
@@ -30,10 +29,9 @@ try:
 
     serve = server.serve
     listen = server.listen
-
-    connect = convenience.connect
+    connect = server.connect
     StopServe = server.StopServe
-    wrap_ssl = convenience.wrap_ssl
+    wrap_ssl = server.wrap_ssl
 
     getcurrent = greenlet.greenlet.getcurrent
 except ImportError as e:
