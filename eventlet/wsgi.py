@@ -60,7 +60,7 @@ def format_date_time(timestamp):
            (_weekdayname[wd], day, _monthname[month], year, hh, mm, ss)
 
 
-class Input(object):
+class Input:
     def __init__(self, rfile, content_length, socket=None, chunked_input=False):
         self.rfile = rfile
         self.content_length = content_length
@@ -208,9 +208,7 @@ class OldMessage(client.HTTPMessage):
 
 def headers_factory(fp, *args):
     try:
-        #log.debug('try parse')
         ret = client.parse_headers(fp, _class=OldMessage)
-        #log.debug('done parse: {}, type: {}'.format(ret, type(ret)))
     except client.LineTooLong:
         ret = OldMessage()
         ret.status = 'Line too long'
@@ -225,10 +223,30 @@ class WSGIHandler:
         self.socket = socket
         self.client_address = address
         self.server = server
+        self.application = self.server.application
+
         if rfile is None:
             self.rfile = socket.makefile('rb', -1)
         else:
             self.rfile = rfile
+
+        # set up instance attributes
+        self.requestline = None
+        self.status = None
+        self.time_start = None
+        self.time_finish = None
+        self.headers = None
+        self.content_length = None
+        self.close_connection = None
+        self.response_length = None
+        self.environ = None
+        self.response_use_chunked = None
+        self.headers_sent = None
+        self.result = None
+        self.code = None
+        self.response_headers = None
+        self.provided_date = None
+        self.provided_content_length = None
 
     def handle(self):
         try:
@@ -253,7 +271,6 @@ class WSGIHandler:
                     try:
                         self.socket._sock.recv(16384)
                     finally:
-                        #self.socket._sock.close()  # do not rely on garbage collection
                         self.socket.close()
                 except socket.error:
                     pass
@@ -305,8 +322,8 @@ class WSGIHandler:
         self.content_length = content_length
 
         if self.request_version == "HTTP/1.1":
-            conntype = self.headers.get("Connection", "").lower()
-            if conntype == "close":
+            conn_type = self.headers.get("Connection", "").lower()
+            if conn_type == "close":
                 self.close_connection = True
             else:
                 self.close_connection = False
@@ -362,12 +379,11 @@ class WSGIHandler:
             return '400', _BAD_REQUEST_RESPONSE
 
         self.environ = self.get_environ()
-        self.application = self.server.application
         try:
             self.handle_one_response()
         except socket.error as ex:
-            # broken pipe, connection reset by peer
-            if ex.args[0] in (errno.EPIPE, errno.ECONNRESET):
+            if ex.args[0] in BROKEN_SOCK:
+                log.error(ex)
                 return
             else:
                 raise
@@ -410,7 +426,7 @@ class WSGIHandler:
         if not data:
             return
         if self.response_use_chunked:
-            ## Write the chunked encoding
+            # write the chunked encoding
             data = "%x\r\n%s\r\n" % (len(data), data)
         self._sendall(data)
 
@@ -628,8 +644,6 @@ class WSGIServer(ServerLoop):
         pool = greenpool.GreenPool()
         super().__init__(server_sock, self.handle_client, pool, 'spawn_n')
 
-        #super().__init__(server_sock, self.handle_client)
-
         self.application = application
         self.set_environ(environ)
         self.set_max_accept()
@@ -688,8 +702,8 @@ def server(server_sock, app, log_output=True):
         host, port = server_sock.getsockname()[:2]
         log.info('WSGI server starting up on {}:{}'.format(host, port))
 
-        srvr = WSGIServer(server_sock, app)
-        srvr.start()
+        wsgi_server = WSGIServer(server_sock, app)
+        wsgi_server.start()
 
     except (KeyboardInterrupt, SystemExit):
         log.debug('KeyboardInterrupt, exiting')
