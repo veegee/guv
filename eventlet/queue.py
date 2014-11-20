@@ -20,10 +20,10 @@ import sys
 import heapq
 import collections
 import traceback
+from queue import Full, Empty
 
 from eventlet.event import Event
 from eventlet.hubs import get_hub
-from eventlet.support import six
 from eventlet.timeout import Timeout
 import greenlet
 
@@ -31,8 +31,6 @@ import greenlet
 __all__ = ['Queue', 'PriorityQueue', 'LifoQueue', 'LightQueue', 'Full', 'Empty']
 
 _NONE = object()
-Full = six.moves.queue.Full
-Empty = six.moves.queue.Empty
 
 
 class Waiter(object):
@@ -202,9 +200,9 @@ class LightQueue(object):
         If optional arg *block* is true and *timeout* is ``None`` (the default),
         block if necessary until a free slot is available. If *timeout* is
         a positive number, it blocks at most *timeout* seconds and raises
-        the :class:`Full` exception if no free slot was available within that time.
+        the :class:`queue.Full` exception if no free slot was available within that time.
         Otherwise (*block* is false), put an item on the queue if a free slot
-        is immediately available, else raise the :class:`Full` exception (*timeout*
+        is immediately available, else raise the :class:`queue.Full` exception (*timeout*
         is ignored in that case).
         """
         if self.maxsize is None or self.qsize() < self.maxsize:
@@ -222,11 +220,11 @@ class LightQueue(object):
                     item = self._get()
                     getter.switch(item)
                     return
-            raise Full
+            raise queue.Full
         elif block:
             waiter = ItemWaiter(item)
             self.putters.add(waiter)
-            timeout = Timeout(timeout, Full)
+            timeout = Timeout(timeout, queue.Full)
             try:
                 if self.getters:
                     self._schedule_unlock()
@@ -238,13 +236,13 @@ class LightQueue(object):
                 timeout.cancel()
                 self.putters.discard(waiter)
         else:
-            raise Full
+            raise queue.Full
 
     def put_nowait(self, item):
         """Put an item into the queue without blocking.
 
         Only enqueue the item if a free slot is immediately available.
-        Otherwise raise the :class:`Full` exception.
+        Otherwise raise the :class:`queue.Full` exception.
         """
         self.put(item, False)
 
@@ -253,9 +251,9 @@ class LightQueue(object):
 
         If optional args *block* is true and *timeout* is ``None`` (the default),
         block if necessary until an item is available. If *timeout* is a positive number,
-        it blocks at most *timeout* seconds and raises the :class:`Empty` exception
+        it blocks at most *timeout* seconds and raises the :class:`queue.Empty` exception
         if no item was available within that time. Otherwise (*block* is false), return
-        an item if one is immediately available, else raise the :class:`Empty` exception
+        an item if one is immediately available, else raise the :class:`queue.Empty` exception
         (*timeout* is ignored in that case).
         """
         if self.qsize():
@@ -271,10 +269,10 @@ class LightQueue(object):
                     putter.switch(putter)
                     if self.qsize():
                         return self._get()
-            raise Empty
+            raise queue.Empty
         elif block:
             waiter = Waiter()
-            timeout = Timeout(timeout, Empty)
+            timeout = Timeout(timeout, queue.Empty)
             try:
                 self.getters.add(waiter)
                 if self.putters:
@@ -284,13 +282,13 @@ class LightQueue(object):
                 self.getters.discard(waiter)
                 timeout.cancel()
         else:
-            raise Empty
+            raise queue.Empty
 
     def get_nowait(self):
         """Remove and return an item from the queue without blocking.
 
         Only get an item if one is immediately available. Otherwise
-        raise the :class:`Empty` exception.
+        raise the :class:`queue.Empty` exception.
         """
         return self.get(False)
 
