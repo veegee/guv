@@ -23,7 +23,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-"""This module is API-equivalent to the standard library :mod:`profile` module but it is greenthread-aware as well as thread-aware.  Use this module
+"""This module is API-equivalent to the standard library :mod:`profile` module but it is
+greenthread-aware as well as thread-aware.  Use this module
 to profile Eventlet-based applications in preference to either :mod:`profile` or :mod:`cProfile`.
 FIXME: No testcases for this module.
 """
@@ -32,6 +33,7 @@ profile_orig = __import__('profile')
 __all__ = profile_orig.__all__
 
 from eventlet.patcher import slurp_properties
+
 slurp_properties(profile_orig, globals(), srckeys=dir(profile_orig))
 
 import sys
@@ -148,6 +150,7 @@ class Profile(profile_orig.Profile):
                 self.SwitchTasklet(self.current_tasklet, current, t)
                 t = 0.0  # the time was billed to the previous tasklet
             return f(self, arg, t)
+
         return ContextWrapper
 
     # Add automatic tasklet detection to the callbacks.
@@ -184,7 +187,7 @@ class Profile(profile_orig.Profile):
         "A function to unwind a 'cur' frame and tally the results"
         "see profile.trace_dispatch_return() for details"
         # also see simulate_cmd_complete()
-        while(cur[-1]):
+        while (cur[-1]):
             rpt, rit, ret, rfn, frame, rcur = cur
             frame_total = rit + ret
 

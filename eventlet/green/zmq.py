@@ -2,12 +2,11 @@
 This module wraps the :class:`Socket` and :class:`Context` found in :mod:`zmq` to be non blocking.
 """
 
-from __future__ import with_statement
-
 __zmq__ = __import__('zmq')
+import greenlet
+
 from eventlet import hubs
 from eventlet.patcher import slurp_properties
-import greenlet
 
 __patched__ = ['Context', 'Socket']
 slurp_properties(__zmq__, globals(), ignore=__patched__)

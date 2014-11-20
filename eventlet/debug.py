@@ -1,6 +1,5 @@
 """The debug module contains utilities and functions for better
 debugging Eventlet-powered applications."""
-from __future__ import print_function
 
 import os
 import sys
@@ -17,7 +16,6 @@ _token_splitter = re.compile('\W+')
 
 
 class Spew(object):
-
     def __init__(self, trace_names=None, show_values=True):
         self.trace_names = trace_names
         self.show_values = show_values
@@ -75,6 +73,7 @@ def format_hub_listeners():
     especially when used in conjunction with :func:`hub_listener_stacks`.
     """
     from eventlet import hubs
+
     hub = hubs.get_hub()
     result = ['READERS:']
     for l in hub.get_readers():
@@ -91,6 +90,7 @@ def format_hub_timers():
     especially when used in conjunction with :func:`hub_timer_stacks`.
     """
     from eventlet import hubs
+
     hub = hubs.get_hub()
     result = ['TIMERS:']
     for l in hub.timers:
@@ -106,6 +106,7 @@ def hub_listener_stacks(state=False):
     junctures in the application logic.
     """
     from eventlet import hubs
+
     hubs.get_hub().set_debug_listeners(state)
 
 
@@ -115,6 +116,7 @@ def hub_timer_stacks(state=False):
     at critical junctures in the application logic.
     """
     from eventlet.hubs import timer
+
     timer._g_debug = state
 
 
@@ -129,6 +131,7 @@ def hub_prevent_multiple_readers(state=True):
     to ``False`` to stop the hub from protecting against this mistake.
     """
     from eventlet.hubs import hub
+
     hub.g_prevent_multiple_readers = state
 
 
@@ -137,8 +140,10 @@ def hub_exceptions(state=True):
     timers.  This can be useful to see how greenthreads are terminating.
     """
     from eventlet import hubs
+
     hubs.get_hub().set_timer_exceptions(state)
     from eventlet import greenpool
+
     greenpool.DEBUG = state
 
 
@@ -147,6 +152,7 @@ def tpool_exceptions(state=False):
     functions that are executed in it, in addition to raising them like
     it normally does."""
     from eventlet import tpool
+
     tpool.QUIET = not state
 
 
@@ -167,6 +173,7 @@ def hub_blocking_detection(state=False, resolution=1):
     positives.
     """
     from eventlet import hubs
+
     assert resolution > 0
     hubs.get_hub().debug_blocking = state
     hubs.get_hub().debug_blocking_resolution = resolution

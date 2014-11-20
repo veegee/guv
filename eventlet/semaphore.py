@@ -1,11 +1,9 @@
-from __future__ import with_statement
 from eventlet import greenthread
 from eventlet import hubs
 from eventlet.timeout import Timeout
 
 
 class Semaphore(object):
-
     """An unbounded semaphore.
     Optionally initialize with a resource *count*, then :meth:`acquire` and
     :meth:`release` resources as needed. Attempting to :meth:`acquire` when
@@ -141,7 +139,6 @@ class Semaphore(object):
 
 
 class BoundedSemaphore(Semaphore):
-
     """A bounded semaphore checks to make sure its current value doesn't exceed
     its initial value. If it does, ValueError is raised. In most situations
     semaphores are used to guard resources with limited capacity. If the
@@ -168,7 +165,6 @@ class BoundedSemaphore(Semaphore):
 
 
 class CappedSemaphore(object):
-
     """A blockingly bounded semaphore.
 
     Optionally initialize with a resource *count*, then :meth:`acquire` and

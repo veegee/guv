@@ -1,8 +1,9 @@
 """Implements the standard threading module, using greenthreads."""
+import greenlet
+
 from eventlet import patcher
 from eventlet.green import thread
 from eventlet.green import time
-import greenlet
 
 __patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep',
                'local', 'stack_size', 'Lock', 'currentThread',
@@ -11,7 +12,6 @@ __patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep',
 __orig_threading = patcher.original('threading')
 __threadlocal = __orig_threading.local()
 
-
 patcher.inject(
     'threading',
     globals(),
@@ -19,7 +19,6 @@ patcher.inject(
     ('time', time))
 
 del patcher
-
 
 _count = 1
 
@@ -42,10 +41,12 @@ class _GreenThread(object):
 
     def getName(self):
         return self._name
+
     get_name = getName
 
     def setName(self, name):
         self._name = str(name)
+
     set_name = setName
 
     name = property(getName, setName)
@@ -54,12 +55,14 @@ class _GreenThread(object):
 
     def isAlive(self):
         return True
+
     is_alive = isAlive
 
     daemon = property(lambda self: True)
 
     def isDaemon(self):
         return self.daemon
+
     is_daemon = isDaemon
 
 
@@ -100,6 +103,7 @@ def current_thread():
         # Add green thread to active if we can clean it up on exit
         def cleanup(g):
             del active[id(g)]
+
         try:
             g.link(cleanup)
         except AttributeError:
@@ -111,5 +115,6 @@ def current_thread():
             t = active[id(g)] = _GreenThread(g)
 
     return t
+
 
 currentThread = current_thread

@@ -8,10 +8,8 @@ from eventlet import patcher
 from eventlet.green import select
 from eventlet.support import six
 
-
 patcher.inject('subprocess', globals(), ('select', select))
 subprocess_orig = __import__("subprocess")
-
 
 if getattr(subprocess_orig, 'TimeoutExpired', None) is None:
     # Backported from Python 3.3.
@@ -51,6 +49,7 @@ class Popen(subprocess_orig.Popen):
                 if pipe is not None and not type(pipe) == greenio.GreenPipe:
                     wrapped_pipe = greenio.GreenPipe(pipe, pipe.mode, bufsize)
                     setattr(self, attr, wrapped_pipe)
+
         __init__.__doc__ = subprocess_orig.Popen.__init__.__doc__
 
     def wait(self, timeout=None, check_interval=0.01):
@@ -73,6 +72,7 @@ class Popen(subprocess_orig.Popen):
                 return -1
             else:
                 raise
+
     wait.__doc__ = subprocess_orig.Popen.wait.__doc__
 
     if not subprocess_orig.mswindows:

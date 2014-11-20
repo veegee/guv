@@ -3,15 +3,19 @@ from eventlet.exceptions import IOClosed
 __ssl = __import__('ssl')
 
 from eventlet.patcher import slurp_properties
+
 slurp_properties(__ssl, globals(), srckeys=dir(__ssl))
 
 import sys
 import errno
+
 time = __import__('time')
 
 from eventlet.support import get_errno, PY33, six
 from eventlet.hubs import trampoline
-from eventlet.greenio import set_nonblocking, GreenSocket, SOCKET_CLOSED, CONNECT_ERR, CONNECT_SUCCESS
+from eventlet.greenio import set_nonblocking, GreenSocket, SOCKET_CLOSED, CONNECT_ERR, \
+    CONNECT_SUCCESS
+
 orig_socket = __import__('socket')
 socket = orig_socket.socket
 if sys.version_info >= (2, 7):
@@ -145,7 +149,8 @@ class GreenSSLSocket(_original_sslsocket):
             return socket.send(self, data, flags)
 
     def sendto(self, data, addr, flags=0):
-        # *NOTE: gross, copied code from ssl.py becase it's not factored well enough to be used as-is
+        # *NOTE: gross, copied code from ssl.py becase it's not factored well enough to be used
+        # as-is
         if self._sslobj:
             raise ValueError("sendto not allowed on instances of %s" %
                              self.__class__)
@@ -154,7 +159,8 @@ class GreenSSLSocket(_original_sslsocket):
             return socket.sendto(self, data, addr, flags)
 
     def sendall(self, data, flags=0):
-        # *NOTE: gross, copied code from ssl.py becase it's not factored well enough to be used as-is
+        # *NOTE: gross, copied code from ssl.py becase it's not factored well enough to be used
+        # as-is
         if self._sslobj:
             if flags != 0:
                 raise ValueError(
@@ -183,7 +189,8 @@ class GreenSSLSocket(_original_sslsocket):
                     raise
 
     def recv(self, buflen=1024, flags=0):
-        # *NOTE: gross, copied code from ssl.py becase it's not factored well enough to be used as-is
+        # *NOTE: gross, copied code from ssl.py becase it's not factored well enough to be used
+        # as-is
         if self._sslobj:
             if flags != 0:
                 raise ValueError(
@@ -201,7 +208,8 @@ class GreenSSLSocket(_original_sslsocket):
                     if get_errno(e) == errno.EWOULDBLOCK:
                         try:
                             trampoline(self, read=True,
-                                       timeout=self.gettimeout(), timeout_exc=timeout_exc('timed out'))
+                                       timeout=self.gettimeout(),
+                                       timeout_exc=timeout_exc('timed out'))
                         except IOClosed:
                             return b''
                     if get_errno(e) in SOCKET_CLOSED:
@@ -261,7 +269,8 @@ class GreenSSLSocket(_original_sslsocket):
                     except orig_socket.error as exc:
                         if get_errno(exc) in CONNECT_ERR:
                             trampoline(self, write=True,
-                                       timeout=end - time.time(), timeout_exc=timeout_exc('timed out'))
+                                       timeout=end - time.time(),
+                                       timeout_exc=timeout_exc('timed out'))
                         elif get_errno(exc) in CONNECT_SUCCESS:
                             return
                         else:
@@ -329,6 +338,7 @@ class GreenSSLSocket(_original_sslsocket):
 
     def dup(self):
         raise NotImplementedError("Can't dup an ssl object")
+
 
 SSLSocket = GreenSSLSocket
 

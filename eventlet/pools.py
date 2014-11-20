@@ -1,10 +1,7 @@
-from __future__ import print_function
-
 import collections
 from contextlib import contextmanager
 
 from eventlet import queue
-
 
 __all__ = ['Pool', 'TokenPool']
 

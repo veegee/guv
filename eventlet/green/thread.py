@@ -1,9 +1,9 @@
 """Implements the standard thread module, using greenthreads."""
-from eventlet.support.six.moves import _thread as __thread
 import greenlet
+
+from eventlet.support.six.moves import _thread as __thread
 from eventlet import greenthread
 from eventlet.semaphore import Semaphore as LockType
-
 
 __patched__ = ['get_ident', 'start_new_thread', 'start_new', 'allocate_lock',
                'allocate', 'exit', 'interrupt_main', 'stack_size', '_local',
@@ -77,4 +77,3 @@ if hasattr(__thread, 'stack_size'):
             # not going to decrease stack_size, because otherwise other greenlets in
             # this thread will suffer
 
-from eventlet.corolocal import local as _local

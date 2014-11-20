@@ -8,6 +8,7 @@ to_patch = [('socket', socket), ('httplib', httplib),
             ('time', time), ('ftplib', ftplib)]
 try:
     from eventlet.green import ssl
+
     to_patch.append(('ssl', ssl))
 except ImportError:
     pass

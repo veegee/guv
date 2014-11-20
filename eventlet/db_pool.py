@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from collections import deque
 from contextlib import contextmanager
 import sys
@@ -10,7 +8,6 @@ from eventlet import timeout
 from eventlet import hubs
 from eventlet.hubs.timer import Timer
 from eventlet.greenthread import GreenThread
-
 
 _MISSING = object()
 
@@ -50,7 +47,7 @@ class BaseConnectionPool(Pool):
         The remainder of the arguments are used as parameters to the
         *db_module*'s connection constructor.
         """
-        assert(db_module)
+        assert (db_module)
         self._db_module = db_module
         self._args = args
         self._kwargs = kwargs
@@ -81,7 +78,7 @@ class BaseConnectionPool(Pool):
             return
 
         if (self._expiration_timer is not None
-                and not getattr(self._expiration_timer, 'called', False)):
+            and not getattr(self._expiration_timer, 'called', False)):
             # the next timer is already scheduled
             return
 
@@ -137,8 +134,8 @@ class BaseConnectionPool(Pool):
         """Returns true and closes the connection if it's expired.
         """
         if (self.max_idle <= 0 or self.max_age <= 0
-                or now - last_used > self.max_idle
-                or now - created_at > self.max_age):
+            or now - last_used > self.max_idle
+            or now - created_at > self.max_age):
             return True
         return False
 
@@ -279,6 +276,7 @@ class TpooledConnectionPool(BaseConnectionPool):
         t = timeout.Timeout(connect_timeout, ConnectTimeout())
         try:
             from eventlet import tpool
+
             conn = tpool.execute(db_module.connect, *args, **kw)
             return tpool.Proxy(conn, autowrap_names=('cursor',))
         finally:
@@ -301,7 +299,6 @@ class RawConnectionPool(BaseConnectionPool):
             return db_module.connect(*args, **kw)
         finally:
             t.cancel()
-
 
 # default connection pool is the tpool one
 ConnectionPool = TpooledConnectionPool
@@ -472,7 +469,7 @@ class DatabaseConnector(object):
         *credentials*
             Mapping of hostname to connect arguments (e.g. username and password)
         """
-        assert(module)
+        assert (module)
         self._conn_pool_class = conn_pool
         if self._conn_pool_class is None:
             self._conn_pool_class = ConnectionPool

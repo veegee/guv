@@ -5,6 +5,7 @@ import greenlet
 from . import get_hub, abc
 
 
+
 # If true, captures a stack trace for each timer when constructed.
 # This is useful for debugging leaking timers, to find out where the timer was set up
 _g_debug = False

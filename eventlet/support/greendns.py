@@ -115,6 +115,7 @@ class ResolverProxy(object):
             answer.append(record)
             return answer
         return self._resolver.query(*args, **kwargs)
+
 #
 # cache
 #
