@@ -5,7 +5,6 @@ import greenlet
 
 from . import event, hubs, timeout
 from .hubs import timer
-from .util import logged
 
 __all__ = ['getcurrent', 'sleep', 'spawn', 'spawn_n', 'kill',
            'spawn_after', 'spawn_after_local', 'GreenThread']
@@ -14,7 +13,6 @@ __all__ = ['getcurrent', 'sleep', 'spawn', 'spawn_n', 'kill',
 getcurrent = greenlet.getcurrent
 
 
-@logged
 def sleep(seconds=0):
     """Yield control to the hub until at least `seconds` have elapsed
 
