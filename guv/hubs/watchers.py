@@ -1,12 +1,6 @@
 from guv.hubs.abc import AbstractListener
 
 
-class FdListener(AbstractListener):
-    """Default implementation of :cls:`AbstractListener`
-    """
-    pass
-
-
 class PollFdListener(AbstractListener):
     def __init__(self, evtype, fd, cb):
         """
