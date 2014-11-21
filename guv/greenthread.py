@@ -3,10 +3,9 @@ import sys
 import warnings
 import greenlet
 
-from guv import event
-from guv import hubs
-from guv import timeout
-from guv.hubs import timer
+from . import event, hubs, timeout
+from .hubs import timer
+from .util import logged
 
 __all__ = ['getcurrent', 'sleep', 'spawn', 'spawn_n', 'kill',
            'spawn_after', 'spawn_after_local', 'GreenThread']
@@ -15,14 +14,15 @@ __all__ = ['getcurrent', 'sleep', 'spawn', 'spawn_n', 'kill',
 getcurrent = greenlet.getcurrent
 
 
+@logged
 def sleep(seconds=0):
     """Yield control to the hub until at least `seconds` have elapsed
 
-    *seconds* may be specified as an integer, or a float if fractional seconds are desired. Calling
-    *:func:`~greenthread.sleep` with *seconds* of 0 is the canonical way of expressing a cooperative
-    *yield. For example, if one is looping over a large list performing an expensive calculation
-    *without calling any socket methods, it's a good idea to call ``sleep(0)`` occasionally;
-    *otherwise nothing else will run.
+    `seconds` may be specified as an integer, or a float if fractional seconds are desired. Calling
+    :func:`~.sleep` with seconds of 0 is the canonical way of expressing a cooperative yield.
+    For example, if one is looping over a large list performing an expensive calculation
+    without calling any socket methods, it's a good idea to call `sleep(0)` occasionally,
+    otherwise nothing else will run.
     """
     hub = hubs.get_hub()
     current = greenlet.getcurrent()
