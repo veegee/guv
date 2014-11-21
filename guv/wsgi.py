@@ -12,6 +12,7 @@ import socket
 from . import version_info, greenpool
 from .support import get_errno
 from .server import ServerLoop
+from .util import logged
 
 log = logging.getLogger('guv.wsgi')
 log.setLevel(logging.INFO)
@@ -248,6 +249,7 @@ class WSGIHandler:
         self.provided_date = None
         self.provided_content_length = None
 
+    @logged
     def handle(self):
         try:
             while self.socket is not None:
@@ -267,8 +269,9 @@ class WSGIHandler:
         finally:
             if self.socket is not None:
                 try:
-                    # read out request data to prevent error: [Errno 104] Connection reset by peer
                     try:
+                        log.info('close connection: {0.close_connection}'.format(self))
+                        # read out request data to prevent errno 104 Connection reset by peer
                         self.socket._sock.recv(16384)
                     finally:
                         self.socket.close()
@@ -277,11 +280,27 @@ class WSGIHandler:
             self.socket = None
             self.rfile = None
 
+        return self.time_finish - self.time_start
+
+    @logged
+    def handle_simple(self):
+        self.time_start = time.time()
+        self.handle_one_request()
+        self.time_finish = time.time()
+        self.log_request()
+
+        log.debug('close socket')
+        self.socket.close()
+        self.socket = None
+        self.rfile = None
+
+        return self.time_finish - self.time_start
+
     def _check_http_version(self):
         version = self.request_version
         if not version.startswith('HTTP/'):
             return False
-        version = tuple(int(x) for x in version[5:].split('.'))  # "HTTP/"
+        version = tuple(int(x) for x in version[5:].split('.'))
         if version[1] < 0 or version < (0, 9) or version >= (2, 0):
             return False
         return True
@@ -350,6 +369,7 @@ class WSGIHandler:
     def read_requestline(self):
         return self.rfile.readline(MAX_REQUEST_LINE)
 
+    @logged
     def handle_one_request(self):
         if self.rfile.closed:
             return
@@ -366,7 +386,7 @@ class WSGIHandler:
         self.response_length = 0
 
         if len(self.requestline) >= MAX_REQUEST_LINE:
-            return ('414', _REQUEST_TOO_LONG_RESPONSE)
+            return '414', _REQUEST_TOO_LONG_RESPONSE
 
         try:
             # for compatibility with older versions of pywsgi, we pass self.requestline as an
@@ -533,6 +553,7 @@ class WSGIHandler:
         self.result = self.application(self.environ, self.start_response)
         self.process_result()
 
+    @logged
     def handle_one_response(self):
         self.time_start = time.time()
         self.status = None
@@ -647,6 +668,7 @@ class WSGIServer(ServerLoop):
         self.application = application
         self.set_environ(environ)
         self.set_max_accept()
+        self.response_times = []
 
     def set_environ(self, environ=None):
         if environ is not None:
@@ -685,7 +707,17 @@ class WSGIServer(ServerLoop):
 
     def handle_client(self, client_sock, address):
         handler = WSGIHandler(client_sock, address, self)
-        handler.handle()
+        rtime = handler.handle_simple()
+        #rtime = handler.handle()
+        self.response_times.append(rtime)
+        sys.stdout.flush()
+        if len(self.response_times) >= 2000:
+            log.info('average time: {}'.format(self.get_avg_time(self.response_times[-1000:])))
+            self.response_times = []
+
+    def get_avg_time(self, times):
+        avg = sum(times) / len(times)
+        return avg
 
 
 def server(server_sock, app, log_output=True):

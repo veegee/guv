@@ -1,4 +1,5 @@
 import logging
+import importlib
 
 from .. import patcher
 
@@ -33,12 +34,12 @@ def get_default_hub():
 
     Currently only supports pyuv
     """
+    name = 'epoll'
     try:
-        import guv.hubs.pyuv
-
-        return guv.hubs.pyuv
+        module = importlib.import_module('guv.hubs.{}'.format(name))
+        log.debug('Using hub: {}'.format(module))
+        return module
     except ImportError:
-        print('No hubs are available to import')
         raise
 
 

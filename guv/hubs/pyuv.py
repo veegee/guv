@@ -106,7 +106,7 @@ class Hub(abc.AbstractHub):
             :type events: int
             :type errno: int
             """
-            cb(poll_handle.fileno())
+            cb()
 
         poll_handle = pyuv.Poll(self.loop, fd)
 

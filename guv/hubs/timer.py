@@ -1,30 +1,42 @@
 import traceback
 import io
 import greenlet
+import time
+import functools
 
-from . import get_hub, abc
+from . import abc
+
+from ..support import compat
+
+_g_debug = False  # if true, captures a stack trace for each timer when constructed, this is useful
+# for debugging leaking timers, to find out where the timer was set up
+
+compat.patch()
 
 
-
-# If true, captures a stack trace for each timer when constructed.
-# This is useful for debugging leaking timers, to find out where the timer was set up
-_g_debug = False
-
-
+@functools.total_ordering
 class Timer(abc.AbstractTimer):
-    def __init__(self, seconds, cb, *args, **kw):
-        """Create a timer.
-            seconds: The minimum number of seconds to wait before calling
-            cb: The callback to call when the timer has expired
-            *args: The arguments to pass to cb
-            **kw: The keyword arguments to pass to cb
+    """Simple Timer class for setting up a callback to be called after the specified amount of time
+    has passed
 
-        This timer will not be run unless it is scheduled in a runloop by
-        calling timer.schedule() or runloop.add_timer(timer).
+    Calling the timer object will call the callback
+    """
+
+    def __init__(self, seconds, cb, *args, **kwargs):
+        """
+        :param float seconds: minimum number of seconds to wait before calling
+        :param Callable cb: callback to call when the timer has expired
+        :param args: positional arguments to pass to cb
+        :param kwargs: keyword arguments to pass to cb
+
+        This timer will not be run unless it is scheduled calling :meth:`schedule`.
         """
         self.seconds = seconds
-        self.tpl = cb, args, kw
+        self.absolute_time = time.monotonic() + seconds  # absolute time to fire the timer
+        self.tpl = cb, args, kwargs
+
         self.called = False
+
         if _g_debug:
             self.traceback = io.StringIO()
             traceback.print_stack(file=self.traceback)
@@ -46,12 +58,8 @@ class Timer(abc.AbstractTimer):
         cb, args, kw = self.tpl
         return self.__class__(self.seconds, cb, *args, **kw)
 
-    def schedule(self):
-        """Schedule this timer to run in the current runloop.
-        """
-        self.called = False
-        self.scheduled_time = get_hub().add_timer(self)
-        return self
+    def cancel(self):
+        self.called = True
 
     def __call__(self, *args):
         if not self.called:
@@ -65,28 +73,22 @@ class Timer(abc.AbstractTimer):
                 except AttributeError:
                     pass
 
-    def cancel(self):
-        """Prevent this timer from being called. If the timer has already
-        been called or canceled, has no effect.
-        """
-        if not self.called:
-            self.called = True
-            get_hub().timer_canceled(self)
-            try:
-                del self.tpl
-            except AttributeError:
-                pass
-
-    # No default ordering in 3.x. heapq uses <
-    # FIXME should full set be added?
     def __lt__(self, other):
-        return id(self) < id(other)
+        """
+        No default ordering in Python 3.x; heapq uses <
+
+        :type other: Timer
+        """
+        if isinstance(other, float):
+            return self.absolute_time < other
+        else:
+            return self.absolute_time < other.absolute_time
 
 
 class LocalTimer(Timer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, seconds, cb, *args, **kwargs):
         self.greenlet = greenlet.getcurrent()
-        Timer.__init__(self, *args, **kwargs)
+        super().__init__(seconds, cb, *args, **kwargs)
 
     @property
     def pending(self):
@@ -104,4 +106,4 @@ class LocalTimer(Timer):
 
     def cancel(self):
         self.greenlet = None
-        Timer.cancel(self)
+        super().cancel()

@@ -7,6 +7,16 @@ class FdListener(AbstractListener):
     pass
 
 
+class PollFdListener(AbstractListener):
+    def __init__(self, evtype, fd, cb):
+        """
+        :param cb: Callable
+        :param args: tuple of arguments to be passed to cb
+        """
+        super().__init__(evtype, fd)
+        self.cb = cb
+
+
 class UvFdListener(AbstractListener):
     def __init__(self, evtype, fd, handle):
         """

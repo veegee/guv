@@ -101,7 +101,7 @@ class AbstractServer(metaclass=ABCMeta):
         if pool is None:
             # use bare greenlets
             self.pool = None
-            log.debug('server configured: use bare greenlets')
+            log.debug('Server configured: use bare greenlets')
         else:
             # create a pool instance
             self.pool = pool
@@ -109,7 +109,6 @@ class AbstractServer(metaclass=ABCMeta):
             log.debug('server configured: use {}.{}'.format(pool, spawn))
 
         self.hub = get_hub()
-        self.loop = self.hub.loop
 
         self.address = server_sock.getsockname()[:2]
 
