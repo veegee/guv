@@ -39,6 +39,21 @@ def format_arg(arg):
         return s
 
 
+def func_name(f):
+    """Get qualified name of function
+
+    :param f: function
+    """
+    if hasattr(f, '__qualname__'):
+        # for Python >= 3.3
+        qualname = RESET + f.__qualname__ + BRGREEN
+    else:
+        # for Python < 3.3
+        qualname = RESET + f.__name__ + BRGREEN
+
+    return qualname
+
+
 def log_start(f, args, kwargs):
     argspec = inspect.getargspec(f)
 
@@ -47,8 +62,8 @@ def log_start(f, args, kwargs):
     if argspec.args and argspec.args[0] == 'self':
         method = True
 
-    # function name
-    qualname = RESET + f.__qualname__ + BRGREEN
+    qualname = func_name(f)
+
     f_name = '.'.join([f.__module__, qualname])
 
     if method:
@@ -78,9 +93,7 @@ def log_start(f, args, kwargs):
 
 
 def log_exit(f):
-    #qualname = RESET + f.__qualname__ + BRGREEN
-    qualname = f.__qualname__
-    f_name = '.'.join([f.__module__, qualname])
+    f_name = '.'.join([f.__module__, func_name(f)])
 
     log.debug('..done: {}'.format(f_name))
 
