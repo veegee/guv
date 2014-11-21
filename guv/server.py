@@ -106,7 +106,7 @@ class AbstractServer(metaclass=ABCMeta):
             # create a pool instance
             self.pool = pool
             self.spawn = getattr(self.pool, spawn)
-            log.debug('server configured: use {}.{}'.format(pool, spawn))
+            log.debug('Server configured: use {}.{}'.format(pool, spawn))
 
         self.hub = get_hub()
 
@@ -149,7 +149,7 @@ class ServerLoop(AbstractServer):
     """
 
     def start(self):
-        log.debug('{0} started on {0.address}'.format(self))
+        log.debug('{0.__class__.__name__} started on {0.address}'.format(self))
         while True:
             try:
                 client_sock, addr = self.server_sock.accept()
