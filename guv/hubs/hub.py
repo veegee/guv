@@ -31,16 +31,17 @@ def notify_opened(fd):
 
 def get_default_hub():
     """Get default hub implementation
-
-    Currently only supports pyuv
     """
-    name = 'epoll'
-    try:
-        module = importlib.import_module('guv.hubs.{}'.format(name))
-        log.debug('Using hub: {}'.format(module))
-        return module
-    except ImportError:
-        raise
+    names = ['pyuv', 'epoll']
+
+    for name in names:
+        try:
+            module = importlib.import_module('guv.hubs.{}'.format(name))
+            log.debug('Using event loop backend: {}'.format(name))
+            return module
+        except ImportError:
+            # try the next possible hub
+            pass
 
 
 def use_hub(mod=None):
