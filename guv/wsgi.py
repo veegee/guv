@@ -12,7 +12,6 @@ import socket
 from . import version_info, greenpool
 from .support import get_errno
 from .server import ServerLoop
-from .util import logged
 
 log = logging.getLogger('guv.wsgi')
 log.setLevel(logging.INFO)
@@ -249,7 +248,6 @@ class WSGIHandler:
         self.provided_date = None
         self.provided_content_length = None
 
-    @logged
     def handle(self):
         try:
             while self.socket is not None:
@@ -270,7 +268,6 @@ class WSGIHandler:
             if self.socket is not None:
                 try:
                     try:
-                        log.info('close connection: {0.close_connection}'.format(self))
                         # read out request data to prevent errno 104 Connection reset by peer
                         self.socket._sock.recv(16384)
                     finally:
@@ -279,20 +276,6 @@ class WSGIHandler:
                     pass
             self.socket = None
             self.rfile = None
-
-        return self.time_finish - self.time_start
-
-    @logged
-    def handle_simple(self):
-        self.time_start = time.time()
-        self.handle_one_request()
-        self.time_finish = time.time()
-        self.log_request()
-
-        log.debug('close socket')
-        self.socket.close()
-        self.socket = None
-        self.rfile = None
 
         return self.time_finish - self.time_start
 
@@ -369,8 +352,13 @@ class WSGIHandler:
     def read_requestline(self):
         return self.rfile.readline(MAX_REQUEST_LINE)
 
-    @logged
     def handle_one_request(self):
+        """Handle one request
+
+        :return: None if the connection should be closed; True if everything is ok and we can
+            proceed to read more requests; tuple[status code, message] if there is an HTTP error
+        :rtype: None or bool or tuple[int, str]
+        """
         if self.rfile.closed:
             return
 
@@ -414,7 +402,7 @@ class WSGIHandler:
         if self.rfile.closed:
             return
 
-        return True  # read more requests
+        return True  # everything is ok, read more requests
 
     def finalize_headers(self):
         if self.provided_date is None:
@@ -531,13 +519,9 @@ class WSGIHandler:
             delta = '-'
         client_address = self.client_address[0] if isinstance(self.client_address,
                                                               tuple) else self.client_address
-        return '%s - - [%s] "%s" %s %s %s' % (
-            client_address or '-',
-            now,
-            getattr(self, 'requestline', ''),
-            (getattr(self, 'status', None) or '000').split()[0],
-            length,
-            delta)
+        return '%s [%s] "%s" -> %s %s %s' % (
+            client_address or '-', now, getattr(self, 'requestline', ''),
+            (getattr(self, 'status', None) or '000').split()[0], length, delta)
 
     def process_result(self):
         for data in self.result:
@@ -553,7 +537,6 @@ class WSGIHandler:
         self.result = self.application(self.environ, self.start_response)
         self.process_result()
 
-    @logged
     def handle_one_response(self):
         self.time_start = time.time()
         self.status = None
@@ -669,6 +652,7 @@ class WSGIServer(ServerLoop):
         self.set_environ(environ)
         self.set_max_accept()
         self.response_times = []
+        self.num_connections = 0
 
     def set_environ(self, environ=None):
         if environ is not None:
@@ -706,18 +690,13 @@ class WSGIServer(ServerLoop):
             self.environ.setdefault('SERVER_PORT', '')
 
     def handle_client(self, client_sock, address):
+        self.num_connections += 1
+        # log.debug('Open fd: {0}, Current total number of connections: {1.num_connections}'
+        #           .format(client_sock.fileno(), self))
         handler = WSGIHandler(client_sock, address, self)
-        rtime = handler.handle_simple()
-        #rtime = handler.handle()
-        self.response_times.append(rtime)
-        sys.stdout.flush()
-        if len(self.response_times) >= 2000:
-            log.info('average time: {}'.format(self.get_avg_time(self.response_times[-1000:])))
-            self.response_times = []
-
-    def get_avg_time(self, times):
-        avg = sum(times) / len(times)
-        return avg
+        handler.handle()
+        # log.debug('Done with fd: {}'.format(client_sock.fileno()))
+        self.num_connections -= 1
 
 
 def server(server_sock, app, log_output=True):
