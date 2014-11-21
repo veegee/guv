@@ -13,6 +13,12 @@ A pyuv implementation using cffi is currently being implemented.
 To do
 =====
 
+- Rewrite "greenified" modules
+- Optimize the WSGI server for pypy3. Currently, pypy3 is running the WSGI
+  server VERY slow (almost as slow as cPython). However, pypy3 is running the
+  simple event TCP handler very fast, so the issue must be with the WSGI server
+  implementation.
+
 Stability:
 
 - Rewrite tests using py.test and make sure all tests pass
