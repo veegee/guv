@@ -111,10 +111,11 @@ class Hub(abc.AbstractHub):
 
         if not (readers or writers):
             if seconds:
+                log.debug('sleep for {}s with {}'.format(seconds, time.sleep))
                 time.sleep(seconds)
             return
         try:
-            poll_result = self.epoll.poll()
+            poll_result = self.epoll.poll(seconds)
         except (IOError, select.error) as e:
             if get_errno(e) == errno.EINTR:
                 return
