@@ -11,7 +11,7 @@ import socket
 
 from . import version_info, greenpool
 from .support import get_errno
-from .server import ServerLoop
+from .server import Server
 
 log = logging.getLogger('guv.wsgi')
 log.setLevel(logging.INFO)
@@ -632,7 +632,7 @@ class WSGIHandler:
         return env
 
 
-class WSGIServer(ServerLoop):
+class WSGIServer(Server):
     #: :type: tuple
     server_version = version_info[:2] + sys.version_info[:2]
 

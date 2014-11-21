@@ -44,7 +44,7 @@ if __name__ == '__main__':
     try:
         log.debug('Start')
         server_sock = guv.listen(('0.0.0.0', 8001))
-        server = guv.server.ServerLoop(server_sock, handle, pool, 'spawn_n')
+        server = guv.server.Server(server_sock, handle, pool, 'spawn_n')
         server.start()
     except (SystemExit, KeyboardInterrupt):
         log.debug('average response time: {}'.format(get_avg_time()))

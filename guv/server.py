@@ -20,7 +20,7 @@ wrap_ssl_impl = ssl.wrap_socket
 
 def serve(sock, handle, concurrency=1000):
     pool = greenpool.GreenPool(concurrency)
-    server = ServerLoop(sock, handle, pool, 'spawn_n')
+    server = Server(sock, handle, pool, 'spawn_n')
     server.start()
 
 
@@ -142,10 +142,10 @@ class AbstractServer(metaclass=ABCMeta):
             self.spawn(self.client_handler_cb, client_sock, addr)
 
 
-class ServerLoop(AbstractServer):
+class Server(AbstractServer):
     """Standard server implementation not directly dependent on pyuv
 
-    This requires a GreenSocket
+    This requires a GreenSocket.
     """
 
     def start(self):
