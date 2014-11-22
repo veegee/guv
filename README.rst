@@ -20,6 +20,12 @@ To do
   implementation.
 - Rewrite "greenified" modules
 
+pyuv_cffi:
+
+- Move handle classes into their own modules
+- Fully implement the pyuv interface
+- Write tests (using py.test)
+
 Stability:
 
 - Rewrite tests using py.test and make sure all tests pass
