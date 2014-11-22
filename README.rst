@@ -3,10 +3,13 @@ guv = greenlets + libuv
 
 guv is a fast networking library and WSGI server for Python >= 3.2
 
-libuv (via pyuv) is used as the event loop backend, allowing for a clean, simple
-event-loop implementation.
+libuv (via pyuv) is used as the event loop backend, allowing for a clean,
+simple event-loop implementation.
 
-A pyuv implementation using cffi is currently being implemented.
+A pyuv implementation using cffi is currently being implemented. This will
+allow guv to be used with pypy3.
+
+- Requires libuv >= 1.0.0
 
 
 To do
