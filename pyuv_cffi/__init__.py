@@ -23,6 +23,7 @@ class Loop:
     def __init__(self):
         self.loop_h = libuv.pyuv_loop_new()
         self._loop_h_allocated = True
+        self._handles = []
 
     @classmethod
     def default_loop(cls):
@@ -35,8 +36,10 @@ class Loop:
     def alive(self):
         return bool(libuv.uv_loop_alive(self.loop_h))
 
-    def close(self):
-        self._free()
+    @property
+    def handles(self):
+        # TODO: implement this method
+        return self._handles
 
     def run(self, mode=libuv.UV_RUN_DEFAULT):
         return libuv.uv_run(self.loop_h, mode)
@@ -51,7 +54,7 @@ class Loop:
 
     def __del__(self):
         # free the memory allocated by libuv.pyuv_loop_new()
-        self.close()
+        self._free()
 
 
 class Handle:
@@ -74,13 +77,71 @@ class Handle:
             pass
 
 
+class Timer(Handle):
+    def __init__(self, loop):
+        super().__init__()
+        self.loop = loop
+
+        self.handle = libuv.pyuv_timer_new(loop.loop_h)
+        self._handle_allocated = True
+        self._repeat = None
+
+        self._ffi_cb = None
+
+    @property
+    def repeat(self):
+        # TODO: implement this method
+        return self._repeat
+
+    @repeat.setter
+    def repeat(self, timeout):
+        # TODO implement this method
+        self._repeat = timeout
+
+    def start(self, callback, timeout, repeat):
+        """
+        :type callback: Callable(timer_handle: Timer)
+        :param float timeout: initial timeout (seconds) before first alarm
+        :param float repeat: repeat interval (seconds); 0 to disable
+        """
+        timeout = int(timeout * 1000)
+        repeat = int(repeat * 1000)
+
+        def cb_wrapper(timer_h):
+            callback(self)
+
+        ffi_cb = ffi.callback('void(*)(uv_timer_t *)', cb_wrapper)
+        self._ffi_cb = ffi_cb
+        libuv.uv_timer_start(self.handle, ffi_cb, timeout, repeat)
+
+    def stop(self):
+        self._ffi_cb = None
+        libuv.uv_timer_stop(self.handle)
+
+    def again(self):
+        return NotImplemented
+
+    def close(self):
+        self._free()
+
+    def _free(self):
+        self.stop()
+        self._ffi_cb = None
+        if self._handle_allocated:
+            libuv.pyuv_timer_del(self.handle)
+            self._handle_allocated = False
+
+    def __del__(self):
+        self._free()
+
+
 class Signal(Handle):
     def __init__(self, loop):
         super().__init__()
         self.loop = loop
 
-        self.sig_h = libuv.pyuv_signal_new(loop.loop_h)
-        self._sig_h_allocated = True
+        self.handle = libuv.pyuv_signal_new(loop.loop_h)
+        self._handle_allocated = True
 
         self._ffi_cb = None  # FFI callbacks need to be kept alive in order to be valid
 
@@ -96,17 +157,18 @@ class Signal(Handle):
 
         ffi_cb = ffi.callback('void(*)(uv_signal_t *, int)', cb_wrapper)
         self._ffi_cb = ffi_cb  # keep the FFI cdata object alive as long as this instance is alive
-        libuv.uv_signal_start(self.sig_h, ffi_cb, sig_num)
+        libuv.uv_signal_start(self.handle, ffi_cb, sig_num)
 
     def stop(self):
         self._ffi_cb = None  # remove reference to the cdata object (it will be freed automatically)
-        libuv.uv_signal_stop(self.sig_h)
+        libuv.uv_signal_stop(self.handle)
 
     def _free(self):
+        self.stop()
         self._ffi_cb = None
-        if self._sig_h_allocated:
-            libuv.pyuv_signal_del(self.sig_h)
-            self._sig_h_allocated = False
+        if self._handle_allocated:
+            libuv.pyuv_signal_del(self.handle)
+            self._handle_allocated = False
 
     def __del__(self):
         self.stop()
@@ -131,11 +193,22 @@ def sig_cb(sig_h, sig_num):
     sig_h.loop.stop()
 
 
+def timer_cb(timer_h):
+    print('timer_cb({})'.format(timer_h))
+
+
 def run():
     import signal
 
     loop = Loop()
+
+    timer_h = Timer(loop)
+    timer_h.start(timer_cb, 1, 1)
+
     sig_h = Signal(loop)
     sig_h.start(sig_cb, signal.SIGINT)
+
     status = loop.run()
+
+    timer_h.close()  # stop and free any timers before freeing the loop
     print('loop.run() -> ', status)

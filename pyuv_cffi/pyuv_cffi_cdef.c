@@ -38,6 +38,17 @@ void uv_unref(uv_handle_t *);
 int uv_has_ref(const uv_handle_t *);
 
 
+// timer functions
+uv_timer_t *pyuv_timer_new(uv_loop_t *loop);
+void pyuv_timer_del(uv_timer_t *timer_h);
+
+int uv_timer_start(uv_timer_t* handle, uv_timer_cb cb, uint64_t timeout, uint64_t repeat);
+int uv_timer_stop(uv_timer_t* handle);
+int uv_timer_again(uv_timer_t* handle);
+void uv_timer_set_repeat(uv_timer_t* handle, uint64_t repeat);
+uint64_t uv_timer_get_repeat(const uv_timer_t* handle);
+
+
 // signal functions
 uv_signal_t *pyuv_signal_new(uv_loop_t *loop);
 void pyuv_signal_del(uv_signal_t *handle);

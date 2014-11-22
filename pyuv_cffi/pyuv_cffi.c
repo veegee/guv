@@ -16,6 +16,16 @@ void pyuv_loop_del(uv_loop_t *loop) {
     free(loop);
 }
 
+// timer functions
+uv_timer_t *pyuv_timer_new(uv_loop_t *loop) {
+    uv_timer_t *timer_h = malloc(sizeof(uv_timer_t));
+    uv_timer_init(loop, timer_h);
+    return timer_h;
+}
+
+void pyuv_timer_del(uv_timer_t *timer_h) {
+    free(timer_h);
+}
 
 // signal functions
 uv_signal_t *pyuv_signal_new(uv_loop_t *loop) {
