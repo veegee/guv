@@ -6,7 +6,6 @@
 // loop functions
 uv_loop_t *pyuv_loop_new(void) {
     uv_loop_t *loop = malloc(sizeof(uv_loop_t));
-    //printf("pyuv_loop_new() -> %p\n", loop);
     uv_loop_init(loop);
     return loop;
 }
@@ -30,7 +29,6 @@ void pyuv_timer_del(uv_timer_t *timer_h) {
 // signal functions
 uv_signal_t *pyuv_signal_new(uv_loop_t *loop) {
     uv_signal_t *sig_h = malloc(sizeof(uv_signal_t));
-    //printf("pyuv_signal_new(%p) -> %p\n", loop, sig_h);
     uv_signal_init(loop, sig_h);
     return sig_h;
 }
