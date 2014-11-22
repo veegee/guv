@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from setuptools import find_packages, setup
-from eventlet import __version__
+from guv import __version__
 from os import path
 
 
@@ -27,7 +27,7 @@ setup(
     author_email='veegee@veegee.org',
     url='http://guv.readthedocs.org',
     packages=find_packages(exclude=['tests', 'benchmarks']),
-    install_requires=('greenlet>=0.4.0'),
+    install_requires=['greenlet>=0.4.0', 'cffi>=0.8.0'],
     zip_safe=False,
     long_description=open(path.join(path.dirname(__file__), 'README.rst')).read(),
     tests_require=['pytest>=2.6'],
