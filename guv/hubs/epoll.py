@@ -1,3 +1,7 @@
+"""epoll loop backend
+
+This module is deprecated and will be removed once pyuv_cffi is fully implemented.
+"""
 import logging
 import heapq
 import time

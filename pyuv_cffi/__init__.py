@@ -23,7 +23,7 @@ class Loop:
     def __init__(self):
         self.loop_h = libuv.pyuv_loop_new()
         self._closed = False
-        self._closable = True
+        self._freed = False
 
     @classmethod
     def default_loop(cls):
@@ -38,8 +38,8 @@ class Loop:
         return bool(libuv.uv_loop_alive(self.loop_h))
 
     def close(self):
-        if not self._closed and self._closable:
-            libuv.pyuv_loop_del(self.loop_h)
+        if not self._closed and not self._freed:
+            self._free()
             self._closed = True
 
     def run(self, mode=libuv.UV_RUN_DEFAULT):
@@ -47,6 +47,9 @@ class Loop:
 
     def stop(self):
         libuv.uv_stop(self.loop_h)
+
+    def _free(self):
+        libuv.pyuv_loop_del(self.loop_h)
 
     def __del__(self):
         # free the memory allocated by libuv.pyuv_loop_new()
