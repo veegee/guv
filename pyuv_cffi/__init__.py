@@ -83,7 +83,7 @@ class Signal(Handle):
         self._ffi_cb = None  # FFI callbacks need to be kept alive in order to be valid
 
     def start(self, callback, sig_num):
-        """Start the signal handle
+        """Start the signal listener
 
         :type callback: Callable(sig_handle: Signal, sig_num: int)
         :type sig_num: int
