@@ -63,11 +63,11 @@ void pyuv_signal_del(uv_signal_t *sig_h) {
 
 // poll functions
 uv_poll_t *pyuv_poll_new(uv_loop_t *loop, int fd) {
-    uv_poll_t *handle = malloc(sizeof(uv_poll_t));
-    uv_poll_init(loop, handle, fd);
-    return handle;
+    uv_poll_t *poll_h = malloc(sizeof(uv_poll_t));
+    uv_poll_init(loop, poll_h, fd);
+    return poll_h;
 }
 
-void pyuv_poll_del(uv_poll_t *handle) {
-    free(handle);
+void pyuv_poll_del(uv_poll_t *poll_h) {
+    free(poll_h);
 }

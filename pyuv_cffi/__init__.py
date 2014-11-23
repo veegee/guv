@@ -101,7 +101,7 @@ class Handle:
             if callback:
                 callback(self)
 
-        self._ffi_close_cb = ffi.callback('void(*)(uv_handle_t *)', cb_wrapper)
+        self._ffi_close_cb = ffi.callback('void (*)(uv_handle_t *)', cb_wrapper)
         libuv.uv_close(self.uv_handle, self._ffi_close_cb)
 
 
@@ -137,7 +137,7 @@ class Timer(Handle):
         def cb_wrapper(timer_h):
             callback(self)
 
-        ffi_cb = ffi.callback('void(*)(uv_timer_t *)', cb_wrapper)
+        ffi_cb = ffi.callback('void (*)(uv_timer_t *)', cb_wrapper)
         self._ffi_cb = ffi_cb
         libuv.uv_timer_start(self.handle, ffi_cb, timeout, repeat)
 
@@ -176,7 +176,7 @@ class Signal(Handle):
         def cb_wrapper(uv_signal_t, signum):
             callback(self, signum)
 
-        ffi_cb = ffi.callback('void(*)(uv_signal_t *, int)', cb_wrapper)
+        ffi_cb = ffi.callback('void (*)(uv_signal_t *, int)', cb_wrapper)
         self._ffi_cb = ffi_cb  # keep the FFI cdata object alive as long as this instance is alive
         libuv.uv_signal_start(self.handle, ffi_cb, sig_num)
 
