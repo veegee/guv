@@ -5,25 +5,21 @@ guv is a fast networking library and WSGI server for Python >= 3.2 and pypy3
 
 Multiple event loop backends are provided:
 
-- **epoll** (currently the fastest for pypy3, and very fast on CPython), may
-  have a few minor bugs in the Timer.
-- **pyuv** (currently the fastest for CPython, not supported on pypy3)
-- **pyuv_cffi** (slower than pyuv on CPython, slow and unpredictable on pypy3),
-  this is highly-experimental and a work-in-progress. Requires libuv >= 1.0.0
+- **pyuv_cffi** (supported fully on CPython and pypy3, very fast), this is
+  highly-experimental and a work-in-progress. Requires libuv >= 1.0.0
+- **epoll** (currently the fastest for pypy3, and very fast on CPython)
+- **pyuv** (complete implementation, not supported on pypy3)
 
 In order to select a specific hub type or list of hub types to try, set the
 ``GUV_HUBS`` environment variable to one or more comma-separated hub names from
-the above list.
+the above list. Default is pyuv_cffi.
 
 
 pyuv_cffi Status
 ----------------
 
-- When examples/guv_simple_http_response is run on CPython, the implemented
-  features seem to work fine, with no memory leaks. However, using CFFI is
-  significantly slower than pyuv. Optimization needs to be done to speed up this
-  implementation.
-- On pypy3, there seems to be a memory leak.
+- Currently implemented handles: Loop, Handle, Timer, Signal, Poll, Prepare
+- No memory leaks on CPython as well as pypy3
 
 
 To do

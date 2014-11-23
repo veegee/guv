@@ -143,6 +143,31 @@ class Handle:
         self._close_called = True
 
 
+class Prepare(Handle):
+    def __init__(self, loop):
+        """
+        :type loop: Loop
+        """
+        self.loop = loop
+        self.handle = ffi.new('uv_prepare_t *')
+        libuv.uv_prepare_init(loop.loop_h, self.handle)
+        super().__init__(self.handle)
+
+    def start(self, callback):
+        """
+        :type callback: Callable(prepare_handle: Prepare)
+        """
+
+        def cb_wrapper(prepare_h):
+            callback(self)
+
+        self._ffi_cb = ffi.callback('void (*)(uv_prepare_t *)', cb_wrapper)
+        libuv.uv_prepare_start(self.handle, self._ffi_cb)
+
+    def stop(self):
+        libuv.uv_prepare_stop(self.handle)
+
+
 class Timer(Handle):
     def __init__(self, loop):
         """

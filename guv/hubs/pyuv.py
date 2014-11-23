@@ -28,12 +28,17 @@ class Hub(abc.AbstractHub):
         self.Listener = UvFdListener
         self.stopping = False
         self.running = False
+        self.callbacks = []
 
         #: :type: pyuv.Loop
         self.loop = pyuv.Loop.default_loop()
 
         sig = pyuv.Signal(self.loop)
         sig.start(self.signal_received, signal.SIGINT)
+
+        # fire immediate callbacks every loop iteration
+        self.prepare = pyuv.Prepare(self.loop)
+        self.prepare.start(self._fire_callbacks)
 
     def run(self):
         if self.stopping:
@@ -59,18 +64,18 @@ class Hub(abc.AbstractHub):
 
         self.loop.stop()
 
-    def schedule_call_global(self, seconds, cb, *args, **kwargs):
-        """Schedule a callable to be called after 'seconds' seconds have elapsed. The timer will NOT
-        be canceled if the current greenlet has exited before the timer fires.
-
-        :param float seconds: number of seconds to wait
-        :param Callable cb: callback to call after timer fires
-        :param args: positional arguments to pass to the callback
-        :param kwargs: keyword arguments to pass to the callback
-        :return: timer object that can be cancelled
-        :rtype: hubs.abc.Timer
+    def _fire_callbacks(self, prepare_handle):
+        """Fire immediate callbacks
         """
+        callbacks = self.callbacks
+        self.callbacks = []
+        for cb, args, kwargs in callbacks:
+            cb(*args, **kwargs)
 
+    def schedule_call_now(self, cb, *args, **kwargs):
+        self.callbacks.append((cb, args, kwargs))
+
+    def schedule_call_global(self, seconds, cb, *args, **kwargs):
         def timer_callback(timer_handle):
             cb(*args, **kwargs)
 

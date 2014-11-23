@@ -13,17 +13,20 @@ enum uv_poll_event {
 // handle structs and types
 struct uv_loop_s {...;};
 struct uv_handle_s {...;};
+struct uv_prepare_s {...;};
 struct uv_timer_s {...;};
 struct uv_signal_s {...;};
 struct uv_poll_s {...;};
 
 typedef struct uv_loop_s uv_loop_t;
 typedef struct uv_handle_s uv_handle_t;
+typedef struct uv_prepare_s uv_prepare_t;
 typedef struct uv_timer_s uv_timer_t;
 typedef struct uv_signal_s uv_signal_t;
 typedef struct uv_poll_s uv_poll_t;
 
 typedef void (*uv_close_cb)(uv_handle_t *handle);
+typedef void (*uv_prepare_cb)(uv_prepare_t* handle);
 typedef void (*uv_poll_cb)(uv_poll_t *handle, int status, int events);
 typedef void (*uv_timer_cb)(uv_timer_t *handle);
 typedef void (*uv_signal_cb)(uv_signal_t *handle, int signum);
@@ -46,6 +49,12 @@ int uv_has_ref(const uv_handle_t *);
 void uv_close(uv_handle_t *handle, uv_close_cb close_cb);
 int uv_is_active(const uv_handle_t *handle);
 int uv_is_closing(const uv_handle_t *handle);
+
+
+// prepare functions
+int uv_prepare_init(uv_loop_t*, uv_prepare_t* prepare);
+int uv_prepare_start(uv_prepare_t* prepare, uv_prepare_cb cb);
+int uv_prepare_stop(uv_prepare_t* prepare);
 
 
 // timer functions

@@ -28,12 +28,17 @@ class Hub(abc.AbstractHub):
         self.Listener = UvFdListener
         self.stopping = False
         self.running = False
+        self.callbacks = []
 
         #: :type: pyuv.Loop
         self.loop = pyuv_cffi.Loop.default_loop()
 
         sig = pyuv_cffi.Signal(self.loop)
         sig.start(self.signal_received, signal.SIGINT)
+
+        # fire immediate callbacks every loop iteration
+        self.prepare = pyuv_cffi.Prepare(self.loop)
+        self.prepare.start(self._fire_callbacks)
 
     def run(self):
         if self.stopping:
@@ -58,6 +63,17 @@ class Hub(abc.AbstractHub):
             self.stopping = True
 
         self.loop.stop()
+
+    def _fire_callbacks(self, prepare_handle):
+        """Fire immediate callbacks
+        """
+        callbacks = self.callbacks
+        self.callbacks = []
+        for cb, args, kwargs in callbacks:
+            cb(*args, **kwargs)
+
+    def schedule_call_now(self, cb, *args, **kwargs):
+        self.callbacks.append((cb, args, kwargs))
 
     def schedule_call_global(self, seconds, cb, *args, **kwargs):
         """Schedule a callable to be called after 'seconds' seconds have elapsed. The timer will NOT
