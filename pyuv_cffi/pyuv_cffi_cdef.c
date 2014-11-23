@@ -65,5 +65,6 @@ int uv_signal_stop(uv_signal_t *handle);
 // poll functions
 uv_poll_t *pyuv_poll_new(uv_loop_t *loop, int fd);
 void pyuv_poll_del(uv_poll_t *handle);
+
 int uv_poll_start(uv_poll_t *handle, int events, uv_poll_cb cb);
 int uv_poll_stop(uv_poll_t *handle);
