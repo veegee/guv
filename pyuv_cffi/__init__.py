@@ -82,11 +82,20 @@ class Handle:
     def active(self):
         return bool(libuv.uv_is_active(self.uv_handle))
 
+    @property
+    def closing(self):
+        """
+        :return: True if handle is closing or closed, False otherwise
+        """
+        return bool(libuv.uv_is_closing(self.uv_handle))
+
     def close(self, callback=None):
         """Close uv handle
 
         :type callback: Callable(uv_handle: Handle) or None
         """
+        if self.closing:
+            return
 
         def cb_wrapper(uv_handle_t):
             if callback:
