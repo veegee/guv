@@ -1,9 +1,10 @@
+import guv
+
+guv.monkey_patch()
 import json
-import time
 
 import bottle
 
-import guv
 import guv.wsgi
 import logger
 
@@ -14,7 +15,6 @@ app = bottle.Bottle()
 
 @app.route('/')
 def index():
-    time.sleep(0.2)
     data = json.dumps({'status': True})
     return data
 
