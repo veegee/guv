@@ -36,8 +36,8 @@ alive = []
 
 class Loop:
     def __init__(self):
-        self.loop_h = libuv.pyuv_loop_new()
-        self._loop_h_allocated = True
+        self.loop_h = ffi.new('uv_loopt_t *')
+        libuv.uv_loop_init(self.loop_h)
         self._handles = []
 
     @classmethod
@@ -61,15 +61,6 @@ class Loop:
 
     def stop(self):
         libuv.uv_stop(self.loop_h)
-
-    def _free(self):
-        if self._loop_h_allocated:
-            libuv.pyuv_loop_del(self.loop_h)
-            self._loop_h_allocated = False
-
-    def __del__(self):
-        # free the memory allocated by libuv.pyuv_loop_new()
-        self._free()
 
 
 def default_close_cb(uv_handle_t, handle):
@@ -154,8 +145,12 @@ class Handle:
 
 class Timer(Handle):
     def __init__(self, loop):
+        """
+        :type loop: Loop
+        """
         self.loop = loop
-        self.handle = libuv.pyuv_timer_new(loop.loop_h)
+        self.handle = ffi.new('uv_timer_t *')
+        libuv.uv_timer_init(loop.loop_h, self.handle)
         super().__init__(self.handle)
 
         self._repeat = None
@@ -189,17 +184,15 @@ class Timer(Handle):
     def stop(self):
         libuv.uv_timer_stop(self.handle)
 
-    def _free(self):
-        libuv.pyuv_timer_del(self.handle)
-
-    def __del__(self):
-        self._free()
-
 
 class Signal(Handle):
     def __init__(self, loop):
+        """
+        :type loop: Loop
+        """
         self.loop = loop
-        self.handle = libuv.pyuv_signal_new(loop.loop_h)
+        self.handle = ffi.new('uv_signal_t *')
+        libuv.uv_signal_init(loop.loop_h, self.handle)
         super().__init__(self.handle)
 
         self._handle_allocated = True
@@ -221,20 +214,17 @@ class Signal(Handle):
     def stop(self):
         libuv.uv_signal_stop(self.handle)
 
-    def _free(self):
-        if self._handle_allocated:
-            libuv.pyuv_signal_del(self.handle)
-            self._handle_allocated = False
-
-    def __del__(self):
-        self._free()
-
 
 class Poll(Handle):
     def __init__(self, loop, fd):
+        """
+        :type loop: Loop
+        :type fd: int
+        """
         self.loop = loop
         self.fd = fd
-        self.handle = libuv.pyuv_poll_new(loop.loop_h, fd)
+        self.handle = ffi.new('uv_poll_t *')
+        libuv.uv_poll_init(loop.loop_h, self.handle, fd)
         super().__init__(self.handle)
 
         self._stop_called = False
@@ -262,9 +252,3 @@ class Poll(Handle):
             raise Exception('uv_poll_stop() failed: {}'.format(err))
 
         self._stop_called = True
-
-    def _free(self):
-        libuv.pyuv_poll_del(self.handle)
-
-    def __del__(self):
-        self._free()
