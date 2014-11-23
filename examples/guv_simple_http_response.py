@@ -1,3 +1,7 @@
+# FIXME: pyuv_cffi needs to build the library BEFORE the standard library is patched
+import pyuv_cffi
+
+print('pyuv_cffi imported', pyuv_cffi)
 import guv
 
 guv.monkey_patch()
