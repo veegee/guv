@@ -1,26 +1,28 @@
 guv = greenlets + libuv
 =======================
 
-guv is a fast networking library and WSGI server for Python >= 3.2
+guv is a fast networking library and WSGI server for Python >= 3.2 and pypy3
 
-libuv (via pyuv) is used as the event loop backend, allowing for a clean,
-simple event-loop implementation.
+Multiple event loop backends are provided:
 
-A pyuv implementation using cffi is currently being implemented. This will
-allow guv to be used with pypy3.
+- **epoll** (currently the fastest for pypy3, and very fast on CPython), may
+  have a few minor bugs in the Timer.
+- **pyuv** (currently the fastest for CPython, not supported on pypy3)
+- **pyuv_cffi** (slower than pyuv on CPython, slow and unpredictable on pypy3),
+  this is highly-experimental and a work-in-progress. Requires libuv >= 1.0.0
 
-- Requires libuv >= 1.0.0
+By default, the epoll backend is used due to the development override variable
+being set in `guv.hubs.hub.hub_names`.
 
 
 pyuv_cffi Status
 ================
 
-When examples/guv_simple_http_response is run on CPython, the implemented
-features seem to work fine, with no memory leaks. However, using CFFI is
-significantly slower than pyuv. Optimization needs to be done to speed up this
-implementation.
-
-On pypy3, there seems to be a memory leak.
+- When examples/guv_simple_http_response is run on CPython, the implemented
+  features seem to work fine, with no memory leaks. However, using CFFI is
+  significantly slower than pyuv. Optimization needs to be done to speed up this
+  implementation.
+- On pypy3, there seems to be a memory leak.
 
 
 To do
