@@ -16,7 +16,7 @@ being set in ``guv.hubs.hub.hub_names``.
 
 
 pyuv_cffi Status
-================
+----------------
 
 - When examples/guv_simple_http_response is run on CPython, the implemented
   features seem to work fine, with no memory leaks. However, using CFFI is
@@ -26,7 +26,7 @@ pyuv_cffi Status
 
 
 To do
-=====
+-----
 
 - Optimize the WSGI server for pypy3. Currently, pypy3 is running the WSGI
   server VERY slow (almost as slow as cPython). However, pypy3 is running the
