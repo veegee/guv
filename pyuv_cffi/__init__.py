@@ -21,6 +21,13 @@ with open(os.path.join(os.path.dirname(__file__), 'pyuv_cffi_cdef.c')) as f:
 with open(os.path.join(os.path.dirname(__file__), 'pyuv_cffi.c')) as f:
     libuv = ffi.verify(f.read(), libraries=['uv'])
 
+UV_READABLE = libuv.UV_READABLE
+UV_WRITABLE = libuv.UV_WRITABLE
+
+UV_RUN_DEFAULT = libuv.UV_RUN_DEFAULT
+UV_RUN_ONCE = libuv.UV_RUN_ONCE
+UV_RUN_NOWAIT = libuv.UV_RUN_NOWAIT
+
 
 class Loop:
     def __init__(self):
@@ -44,7 +51,7 @@ class Loop:
         # TODO: implement this method
         return self._handles
 
-    def run(self, mode=libuv.UV_RUN_DEFAULT):
+    def run(self, mode=UV_RUN_DEFAULT):
         return libuv.uv_run(self.loop_h, mode)
 
     def stop(self):
@@ -198,14 +205,41 @@ class Signal(Handle):
 
 class Poll(Handle):
     def __init__(self, loop, fd):
-        super().__init__()
-        self._poll_handle = libuv.pyuv_poll_new(loop.loop_h, fd)
+        self.loop = loop
+        self.fd = fd
+        self.handle = libuv.pyuv_poll_new(loop.loop_h, fd)
+        super().__init__(self.handle)
 
-    def start(self, events, cb):
-        return NotImplemented
+        self._handle_allocated = True
+        self._ffi_cb = None
+
+    def start(self, events, callback):
+        """Start the poll listener
+
+        :param events: UV_READABLE | UV_WRITEABLE
+        :param callback: Callable(poll_handle: Poll, status: int, events: int)
+        """
+
+        def cb_wrapper(uv_poll_t, status, events):
+            callback(self, status, events)
+
+        self._ffi_cb = ffi.callback('void (*)(uv_poll_t *, int, int)', cb_wrapper)
+        libuv.uv_poll_start(self.handle, events, self._ffi_cb)
 
     def stop(self):
-        return NotImplemented
+        self._ffi_cb = None
+        libuv.uv_poll_stop(self.handle)
+
+    def _free(self):
+        self.stop()
+        self._ffi_cb = None
+        if self._handle_allocated:
+            libuv.pyuv_poll_del(self.handle)
+            self._handle_allocated = False
+
+    def __del__(self):
+        self.stop()
+        self._free()
 
 
 def sig_cb(sig_h, sig_num):
