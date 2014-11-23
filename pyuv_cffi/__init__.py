@@ -11,14 +11,16 @@ __version__ = '0.1.0'
 version_info = tuple(map(int, __version__.split('.')))
 
 # clean up old compiled library binaries (not needed in production?)
-#cffi.verifier.cleanup_tmpdir()
+cffi.verifier.cleanup_tmpdir()
+
+thisdir = os.path.dirname(os.path.realpath(__file__))
 
 # load FFI definitions and custom C code
 ffi = cffi.FFI()
-with open(os.path.join(os.path.dirname(__file__), 'pyuv_cffi_cdef.c')) as f:
+with open(os.path.join(thisdir, 'pyuv_cffi_cdef.c')) as f:
     ffi.cdef(f.read())
 
-with open(os.path.join(os.path.dirname(__file__), 'pyuv_cffi.c')) as f:
+with open(os.path.join(thisdir, 'pyuv_cffi.c')) as f:
     libuv = ffi.verify(f.read(), libraries=['uv'])
 
 UV_READABLE = libuv.UV_READABLE
