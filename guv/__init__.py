@@ -9,6 +9,7 @@ try:
     from . import patcher
     from . import server
     import greenlet
+    import pyuv_cffi  # only to compile the shared library before monkey-patching
 
     sleep = greenthread.sleep
     spawn = greenthread.spawn
