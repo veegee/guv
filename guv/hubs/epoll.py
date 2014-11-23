@@ -4,7 +4,6 @@ This module is deprecated and will be removed once pyuv_cffi is fully implemente
 """
 import logging
 import heapq
-import time
 import select
 import errno
 
@@ -20,6 +19,7 @@ compat.patch()
 log = logging.getLogger('guv')
 
 epoll = patcher.original('select').epoll
+time = patcher.original('time')
 
 EXC_MASK = select.POLLERR | select.POLLHUP
 READ_MASK = select.POLLIN | select.POLLPRI
