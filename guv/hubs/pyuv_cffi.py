@@ -1,7 +1,7 @@
 import signal
 import logging
-import pyuv
 
+import pyuv_cffi
 from ..const import READ, WRITE
 from . import abc
 from .watchers import UvFdListener
@@ -30,9 +30,9 @@ class Hub(abc.AbstractHub):
         self.running = False
 
         #: :type: pyuv.Loop
-        self.loop = pyuv.Loop.default_loop()
+        self.loop = pyuv_cffi.Loop.default_loop()
 
-        sig = pyuv.Signal(self.loop)
+        sig = pyuv_cffi.Signal(self.loop)
         sig.start(self.signal_received, signal.SIGINT)
 
     def run(self):
@@ -46,7 +46,7 @@ class Hub(abc.AbstractHub):
         try:
             self.running = True
             self.stopping = False
-            self.loop.run(pyuv.UV_RUN_DEFAULT)
+            self.loop.run(pyuv_cffi.UV_RUN_DEFAULT)
         finally:
             self.running = False
             self.stopping = False
@@ -79,7 +79,7 @@ class Hub(abc.AbstractHub):
                 timer_handle.stop()
                 timer_handle.close()
 
-        timer_handle = pyuv.Timer(self.loop)
+        timer_handle = pyuv_cffi.Timer(self.loop)
         timer_handle.start(timer_callback, seconds, 0)
 
         return Timer(timer_handle)
@@ -108,7 +108,7 @@ class Hub(abc.AbstractHub):
             """
             cb()
 
-        poll_handle = pyuv.Poll(self.loop, fd)
+        poll_handle = pyuv_cffi.Poll(self.loop, fd)
 
         # create and add listener object
         listener = UvFdListener(evtype, fd, poll_handle)
@@ -117,9 +117,9 @@ class Hub(abc.AbstractHub):
         # start the pyuv Poll object
         flags = 0
         if evtype == READ:
-            flags = pyuv.UV_READABLE
+            flags = pyuv_cffi.UV_READABLE
         elif evtype == WRITE:
-            flags = pyuv.UV_WRITABLE
+            flags = pyuv_cffi.UV_WRITABLE
 
         poll_handle.start(flags, pyuv_cb)
 

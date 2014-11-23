@@ -8,6 +8,9 @@ _threadlocal = _threading.local()
 
 log = logging.getLogger('guv')
 
+# set hub_names to a list of hub types to try; set to None to try the default list in order
+hub_names = ['epoll']
+
 
 def notify_close(fd):
     """Register for any waiting listeners to be notified on the next run loop that a particular file
@@ -32,7 +35,7 @@ def notify_opened(fd):
 def get_default_hub():
     """Get default hub implementation
     """
-    names = ['pyuv', 'epoll']
+    names = hub_names or ['pyuv', 'pyuv_cffi', 'epoll']
 
     for name in names:
         try:
