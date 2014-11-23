@@ -1,7 +1,3 @@
-# FIXME: pyuv_cffi needs to build the library BEFORE the standard library is patched
-import pyuv_cffi
-
-print('pyuv_cffi imported', pyuv_cffi)
 import guv
 
 guv.monkey_patch()
@@ -11,6 +7,9 @@ import time
 
 from util import create_example
 import logger
+from pympler import tracker
+
+tr = tracker.SummaryTracker()
 
 if not hasattr(time, 'perf_counter'):
     time.perf_counter = time.clock
@@ -51,5 +50,5 @@ if __name__ == '__main__':
         server = guv.server.Server(server_sock, handle, pool, 'spawn_n')
         server.start()
     except (SystemExit, KeyboardInterrupt):
-        log.debug('average response time: {}'.format(get_avg_time()))
+        tr.print_diff()
         log.debug('Bye!')
