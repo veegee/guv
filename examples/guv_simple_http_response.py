@@ -4,16 +4,9 @@ guv.monkey_patch()
 import guv.server
 import guv.hubs
 import logging
-import time
-import cProfile
-import pstats
-import GreenletProfiler
 
 from util import create_example
 import logger
-
-if not hasattr(time, 'perf_counter'):
-    time.perf_counter = time.clock
 
 logger.configure()
 log = logging.getLogger()
@@ -31,7 +24,6 @@ def main():
     try:
         log.debug('Start')
         server_sock = guv.listen(('0.0.0.0', 8001))
-        #server = guv.server.Server(server_sock, handle, pool, 'spawn_n')
         server = guv.server.Server(server_sock, handle, None, None)
         server.start()
     except (SystemExit, KeyboardInterrupt):
@@ -39,6 +31,9 @@ def main():
 
 
 def cprofile_run():
+    import cProfile
+    import pstats
+
     hub_name = guv.hubs.get_hub().__module__.split('.')[2]
     profile_fname = 'guv_{}.profile'.format(hub_name)
     stats_fname = 'guv_{}.stats'.format(hub_name)
@@ -52,6 +47,9 @@ def cprofile_run():
 
 
 def greenlet_profile_run():
+    import GreenletProfiler
+    import pstats
+
     hub_name = guv.hubs.get_hub().__module__.split('.')[2]
     profile_fname = 'guv_{}.profile'.format(hub_name)
     stats_fname = 'guv_{}.stats'.format(hub_name)

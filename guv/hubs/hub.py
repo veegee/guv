@@ -43,7 +43,7 @@ def get_default_hub():
     for name in names:
         try:
             module = importlib.import_module('guv.hubs.{}'.format(name))
-            log.debug('Using event loop backend: {}'.format(name))
+            log.debug('Hub: use {}'.format(name))
             return module
         except ImportError:
             # try the next possible hub

@@ -101,7 +101,7 @@ class AbstractServer(metaclass=ABCMeta):
         if pool is None:
             # use bare greenlets
             self.pool = None
-            log.debug('Server: use bare greenlets')
+            log.debug('Server: use fast spawn_n')
         else:
             # create a pool instance
             self.pool = pool
