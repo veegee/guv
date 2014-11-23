@@ -3,6 +3,7 @@
 Compatible with Python 3 and pypy3
 """
 import os
+import functools
 
 import cffi
 import cffi.verifier
@@ -71,6 +72,21 @@ class Loop:
         self._free()
 
 
+def default_close_cb(uv_handle_t, handle):
+    """Remove extra reference to the Handle object when closed
+
+    This is the default handle-close callback that gets called if a callback is not supplied.
+
+    :param uv_handle_t: pointer to the underlying uv_handle_t
+    :type: uv_handle_t: cdata
+    :param handle: Handle object that owns this callback
+    :type handle: Handle
+    """
+    alive.remove(handle)  # now safe to free resources
+    handle._ffi_cb = None
+    handle._ffi_close_cb = None
+
+
 class Handle:
     def __init__(self, handle):
         #: uv_handle_t
@@ -120,13 +136,15 @@ class Handle:
         if self._close_called:
             return
 
-        def cb_wrapper(uv_handle_t):
-            if callback:
+        if callback:
+            def cb_wrapper(uv_handle_t):
                 callback(self)
 
-            alive.remove(self)  # now safe to free resources
-            self._ffi_cb = None
-            self._ffi_close_cb = None
+                alive.remove(self)  # now safe to free resources
+                self._ffi_cb = None
+                self._ffi_close_cb = None
+        else:
+            cb_wrapper = functools.partial(default_close_cb, handle=self)
 
         self._ffi_close_cb = ffi.callback('void (*)(uv_handle_t *)', cb_wrapper)
         libuv.uv_close(self.uv_handle, self._ffi_close_cb)
