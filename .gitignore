@@ -3,6 +3,7 @@
 .*
 build/
 dist/
+examples/bottle.py
 
 # virtual env
 venv*
