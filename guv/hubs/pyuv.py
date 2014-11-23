@@ -1,4 +1,4 @@
-import pyuv
+import pyuv_cffi as pyuv
 import signal
 import logging
 
