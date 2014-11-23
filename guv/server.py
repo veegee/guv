@@ -4,7 +4,7 @@ import errno
 import greenlet
 from abc import ABCMeta, abstractmethod
 
-from . import greenpool, patcher
+from . import greenpool, patcher, greenthread
 from .greenio import GreenSocket
 from .green import socket, ssl
 from .hubs import get_hub
@@ -101,12 +101,12 @@ class AbstractServer(metaclass=ABCMeta):
         if pool is None:
             # use bare greenlets
             self.pool = None
-            log.debug('Server configured: use bare greenlets')
+            log.debug('Server: use bare greenlets')
         else:
             # create a pool instance
             self.pool = pool
             self.spawn = getattr(self.pool, spawn)
-            log.debug('Server configured: use {}.{}'.format(pool, spawn))
+            log.debug('Server: use {}.{}'.format(pool, spawn))
 
         self.hub = get_hub()
 
@@ -136,8 +136,7 @@ class AbstractServer(metaclass=ABCMeta):
         :type addr: tuple[str, int]
         """
         if self.pool is None:
-            g = greenlet.greenlet(self.client_handler_cb)
-            g.switch(client_sock, addr)
+            greenthread.spawn_n(self.client_handler_cb, client_sock, addr)
         else:
             self.spawn(self.client_handler_cb, client_sock, addr)
 

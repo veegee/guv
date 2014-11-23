@@ -58,6 +58,18 @@ class AbstractHub(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def schedule_call_now(self, cb, *args, **kwargs):
+        """Schedule a callable to be called immediately
+
+        This is faster than calling :meth:`schedule_call_global(0, ...)`
+
+        :param Callable cb: callback to call after timer fires
+        :param args: positional arguments to pass to the callback
+        :param kwargs: keyword arguments to pass to the callback
+        """
+        pass
+
+    @abstractmethod
     def schedule_call_global(self, seconds, cb, *args, **kwargs):
         """Schedule a callable to be called after 'seconds' seconds have elapsed. The timer will NOT
         be canceled if the current greenlet has exited before the timer fires.

@@ -20,6 +20,7 @@ log = logging.getLogger('guv')
 
 epoll = patcher.original('select').epoll
 time = patcher.original('time')
+queue = patcher.original('queue')
 
 EXC_MASK = select.POLLERR | select.POLLHUP
 READ_MASK = select.POLLIN | select.POLLPRI
@@ -34,6 +35,7 @@ class Hub(abc.AbstractHub):
         self.stopping = False
         self.running = False
         self.timers = []  # heap of timers
+        self.callbacks = []  # list of callbacks
         self.epoll = epoll()
 
     def _fire_timers(self, up_to):
@@ -82,6 +84,14 @@ class Hub(abc.AbstractHub):
         if fd in writers:
             del writers[fd]
 
+    def _fire_callbacks(self):
+        """Fire immediate callbacks
+        """
+        callbacks = self.callbacks
+        self.callbacks = []
+        for cb, args, kwargs in callbacks:
+            cb(*args, **kwargs)
+
     def run(self):
         if self.stopping:
             return
@@ -102,6 +112,7 @@ class Hub(abc.AbstractHub):
         try:
             while True:
                 self._fire_timers(time.monotonic())
+                self._fire_callbacks()
                 sleep_time = self._time_until_next_timer() or 60
                 self._wait(sleep_time)
 
@@ -153,17 +164,10 @@ class Hub(abc.AbstractHub):
         if self.running:
             self.stopping = True
 
-    def schedule_call_global(self, seconds, cb, *args, **kwargs):
-        """Schedule a callable to be called after 'seconds' seconds have elapsed. The timer will NOT
-        be canceled if the current greenlet has exited before the timer fires.
+    def schedule_call_now(self, cb, *args, **kwargs):
+        self.callbacks.append((cb, args, kwargs))
 
-        :param float seconds: number of seconds to wait
-        :param Callable cb: callback to call after timer fires
-        :param args: positional arguments to pass to the callback
-        :param kwargs: keyword arguments to pass to the callback
-        :return: timer object that can be cancelled
-        :rtype: hubs.abc.Timer
-        """
+    def schedule_call_global(self, seconds, cb, *args, **kwargs):
         timer = Timer(seconds, cb, *args, **kwargs)
         heapq.heappush(self.timers, timer)
 

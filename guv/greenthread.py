@@ -58,7 +58,10 @@ def spawn_n(func, *args, **kwargs):
     trace; the print can be disabled by calling
     :func:`guv.debug.hub_exceptions` with False.
     """
-    return _spawn_n(0, func, args, kwargs)[1]
+    hub = hubs.get_hub()
+    g = greenlet.greenlet(func, parent=hub.greenlet)
+    hub.schedule_call_now(g.switch, *args, **kwargs)
+    return g
 
 
 def spawn_after(seconds, func, *args, **kwargs):
