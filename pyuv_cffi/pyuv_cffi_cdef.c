@@ -13,10 +13,11 @@ enum uv_poll_event {
 // handle types
 typedef struct uv_loop_s uv_loop_t;
 typedef struct uv_handle_s uv_handle_t;
-typedef struct uv_poll_s uv_poll_t;
 typedef struct uv_timer_s uv_timer_t;
 typedef struct uv_signal_s uv_signal_t;
+typedef struct uv_poll_s uv_poll_t;
 
+typedef void (*uv_close_cb)(uv_handle_t* handle);
 typedef void (*uv_poll_cb)(uv_poll_t* handle, int status, int events);
 typedef void (*uv_timer_cb)(uv_timer_t* handle);
 typedef void (*uv_signal_cb)(uv_signal_t* handle, int signum);
@@ -36,6 +37,9 @@ void uv_stop(uv_loop_t*);
 void uv_ref(uv_handle_t *);
 void uv_unref(uv_handle_t *);
 int uv_has_ref(const uv_handle_t *);
+void uv_close(uv_handle_t* handle, uv_close_cb close_cb);
+int uv_is_active(const uv_handle_t* handle);
+uv_handle_t *cast_handle(void *handle);
 
 
 // timer functions

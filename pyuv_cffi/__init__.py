@@ -7,6 +7,9 @@ import os
 import cffi
 import cffi.verifier
 
+__version__ = '0.1.0'
+version_info = tuple(map(int, __version__.split('.')))
+
 # clean up old compiled library binaries (not needed in production?)
 cffi.verifier.cleanup_tmpdir()
 
@@ -58,34 +61,49 @@ class Loop:
 
 
 class Handle:
-    def __init__(self):
-        self._ref = False
+    def __init__(self, handle):
+        #: uv_handle_t
+        self.uv_handle = libuv.cast_handle(handle)
+
+        self._ffi_close_cb = None
 
     @property
     def ref(self):
-        # TODO: implement this method
-        return self._ref
+        return bool(libuv.uv_has_ref(self.uv_handle))
 
     @ref.setter
     def ref(self, value):
-        # TODO: implement this method
         if value:
-            # set ref on this handle
-            pass
+            libuv.uv_ref(self.uv_handle)
         else:
-            # remove ref on this handle
-            pass
+            libuv.uv_unref(self.uv_handle)
+
+    @property
+    def active(self):
+        return bool(libuv.uv_is_active(self.uv_handle))
+
+    def close(self, callback=None):
+        """Close uv handle
+
+        :type callback: Callable(uv_handle: Handle) or None
+        """
+
+        def cb_wrapper(uv_handle_t):
+            if callback:
+                callback(self)
+
+        self._ffi_close_cb = ffi.callback('void(*)(uv_handle_t *)', cb_wrapper)
+        libuv.uv_close(self.uv_handle, self._ffi_close_cb)
 
 
 class Timer(Handle):
     def __init__(self, loop):
-        super().__init__()
         self.loop = loop
-
         self.handle = libuv.pyuv_timer_new(loop.loop_h)
+        super().__init__(self.handle)
+
         self._handle_allocated = True
         self._repeat = None
-
         self._ffi_cb = None
 
     @property
@@ -118,14 +136,9 @@ class Timer(Handle):
         self._ffi_cb = None
         libuv.uv_timer_stop(self.handle)
 
-    def again(self):
-        return NotImplemented
-
-    def close(self):
-        self._free()
-
     def _free(self):
         self.stop()
+        self.close()
         self._ffi_cb = None
         if self._handle_allocated:
             libuv.pyuv_timer_del(self.handle)
@@ -137,12 +150,11 @@ class Timer(Handle):
 
 class Signal(Handle):
     def __init__(self, loop):
-        super().__init__()
         self.loop = loop
-
         self.handle = libuv.pyuv_signal_new(loop.loop_h)
-        self._handle_allocated = True
+        super().__init__(self.handle)
 
+        self._handle_allocated = True
         self._ffi_cb = None  # FFI callbacks need to be kept alive in order to be valid
 
     def start(self, callback, sig_num):
@@ -188,7 +200,7 @@ class Poll(Handle):
 
 
 def sig_cb(sig_h, sig_num):
-    print('sig_cb({}, {})'.format(sig_h, sig_num))
+    print('\nsig_cb({}, {})'.format(sig_h, sig_num))
     sig_h.stop()
     sig_h.loop.stop()
 
