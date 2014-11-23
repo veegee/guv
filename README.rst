@@ -12,7 +12,7 @@ Multiple event loop backends are provided:
   this is highly-experimental and a work-in-progress. Requires libuv >= 1.0.0
 
 By default, the epoll backend is used due to the development override variable
-being set in `guv.hubs.hub.hub_names`.
+being set in ``guv.hubs.hub.hub_names``.
 
 
 pyuv_cffi Status
