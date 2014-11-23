@@ -34,13 +34,14 @@ void uv_stop(uv_loop_t*);
 
 
 // handle functions
+uv_handle_t *cast_handle(void *handle);
+
 void uv_ref(uv_handle_t *);
 void uv_unref(uv_handle_t *);
 int uv_has_ref(const uv_handle_t *);
 void uv_close(uv_handle_t *handle, uv_close_cb close_cb);
 int uv_is_active(const uv_handle_t *handle);
 int uv_is_closing(const uv_handle_t *handle);
-uv_handle_t *cast_handle(void *handle);
 
 
 // timer functions

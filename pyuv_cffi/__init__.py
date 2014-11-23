@@ -30,6 +30,8 @@ UV_RUN_DEFAULT = libuv.UV_RUN_DEFAULT
 UV_RUN_ONCE = libuv.UV_RUN_ONCE
 UV_RUN_NOWAIT = libuv.UV_RUN_NOWAIT
 
+alive = []
+
 
 class Loop:
     def __init__(self):
@@ -74,7 +76,12 @@ class Handle:
         #: uv_handle_t
         self.uv_handle = libuv.cast_handle(handle)
 
+        self._ffi_cb = None
         self._ffi_close_cb = None
+
+        self._close_called = False
+
+        alive.append(self)  # store a reference to self in the global scope
 
     @property
     def ref(self):
@@ -110,15 +117,21 @@ class Handle:
 
         :type callback: Callable(uv_handle: Handle) or None
         """
-        if self.closing:
+        if self._close_called:
             return
 
         def cb_wrapper(uv_handle_t):
             if callback:
                 callback(self)
 
+            alive.remove(self)  # now safe to free resources
+            self._ffi_cb = None
+            self._ffi_close_cb = None
+
         self._ffi_close_cb = ffi.callback('void (*)(uv_handle_t *)', cb_wrapper)
         libuv.uv_close(self.uv_handle, self._ffi_close_cb)
+
+        self._close_called = True
 
 
 class Timer(Handle):
@@ -127,9 +140,8 @@ class Timer(Handle):
         self.handle = libuv.pyuv_timer_new(loop.loop_h)
         super().__init__(self.handle)
 
-        self._handle_allocated = True
         self._repeat = None
-        self._ffi_cb = None
+        self._stop_called = False
 
     @property
     def repeat(self):
@@ -153,21 +165,14 @@ class Timer(Handle):
         def cb_wrapper(timer_h):
             callback(self)
 
-        ffi_cb = ffi.callback('void (*)(uv_timer_t *)', cb_wrapper)
-        self._ffi_cb = ffi_cb
-        libuv.uv_timer_start(self.handle, ffi_cb, timeout, repeat)
+        self._ffi_cb = ffi.callback('void (*)(uv_timer_t *)', cb_wrapper)
+        libuv.uv_timer_start(self.handle, self._ffi_cb, timeout, repeat)
 
     def stop(self):
-        self._ffi_cb = None
         libuv.uv_timer_stop(self.handle)
 
     def _free(self):
-        self.stop()
-        self.close()
-        self._ffi_cb = None
-        if self._handle_allocated:
-            libuv.pyuv_timer_del(self.handle)
-            self._handle_allocated = False
+        libuv.pyuv_timer_del(self.handle)
 
     def __del__(self):
         self._free()
@@ -180,7 +185,6 @@ class Signal(Handle):
         super().__init__(self.handle)
 
         self._handle_allocated = True
-        self._ffi_cb = None  # FFI callbacks need to be kept alive in order to be valid
 
     def start(self, callback, sig_num):
         """Start the signal listener
@@ -197,18 +201,14 @@ class Signal(Handle):
         libuv.uv_signal_start(self.handle, ffi_cb, sig_num)
 
     def stop(self):
-        self._ffi_cb = None  # remove reference to the cdata object (it will be freed automatically)
         libuv.uv_signal_stop(self.handle)
 
     def _free(self):
-        self.stop()
-        self._ffi_cb = None
         if self._handle_allocated:
             libuv.pyuv_signal_del(self.handle)
             self._handle_allocated = False
 
     def __del__(self):
-        self.stop()
         self._free()
 
 
@@ -219,8 +219,7 @@ class Poll(Handle):
         self.handle = libuv.pyuv_poll_new(loop.loop_h, fd)
         super().__init__(self.handle)
 
-        self._handle_allocated = True
-        self._ffi_cb = None
+        self._stop_called = False
 
     def start(self, events, callback):
         """Start the poll listener
@@ -236,16 +235,18 @@ class Poll(Handle):
         libuv.uv_poll_start(self.handle, events, self._ffi_cb)
 
     def stop(self):
+        if self._stop_called:
+            return
+
+        err = libuv.uv_poll_stop(self.handle)
         self._ffi_cb = None
-        libuv.uv_poll_stop(self.handle)
+        if err < 0:
+            raise Exception('uv_poll_stop() failed: {}'.format(err))
+
+        self._stop_called = True
 
     def _free(self):
-        self.stop()
-        self._ffi_cb = None
-        if self._handle_allocated:
-            libuv.pyuv_poll_del(self.handle)
-            self._handle_allocated = False
+        libuv.pyuv_poll_del(self.handle)
 
     def __del__(self):
-        self.stop()
         self._free()
