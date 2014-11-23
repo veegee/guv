@@ -1,5 +1,6 @@
 import logging
 import importlib
+import os
 
 from .. import patcher
 
@@ -9,7 +10,9 @@ _threadlocal = _threading.local()
 log = logging.getLogger('guv')
 
 # set hub_names to a list of hub types to try; set to None to try the default list in order
-hub_names = ['epoll']
+hub_names = os.environ.get('GUV_HUBS')
+if hub_names:
+    hub_names = hub_names.split(',')
 
 
 def notify_close(fd):
@@ -35,7 +38,7 @@ def notify_opened(fd):
 def get_default_hub():
     """Get default hub implementation
     """
-    names = hub_names or ['pyuv', 'pyuv_cffi', 'epoll']
+    names = hub_names or ['epoll', 'pyuv_cffi', 'pyuv']
 
     for name in names:
         try:

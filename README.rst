@@ -11,8 +11,9 @@ Multiple event loop backends are provided:
 - **pyuv_cffi** (slower than pyuv on CPython, slow and unpredictable on pypy3),
   this is highly-experimental and a work-in-progress. Requires libuv >= 1.0.0
 
-By default, the epoll backend is used due to the development override variable
-being set in ``guv.hubs.hub.hub_names``.
+In order to select a specific hub type or list of hub types to try, set the
+``GUV_HUBS`` environment variable to one or more comma-separated hub names from
+the above list.
 
 
 pyuv_cffi Status
