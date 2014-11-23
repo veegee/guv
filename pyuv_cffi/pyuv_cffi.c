@@ -1,3 +1,12 @@
+/**
+ * Custom C functions for using libuv with CFFI
+ *
+ * This file mostly contains functions to allocate and deallocate memory. Since
+ * `ffi.new()` needs to know the size of types, it is not possible to call it on
+ * types like `uv_loop_t` or `uv_timer_t`. These `*_new()` and `*_del()`
+ * functions solve this problem until I can find a way to do it "correctly" with
+ * CFFI if possible.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <uv.h>
@@ -17,6 +26,14 @@ void pyuv_loop_del(uv_loop_t *loop) {
 
 
 // handle functions
+/**
+ * Create a `uv_handle_t *` from a `uv_?_t` specific handle type
+ *
+ * The purpose of this is to instantiate the `Handle` class and use base
+ * `uv_handle_t` functions on any specific `uv_?_t` handle types. I couldn't
+ * figure out how to use `ffi.cast` to get what I wanted, so that is the purpose
+ * of this function.
+ */
 uv_handle_t *cast_handle(void *handle) {
     return (uv_handle_t *)handle;
 }
