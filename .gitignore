@@ -3,9 +3,9 @@
 .*
 build/
 dist/
-examples/bottle.py
 examples/*.profile
 examples/*.stats
+examples/_*.py
 pyuv_cffi/uv.h
 
 # virtual env
