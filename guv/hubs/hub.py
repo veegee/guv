@@ -38,7 +38,7 @@ def notify_opened(fd):
 def get_default_hub():
     """Get default hub implementation
     """
-    names = hub_names or ['epoll', 'pyuv_cffi', 'pyuv']
+    names = hub_names or ['pyuv_cffi', 'epoll', 'pyuv']
 
     for name in names:
         try:
