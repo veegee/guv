@@ -11,7 +11,7 @@ __version__ = '0.1.0'
 version_info = tuple(map(int, __version__.split('.')))
 
 # clean up old compiled library binaries (not needed in production?)
-cffi.verifier.cleanup_tmpdir()
+#cffi.verifier.cleanup_tmpdir()
 
 # load FFI definitions and custom C code
 ffi = cffi.FFI()

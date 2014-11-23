@@ -1,7 +1,7 @@
-import pyuv_cffi as pyuv
 import signal
 import logging
 
+import pyuv_cffi as pyuv
 from ..const import READ, WRITE
 from . import abc
 from .watchers import UvFdListener
