@@ -4,6 +4,8 @@
 build/
 dist/
 examples/bottle.py
+examples/*.profile
+examples/*.stats
 
 # virtual env
 venv*
