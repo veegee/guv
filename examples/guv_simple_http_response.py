@@ -7,9 +7,12 @@ import time
 
 from util import create_example
 import logger
-from pympler import tracker
+try:
+    from pympler import tracker
 
-tr = tracker.SummaryTracker()
+    tr = tracker.SummaryTracker()
+except ImportError:
+    tr = None
 
 if not hasattr(time, 'perf_counter'):
     time.perf_counter = time.clock
@@ -17,28 +20,11 @@ if not hasattr(time, 'perf_counter'):
 logger.configure()
 log = logging.getLogger()
 
-response_times = []
-
-
-def get_avg_time():
-    global response_times
-    times = response_times[-1000:]
-    avg = sum(times) / len(times)
-
-    if len(response_times) > 5000:
-        response_times = times
-
-    return avg
-
 
 def handle(sock, addr):
     # client connected
-    start_time = time.perf_counter()
     sock.sendall(create_example())
     sock.close()
-
-    total_time = time.perf_counter() - start_time
-    response_times.append(total_time)
 
 
 if __name__ == '__main__':
@@ -50,5 +36,6 @@ if __name__ == '__main__':
         server = guv.server.Server(server_sock, handle, pool, 'spawn_n')
         server.start()
     except (SystemExit, KeyboardInterrupt):
-        tr.print_diff()
+        if tr:
+            tr.print_diff()
         log.debug('Bye!')
