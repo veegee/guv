@@ -12,6 +12,17 @@ allow guv to be used with pypy3.
 - Requires libuv >= 1.0.0
 
 
+pyuv_cffi Status
+================
+
+When examples/guv_simple_http_response is run on CPython, the implemented
+features seem to work fine, with no memory leaks. However, using CFFI is
+significantly slower than pyuv. Optimization needs to be done to speed up this
+implementation.
+
+On pypy3, there seems to be a memory leak.
+
+
 To do
 =====
 
