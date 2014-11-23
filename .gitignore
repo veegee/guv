@@ -6,6 +6,7 @@ dist/
 examples/bottle.py
 examples/*.profile
 examples/*.stats
+pyuv_cffi/uv.h
 
 # virtual env
 venv*
