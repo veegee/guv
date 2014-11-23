@@ -1,4 +1,4 @@
-from . import Loop, Timer, Signal
+from pyuv_cffi import Loop, Timer, Signal
 
 
 def sig_cb(sig_h, sig_num):
