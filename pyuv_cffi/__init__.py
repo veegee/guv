@@ -96,6 +96,13 @@ class Handle:
         """
         return bool(libuv.uv_is_closing(self.uv_handle))
 
+    @property
+    def closed(self):
+        """
+        :return: True if handle is closing or closed, False otherwise
+        """
+        return bool(libuv.uv_is_closing(self.uv_handle))
+
     def close(self, callback=None):
         """Close uv handle
 
