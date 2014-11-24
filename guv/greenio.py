@@ -325,11 +325,11 @@ class GreenSocket:
                              timeout_exc=socket.timeout("timed out"))
         return self.sock.recvfrom_into(*args)
 
-    def recv_into(self, *args):
+    def recv_into(self, buffer, nbytes=0, flags=0):
         if not self.act_non_blocking:
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
                              timeout_exc=socket.timeout("timed out"))
-        return self.sock.recv_into(*args)
+        return self.sock.recv_into(buffer, nbytes, flags)
 
     def _old_send(self, data, flags=0):
         sock = self.sock
