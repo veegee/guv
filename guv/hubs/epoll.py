@@ -112,30 +112,41 @@ class Hub(abc.AbstractHub):
         try:
             while True:
                 self._fire_timers(time.monotonic())
-                self._fire_callbacks()  # call scheduled callbacks (spawn(), etc.)
-                sleep_time = self._time_until_next_timer() or 60
-                self._wait(sleep_time)  # call I/O event callbacks
+
+                # call scheduled callbacks (made via spawn(), etc.)
+                self._fire_callbacks()
+
+                # poll for I/O and call I/O callbacks
+                self._poll()
 
         except KeyboardInterrupt:
             self.abort()
             self.greenlet.parent.throw(KeyboardInterrupt)
 
-    def _wait(self, seconds=None):
+    def _poll(self):
+        # get time until next timer, or 60 seconds if there are no timers
+        sleep_time = self._time_until_next_timer()
+        if sleep_time is None:
+            sleep_time = 60
+
         readers = self.listeners[READ]
         writers = self.listeners[WRITE]
 
+        # sleep if no I/O listeners are registered
         if not (readers or writers):
-            if seconds:
-                log.debug('sleep for {}s with {}'.format(seconds, time.sleep))
-                time.sleep(seconds)
+            if sleep_time:
+                time.sleep(sleep_time)
             return
+
+        # call epoll()
         try:
-            poll_result = self.epoll.poll(seconds)
+            poll_result = self.epoll.poll(sleep_time)
         except (IOError, select.error) as e:
             if get_errno(e) == errno.EINTR:
                 return
             raise
 
+        # build a set of listeners to process from the results of epoll()
         listeners = set()
 
         for fd, event in poll_result:
@@ -152,6 +163,7 @@ class Hub(abc.AbstractHub):
                 if fd in writers:
                     listeners.add(writers[fd])
 
+        # call listener callbacks
         for listener in listeners:
             try:
                 listener.cb()
