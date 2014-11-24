@@ -128,13 +128,9 @@ class GreenSocket:
         if isinstance(af_or_sock, int):
             # this is an address family (AF_*) constant; make a socket
             sock = original_socket(af_or_sock, *args, **kwargs)
-            # notify the hub that this is a newly-opened socket.
-            #log.debug('create new GreenSocket (create fresh socket), fd: {}'.format(sock.fileno()))
         else:
             # this is a socket
             sock = af_or_sock
-            #log.debug('create new GreenSocket (from existing normal socket), fd: {}'
-            #          .format(sock.fileno()))
 
         # import timeout from other socket, if it was there
         try:
@@ -201,7 +197,6 @@ class GreenSocket:
             return trampoline(fd, read=read, write=write, timeout=timeout, timeout_exc=timeout_exc)
         except IOClosed:
             # this socket has been closed
-            #log.debug('socket closed fd: {}'.format(self.fileno()))
             self._mark_as_closed()
             raise
 
@@ -315,9 +310,8 @@ class GreenSocket:
             try:
                 self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
                                  timeout_exc=socket.timeout("timed out"))
-            except IOClosed as e:
-                # Perhaps we should return '' instead?
-                raise EOFError()
+            except IOClosed:
+                return b''
 
     def recvfrom(self, *args):
         if not self.act_non_blocking:
