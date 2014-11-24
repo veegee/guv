@@ -208,12 +208,16 @@ class GreenSocket:
     def accept(self):
         if self.act_non_blocking:
             return self.sock.accept()
+
         while True:
             res = socket_accept(self.sock)
             if res is not None:
+                # successfully accepted a connection
                 client, addr = res
                 set_nonblocking(client)
                 return type(self)(client), addr
+
+            # else, EWOULDBLOCK
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
                              timeout_exc=socket.timeout('timed out'))
 
@@ -297,6 +301,7 @@ class GreenSocket:
         sock = self.sock
         if self.act_non_blocking:
             return sock.recv(buflen, flags)
+
         while True:
             try:
                 return sock.recv(buflen, flags)
@@ -304,7 +309,7 @@ class GreenSocket:
                 if get_errno(e) in SOCKET_BLOCKING:
                     pass
                 elif get_errno(e) in SOCKET_CLOSED:
-                    return ''
+                    return b''
                 else:
                     raise
             try:
