@@ -44,7 +44,7 @@ def spawn(func, *args, **kwargs):
     """
     hub = hubs.get_hub()
     g = GreenThread(hub.greenlet)
-    hub.schedule_call_global(0, g.switch, func, args, kwargs)
+    hub.schedule_call_now(g.switch, *args, **kwargs)
     return g
 
 
