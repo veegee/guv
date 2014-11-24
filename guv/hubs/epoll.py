@@ -112,9 +112,9 @@ class Hub(abc.AbstractHub):
         try:
             while True:
                 self._fire_timers(time.monotonic())
-                self._fire_callbacks()
+                self._fire_callbacks()  # call scheduled callbacks (spawn(), etc.)
                 sleep_time = self._time_until_next_timer() or 60
-                self._wait(sleep_time)
+                self._wait(sleep_time)  # call I/O event callbacks
 
         except KeyboardInterrupt:
             self.abort()
