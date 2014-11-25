@@ -1,5 +1,6 @@
 import signal
 import logging
+import greenlet
 
 import pyuv_cffi
 from ..const import READ, WRITE
@@ -41,6 +42,8 @@ class Hub(abc.AbstractHub):
         self.prepare.start(self._fire_callbacks)
 
     def run(self):
+        assert self is greenlet.getcurrent()
+
         if self.stopping:
             return
 

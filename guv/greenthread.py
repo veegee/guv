@@ -24,7 +24,7 @@ def sleep(seconds=0):
     """
     hub = hubs.get_hub()
     current = greenlet.getcurrent()
-    assert hub.greenlet is not current, 'do not call blocking functions from the hub'
+    assert hub is not current, 'do not call blocking functions from the hub'
     timer = hub.schedule_call_global(seconds, current.switch)
     try:
         hub.switch()
@@ -43,7 +43,7 @@ def spawn(func, *args, **kwargs):
     after a finite delay.
     """
     hub = hubs.get_hub()
-    g = GreenThread(hub.greenlet)
+    g = GreenThread(hub)
     hub.schedule_call_now(g.switch, *args, **kwargs)
     return g
 
@@ -59,7 +59,7 @@ def spawn_n(func, *args, **kwargs):
     :func:`guv.debug.hub_exceptions` with False.
     """
     hub = hubs.get_hub()
-    g = greenlet.greenlet(func, parent=hub.greenlet)
+    g = greenlet.greenlet(func, parent=hub)
     hub.schedule_call_now(g.switch, *args, **kwargs)
     return g
 
@@ -82,7 +82,7 @@ def spawn_after(seconds, func, *args, **kwargs):
     it's started or not is the desired behavior, call :meth:`GreenThread.kill`.
     """
     hub = hubs.get_hub()
-    g = GreenThread(hub.greenlet)
+    g = GreenThread(hub)
     hub.schedule_call_global(seconds, g.switch, func, args, kwargs)
     return g
 
@@ -105,7 +105,7 @@ def spawn_after_local(seconds, func, *args, **kwargs):
     :meth:`GreenThread.kill`.
     """
     hub = hubs.get_hub()
-    g = GreenThread(hub.greenlet)
+    g = GreenThread(hub)
     hub.schedule_call_local(seconds, g.switch, func, args, kwargs)
     return g
 
@@ -125,7 +125,7 @@ def call_after_local(seconds, function, *args, **kwargs):
         "has the same signature and semantics (plus a bit extra).",
         DeprecationWarning, stacklevel=2)
     hub = hubs.get_hub()
-    g = greenlet.greenlet(function, parent=hub.greenlet)
+    g = greenlet.greenlet(function, parent=hub)
     t = hub.schedule_call_local(seconds, g.switch, *args, **kwargs)
     return t
 
@@ -149,7 +149,7 @@ with_timeout = timeout.with_timeout
 
 def _spawn_n(seconds, func, args, kwargs):
     hub = hubs.get_hub()
-    g = greenlet.greenlet(func, parent=hub.greenlet)
+    g = greenlet.greenlet(func, parent=hub)
     t = hub.schedule_call_global(seconds, g.switch, *args, **kwargs)
     return t, g
 
@@ -289,7 +289,7 @@ def kill(g, *throw_args):
             except:
                 pass
     current = greenlet.getcurrent()
-    if current is not hub.greenlet:
+    if current is not hub:
         # arrange to wake the caller back up immediately
         hub.ensure_greenlet()
         hub.schedule_call_global(0, current.switch)

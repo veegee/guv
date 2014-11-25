@@ -6,6 +6,7 @@ import logging
 import heapq
 import select
 import errno
+import greenlet
 
 from .. import patcher
 from ..const import READ, WRITE
@@ -93,6 +94,8 @@ class Hub(abc.AbstractHub):
             cb(*args, **kwargs)
 
     def run(self):
+        assert self is greenlet.getcurrent()
+
         if self.stopping:
             return
 

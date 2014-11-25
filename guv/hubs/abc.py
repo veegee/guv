@@ -36,10 +36,10 @@ class AbstractListener(metaclass=ABCMeta):
     __str__ = __repr__
 
 
-class AbstractHub(metaclass=ABCMeta):
+class AbstractHub(greenlet.greenlet, metaclass=ABCMeta):
     def __init__(self):
+        super().__init__()
         self.listeners = {READ: {}, WRITE: {}}
-        self.greenlet = greenlet.greenlet(self.run)
         self.Listener = AbstractListener
         self.stopping = False
 
@@ -49,7 +49,6 @@ class AbstractHub(metaclass=ABCMeta):
     def run(self, *args, **kwargs):
         """Run event loop
         """
-        pass
 
     @abstractmethod
     def abort(self):
@@ -107,29 +106,11 @@ class AbstractHub(metaclass=ABCMeta):
         """
         pass
 
-    def ensure_greenlet(self):
-        """Ensure that the hub's `greenlet` is valid
-        """
-        if self.greenlet.dead:
-            # create new greenlet sharing same parent as original
-            new = greenlet.greenlet(self.run, self.greenlet.parent)
-            # need to assign as parent of old greenlet for those greenlets that are currently
-            # children of the dead hub and may subsequently exit without further switching to hub
-            self.greenlet.parent = new
-            self.greenlet = new
-
     def switch(self):
         """Switch to the hub greenlet
         """
-        cur = greenlet.getcurrent()
-        assert cur is not self.greenlet, 'Cannot switch to the hub from the hub'
-        self.ensure_greenlet()
-        try:
-            if self.greenlet.parent is not cur:
-                cur.parent = self.greenlet
-        except ValueError:
-            pass  # gets raised if there is a greenlet parent cycle
-        return self.greenlet.switch()
+        assert greenlet.getcurrent() is not self, 'Cannot switch to the hub from the hub'
+        return super().switch()
 
     def _squelch_generic_exception(self, exc_info):
         if self._debug_exceptions:

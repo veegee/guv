@@ -32,7 +32,7 @@ def trampoline(fd, read=False, write=False, timeout=None, timeout_exc=Timeout):
     hub = get_hub()
     current = greenlet.getcurrent()
 
-    assert hub.greenlet is not current, 'do not call blocking functions from the mainloop'
+    assert hub is not current, 'do not call blocking functions from the mainloop'
     assert bool(read) ^ bool(write), 'only one of read/write must be True'
     assert isinstance(fd, int)
 
