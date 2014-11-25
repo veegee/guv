@@ -29,7 +29,7 @@ BROKEN_SOCK = {errno.EPIPE, errno.ECONNRESET}
 ACCEPT_EXCEPTIONS = {socket.error, ssl.SSLError}
 ACCEPT_ERRNO = {errno.EPIPE, errno.EBADF, errno.ECONNRESET, ssl.SSL_ERROR_EOF, ssl.SSL_ERROR_SSL}
 
-__all__ = ['server', 'format_date_time']
+__all__ = ['serve', 'format_date_time']
 
 # weekday and month names for HTTP date/time formatting; always English!
 _weekdayname = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -218,17 +218,13 @@ def headers_factory(fp, *args):
 class WSGIHandler:
     protocol_version = 'HTTP/1.1'
 
-    def __init__(self, socket, address, server, rfile=None):
+    def __init__(self, client_sock, address, server):
         self.MessageClass = headers_factory
-        self.socket = socket
+        self.socket = client_sock
         self.client_address = address
         self.server = server
         self.application = self.server.application
-
-        if rfile is None:
-            self.rfile = socket.makefile('rb', -1)
-        else:
-            self.rfile = rfile
+        self.rfile = client_sock.makefile('rb', -1)
 
         # set up instance attributes
         self.requestline = None
@@ -700,7 +696,7 @@ class WSGIServer(Server):
         self.num_connections -= 1
 
 
-def server(server_sock, app, log_output=True):
+def serve(server_sock, app, log_output=True):
     """Start up a WSGI server handling requests from the supplied server socket
 
     This function loops forever. The *sock* object will be closed after server exits, but the

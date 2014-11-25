@@ -21,4 +21,4 @@ def index():
 
 if __name__ == '__main__':
     server_sock = guv.listen(('0.0.0.0', 8001))
-    guv.wsgi.server(server_sock, app)
+    guv.wsgi.serve(server_sock, app)
