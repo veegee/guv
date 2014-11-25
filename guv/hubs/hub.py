@@ -2,7 +2,6 @@ import logging
 import importlib
 import os
 
-from ..support import PYPY
 from .. import patcher
 
 _threading = patcher.original('threading')
@@ -39,11 +38,7 @@ def notify_opened(fd):
 def get_default_hub():
     """Get default hub implementation
     """
-    if PYPY:
-        # currently epoll is fastest for pypy3
-        names = hub_names or ['epoll', 'pyuv_cffi', 'pyuv']
-    else:
-        names = hub_names or ['pyuv', 'epoll', 'pyuv_cffi']
+    names = hub_names or ['pyuv_cffi', 'pyuv', 'epoll']
 
     for name in names:
         try:
