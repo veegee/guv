@@ -109,6 +109,7 @@ except ImportError:
     _GLOBAL_DEFAULT_TIMEOUT = object()
 
 
+# TODO: rewrite socket class to be more efficient
 class GreenSocket:
     """Green version of socket.socket class, that is 100% API-compatible
 
@@ -325,11 +326,22 @@ class GreenSocket:
                              timeout_exc=socket.timeout("timed out"))
         return self.sock.recvfrom_into(*args)
 
-    def recv_into(self, buffer, nbytes=0, flags=0):
+    def _recv_into1(self, buf, nbytes=0, flags=0):
         if not self.act_non_blocking:
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
                              timeout_exc=socket.timeout("timed out"))
-        return self.sock.recv_into(buffer, nbytes, flags)
+        return self.sock.recv_into(buf, nbytes, flags)
+
+    def _recv_into2(self, buf, nbytes=0, flags=0):
+        if nbytes == 0:
+            nbytes = len(buf)
+
+        data = self.recv(nbytes, flags)
+        len_data = len(data)
+        buf[:len_data] = data
+        return len_data
+
+    recv_into = _recv_into1
 
     def _old_send(self, data, flags=0):
         sock = self.sock
@@ -670,24 +682,3 @@ except ImportError:
             pass
 
 
-def shutdown_safe(sock):
-    """ Shuts down the socket. This is a convenience method for
-    code that wants to gracefully handle regular sockets, SSL.Connection
-    sockets from PyOpenSSL and ssl.SSLSocket objects from Python 2.6
-    interchangeably.  Both types of ssl socket require a shutdown() before
-    close, but they have different arity on their shutdown method.
-
-    Regular sockets don't need a shutdown before close, but it doesn't hurt.
-    """
-    try:
-        try:
-            # socket, ssl.SSLSocket
-            return sock.shutdown(socket.SHUT_RDWR)
-        except TypeError:
-            # SSL.Connection
-            return sock.shutdown()
-    except socket.error as e:
-        # we don't care if the socket is already closed;
-        # this will often be the case in an http server context
-        if get_errno(e) != errno.ENOTCONN:
-            raise
