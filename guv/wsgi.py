@@ -265,7 +265,7 @@ class WSGIHandler:
                 try:
                     try:
                         # read out request data to prevent errno 104 Connection reset by peer
-                        self.socket._sock.recv(16384)
+                        self.socket.recv(16384)
                     finally:
                         self.socket.close()
                 except socket.error:
