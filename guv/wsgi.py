@@ -720,5 +720,5 @@ def serve(server_sock, app, log_output=True):
         try:
             server_sock.close()
         except socket.error as e:
-            if get_errno(e) not in BROKEN_SOCK:
+            if e.args[0] not in BROKEN_SOCK:
                 traceback.print_exc()

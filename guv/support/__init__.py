@@ -3,25 +3,20 @@ from contextlib import contextmanager
 import io
 
 
-def get_errno(exc):
+def get_errno(e):
     """Get the error code out of socket.error objects
     """
-    try:
-        if exc.errno is not None:
-            return exc.errno
-    except AttributeError:
-        pass
-    try:
-        return exc.args[0]
-    except IndexError:
-        return None
+    return e.args[0]
 
 
 def bytes_to_str(b, encoding='ascii'):
     return b.decode(encoding)
 
 
+# TODO: find usages and inline this variable
 PY33 = sys.version_info[:2] == (3, 3)
+
+PYPY = 'PyPy' in sys.version
 
 
 @contextmanager

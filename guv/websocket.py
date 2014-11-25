@@ -136,7 +136,7 @@ class WebSocketWSGI(object):
         try:
             self.handler(ws)
         except socket.error as e:
-            if get_errno(e) not in ACCEPTABLE_CLIENT_ERRORS:
+            if e.args[0] not in ACCEPTABLE_CLIENT_ERRORS:
                 raise
         # Make sure we send the closing frame
         ws._send_closing_frame(True)
