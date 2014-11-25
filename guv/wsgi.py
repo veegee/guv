@@ -224,7 +224,7 @@ class WSGIHandler:
         self.client_address = address
         self.server = server
         self.application = self.server.application
-        self.rfile = client_sock.makefile('rb', -1)
+        self.rfile = client_sock.makefile('rb', MINIMUM_CHUNK_SIZE)
 
         # set up instance attributes
         self.requestline = None
