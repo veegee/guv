@@ -5,22 +5,35 @@ import guv.server
 import guv.hubs
 import logging
 
-from util import create_example
+from util import create_response
 import logger
 
 logger.configure()
 log = logging.getLogger()
 
 
-def handle(sock, addr):
+def handle1(sock, addr):
     # client connected
-    sock.sendall(create_example())
+    # buf = bytearray(4096)
+    # b_read = sock.recv_into(buf, 4096)
+    resp = create_response('Hello, world!', {'Connection': 'close'})
+    sock.sendall(resp)
     sock.close()
 
 
-def main():
-    pool = guv.GreenPool()
+def handle2(sock, addr):
+    while True:
+        data = sock.recv(4096)
+        if not data:
+            break
+        resp = create_response('Hello, world!', {'Connection': 'keep-alive'})
+        sock.sendall(resp)
 
+
+handle = handle2
+
+
+def main():
     try:
         log.debug('Start')
         server_sock = guv.listen(('0.0.0.0', 8001))
@@ -48,7 +61,6 @@ def cprofile_run():
 
 def greenlet_profile_run():
     import GreenletProfiler
-    import pstats
 
     hub_name = guv.hubs.get_hub().__module__.split('.')[2]
     profile_fname = 'guv_{}.profile'.format(hub_name)
