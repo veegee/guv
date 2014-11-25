@@ -1,11 +1,9 @@
 import sys
 import logging
 import errno
-import greenlet
 from abc import ABCMeta, abstractmethod
 
 from . import greenpool, patcher, greenthread
-from .greenio import GreenSocket
 from .green import socket, ssl
 from .hubs import get_hub
 
@@ -131,7 +129,7 @@ class AbstractServer(metaclass=ABCMeta):
         """Spawn a client handler using the appropriate spawn mechanism
 
         :param client_sock: client socket
-        :type client_sock: socket.socket or GreenSocket
+        :type client_sock: socket.socket
         :param addr: address tuple
         :type addr: tuple[str, int]
         """
@@ -143,8 +141,6 @@ class AbstractServer(metaclass=ABCMeta):
 
 class Server(AbstractServer):
     """Standard server implementation not directly dependent on pyuv
-
-    This requires a GreenSocket.
     """
 
     def start(self):

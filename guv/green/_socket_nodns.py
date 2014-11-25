@@ -9,7 +9,9 @@ slurp_properties(__socket, globals(),
                  ignore=__patched__, srckeys=dir(__socket))
 
 os = __import__('os')
-from guv.greenio import GreenSocket as socket
+#from guv.greenio import GreenSocket as socket
+from guv.greenio import socket
+
 from guv.greenio import SSL as _SSL  # for exceptions
 
 try:

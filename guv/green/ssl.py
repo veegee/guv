@@ -13,7 +13,7 @@ time = __import__('time')
 
 from guv.support import get_errno, PY33, six
 from guv.hubs import trampoline
-from guv.greenio import set_nonblocking, GreenSocket, SOCKET_CLOSED, CONNECT_ERR, \
+from guv.greenio import set_nonblocking, socket, SOCKET_CLOSED, CONNECT_ERR, \
     CONNECT_SUCCESS
 
 orig_socket = __import__('socket')
