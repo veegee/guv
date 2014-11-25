@@ -13,14 +13,13 @@ from .hubs import trampoline, notify_close, notify_opened
 
 log = logging.getLogger('guv')
 
-__all__ = ['GreenSocket', 'GreenPipe', 'shutdown_safe']
+__all__ = ['GreenSocket', 'GreenPipe']
 
-BUFFER_SIZE = 4096
 CONNECT_ERR = {errno.EINPROGRESS, errno.EALREADY, errno.EWOULDBLOCK}
 CONNECT_SUCCESS = {0, errno.EISCONN}
 
 if sys.platform[:3] == 'win':
-    CONNECT_ERR.add(errno.WSAEINVAL)  # Bug 67
+    CONNECT_ERR.add(errno.WSAEINVAL)  # bug 67
 
 
 def socket_connect(sock, address):
