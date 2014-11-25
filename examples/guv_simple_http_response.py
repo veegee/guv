@@ -13,9 +13,9 @@ log = logging.getLogger()
 
 
 def handle1(sock, addr):
-    # client connected
-    # buf = bytearray(4096)
-    # b_read = sock.recv_into(buf, 4096)
+    data = sock.recv(4096)
+    if not data:
+        return
     resp = create_response('Hello, world!', {'Connection': 'close'})
     sock.sendall(resp)
     sock.close()
@@ -30,7 +30,7 @@ def handle2(sock, addr):
         sock.sendall(resp)
 
 
-handle = handle2
+handle = handle1
 
 
 def main():
