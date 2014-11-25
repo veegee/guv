@@ -174,7 +174,7 @@ class Hub(abc.AbstractHub):
         if signo == signal.SIGINT:
             sig_handle.stop()
             self.abort()
-            self.greenlet.parent.throw(KeyboardInterrupt)
+            self.parent.throw(KeyboardInterrupt)
 
     def _debug(self):
         msg = ['', '---------- hub state ----------']

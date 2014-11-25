@@ -124,7 +124,7 @@ class Hub(abc.AbstractHub):
 
         except KeyboardInterrupt:
             self.abort()
-            self.greenlet.parent.throw(KeyboardInterrupt)
+            self.parent.throw(KeyboardInterrupt)
 
     def _poll(self):
         # get time until next timer, or 60 seconds if there are no timers
