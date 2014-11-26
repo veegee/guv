@@ -1,21 +1,17 @@
 import io
-import sys
 import time
 import os
 import _socket
-
-from .hubs import trampoline
-from .exceptions import IOClosed
-from . import patcher
-
-is_windows = sys.platform == 'win32'
-
 import errno
-
 from errno import (EWOULDBLOCK, EINPROGRESS, EALREADY, EISCONN, EBADF, ENOTCONN, ESHUTDOWN, EAGAIN,
                    ECONNRESET, EPIPE, EINVAL)
 
-if is_windows:
+from . import patcher
+from .hubs import trampoline
+from .exceptions import IOClosed
+from .support import OS_WINDOWS
+
+if OS_WINDOWS:
     # winsock sometimes throws ENOTCONN
     SOCKET_BLOCKING = {EAGAIN, EWOULDBLOCK}
     SOCKET_CLOSED = {ECONNRESET, ESHUTDOWN, ENOTCONN}
