@@ -11,7 +11,7 @@ import errno
 
 time = __import__('time')
 
-from guv.support import get_errno, PY33, six
+from guv.support import get_errno, six
 from guv.hubs import trampoline
 from guv.greenio import socket, SOCKET_CLOSED, CONNECT_ERR, CONNECT_SUCCESS
 

@@ -307,12 +307,6 @@ class socket(_socket.socket):
         :return: (fd, address) or None if need to trampoline
         :rtype: tuple[fd, tuple[str, int]] or None
         """
-        # try:
-        #     fd, addr = self._accept()
-        #     break
-        # except error as e:
-        #     if self.timeout == 0.0:
-        #         raise
         try:
             fd, addr = self._accept()
             return fd, addr
