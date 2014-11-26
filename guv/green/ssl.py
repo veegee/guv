@@ -13,8 +13,7 @@ time = __import__('time')
 
 from guv.support import get_errno, PY33, six
 from guv.hubs import trampoline
-from guv.greenio import set_nonblocking, socket, SOCKET_CLOSED, CONNECT_ERR, \
-    CONNECT_SUCCESS
+from guv.greenio import socket, SOCKET_CLOSED, CONNECT_ERR, CONNECT_SUCCESS
 
 orig_socket = __import__('socket')
 socket = orig_socket.socket
@@ -316,7 +315,7 @@ class GreenSSLSocket(_original_sslsocket):
             while True:
                 try:
                     newsock, addr = socket.accept(self)
-                    set_nonblocking(newsock)
+                    newsock.setblocking(False)
                     break
                 except orig_socket.error as e:
                     if get_errno(e) != errno.EWOULDBLOCK:

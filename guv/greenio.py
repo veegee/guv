@@ -35,6 +35,7 @@ AF_UNIX = osocket.AF_UNIX
 SOCK_STREAM = osocket.SOCK_STREAM
 SOL_SOCKET = osocket.SOL_SOCKET
 SO_ERROR = osocket.SO_ERROR
+O_NONBLOCK = getattr(os, 'O_NONBLOCK', 0)  # Windows doesn't have this
 
 error = osocket.error
 dup = osocket.dup
@@ -50,45 +51,6 @@ def _get_memory(buf, offset):
 
 
 timeout_default = object()
-
-
-def set_nonblocking(sock):
-    """Set `sock` to be nonblocking
-
-    Works on many file-like objects as well as sockets. Only sockets can be nonblocking on
-    Windows, however.
-    """
-    try:
-        setblocking = sock.setblocking
-    except AttributeError:
-        # sock has no setblocking() method. It could be that this version of Python predates
-        # socket.setblocking(). In that case, we can still set the flag "by hand" on the underlying
-        # OS fileno using the fcntl module.
-        try:
-            import fcntl
-        except ImportError:
-            # Windows has no fcntl module. This might not be a socket at all, but rather a
-            # file-like object with no setblocking() method. In particular, on Windows, pipes don't
-            # support non-blocking I/O and therefore don't have that method, which means fcntl
-            # wouldn't help even if we could load it.
-            raise NotImplementedError(
-                "set_nonblocking() on a file object with no setblocking() method (Windows pipes "
-                "don't support non-blocking I/O)")
-        # we managed to import fcntl
-        fileno = sock.fileno()
-        orig_flags = fcntl.fcntl(fileno, fcntl.F_GETFL)
-        new_flags = orig_flags | os.O_NONBLOCK
-        if new_flags != orig_flags:
-            fcntl.fcntl(fileno, fcntl.F_SETFL, new_flags)
-    else:
-        # socket supports setblocking()
-        setblocking(0)
-
-
-def socket_checkerr(sock):
-    err = sock.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
-    if err not in CONNECT_SUCCESS:
-        raise socket.error(err, errno.errorcode[err])
 
 
 class socket(_socket.socket):
@@ -119,8 +81,7 @@ class socket(_socket.socket):
 
     @property
     def type(self):
-        #return _socket.socket.type.__get__(self) & ~_socket.SOCK_NONBLOCK
-        return _socket.socket.type.__get__(self) & ~os.O_NONBLOCK
+        return _socket.socket.type.__get__(self) & ~O_NONBLOCK
 
     def dup(self):
         fd = dup(self.fileno())
@@ -136,7 +97,6 @@ class socket(_socket.socket):
                 # successfully accepted a connection
                 fd, addr = res
                 client_sock = socket(self.family, self.type, self.proto, fileno=fd)
-                #set_nonblocking(client_sock)
                 return client_sock, addr
 
             # else: EWOULDBLOCK
@@ -168,11 +128,8 @@ class socket(_socket.socket):
         if self.gettimeout() is None:
             # blocking mode, no timeout
             while not self._socket_connect(address):
-                try:
-                    self._trampoline(self.fileno(), write=True)
-                except IOClosed:
-                    raise socket.error(EBADFD)
-                socket_checkerr(self)
+                self._trampoline(self.fileno(), write=True)
+                self._socket_checkerr()
         else:
             # blocking mode, with timeout
             end = time.time() + self.gettimeout()
@@ -183,13 +140,9 @@ class socket(_socket.socket):
                 if time.time() >= end:
                     raise osocket.timeout("timed out")
 
-                try:
-                    self._trampoline(self.fileno(), write=True, timeout=end - time.time(),
-                                     timeout_exc=osocket.timeout("timed out"))
-                except IOClosed:
-                    # ... we need some workable errno here.
-                    raise socket.error(errno.EBADFD)
-                socket_checkerr(self)
+                self._trampoline(self.fileno(), write=True, timeout=end - time.time(),
+                                 timeout_exc=osocket.timeout("timed out"))
+                self._socket_checkerr()
 
     def connect_ex(self, address):
         try:
@@ -390,6 +343,11 @@ class socket(_socket.socket):
         if err not in CONNECT_SUCCESS:
             raise socket.error(err, errno.errorcode[err])
         return True
+
+    def _socket_checkerr(self):
+        err = self.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        if err not in CONNECT_SUCCESS:
+            raise socket.error(err, errno.errorcode[err])
 
     def __enter__(self):
         return self
