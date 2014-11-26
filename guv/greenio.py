@@ -42,13 +42,6 @@ cancel_wait_ex = error(EBADF, 'File descriptor was closed in another greenlet')
 SocketIO = osocket.SocketIO
 
 
-def _get_memory(buf, offset):
-    return memoryview(buf)[offset:]
-
-
-timeout_default = object()
-
-
 class socket(_socket.socket):
     __slots__ = ["__weakref__", "_io_refs", "_closed", "timeout"]
 
@@ -197,20 +190,20 @@ class socket(_socket.socket):
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
                              timeout_exc=osocket.timeout("timed out"))
 
-    def send(self, data, flags=0, timeout=timeout_default):
-        if timeout is timeout_default:
-            timeout = self.timeout
+    def send(self, data, flags=0):
         try:
             return super().send(data, flags)
-        except error as ex:
-            if ex.args[0] != EWOULDBLOCK or timeout == 0.0:
+        except error as e:
+            if e.args[0] != EWOULDBLOCK:
                 raise
+
             self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
                              timeout_exc=osocket.timeout("timed out"))
+
             try:
                 return super().send(data, flags)
-            except error as ex2:
-                if ex2.args[0] == EWOULDBLOCK:
+            except error as e2:
+                if e2.args[0] == EWOULDBLOCK:
                     return 0
                 raise
 
@@ -218,13 +211,13 @@ class socket(_socket.socket):
         if self.timeout is None:
             data_sent = 0
             while data_sent < len(data):
-                data_sent += self.send(_get_memory(data, data_sent), flags)
+                data_sent += self.send(memoryview(data)[data_sent:], flags)
         else:
             timeleft = self.timeout
             end = time.time() + timeleft
             data_sent = 0
             while True:
-                data_sent += self.send(_get_memory(data, data_sent), flags, timeout=timeleft)
+                data_sent += self.send(memoryview(data)[data_sent:], flags, timeout=timeleft)
                 if data_sent >= len(data):
                     break
                 timeleft = end - time.time()
@@ -363,16 +356,7 @@ class socket(_socket.socket):
         return s
 
     def __getstate__(self):
-        raise TypeError("Cannot serialize socket object")
-
-    def _get_ref(self):
-        return self._read_event.ref or self._write_event.ref
-
-    def _set_ref(self, value):
-        self._read_event.ref = value
-        self._write_event.ref = value
-
-    ref = property(_get_ref, _set_ref)
+        raise TypeError('Cannot serialize socket object')
 
     def _decref_socketios(self):
         if self._io_refs > 0:
