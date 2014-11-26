@@ -10,7 +10,6 @@ from urllib.parse import unquote
 import socket
 
 from . import version_info
-from .support import get_errno
 from .server import Server
 
 log = logging.getLogger('guv.wsgi')
@@ -641,8 +640,6 @@ class WSGIServer(Server):
                 'wsgi.run_once': False}
 
     def __init__(self, server_sock, application=None, environ=None):
-        #pool = greenpool.GreenPool()
-        #super().__init__(server_sock, self.handle_client, pool, 'spawn_n')
         super().__init__(server_sock, self.handle_client)
 
         self.application = application

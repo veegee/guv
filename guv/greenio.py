@@ -10,33 +10,24 @@ from . import patcher
 
 is_windows = sys.platform == 'win32'
 
-if is_windows:
-    # no such thing as WSAEPERM or error code 10001 according to winsock.h or MSDN
-    from errno import WSAEWOULDBLOCK as EWOULDBLOCK
-    from errno import WSAEINPROGRESS as EINPROGRESS
-    from errno import WSAEALREADY as EALREADY
-    from errno import WSAEISCONN as EISCONN
-
-    EAGAIN = EWOULDBLOCK
-else:
-    from errno import EWOULDBLOCK
-    from errno import EINPROGRESS
-    from errno import EALREADY
-    from errno import EAGAIN
-    from errno import EISCONN
-
-from errno import EBADF
 import errno
+
+from errno import (EWOULDBLOCK, EINPROGRESS, EALREADY, EISCONN, EBADF, ENOTCONN, ESHUTDOWN, EAGAIN,
+                   ECONNRESET, EPIPE, EINVAL)
 
 if is_windows:
     # winsock sometimes throws ENOTCONN
-    SOCKET_BLOCKING = {errno.EAGAIN, errno.EWOULDBLOCK}
-    SOCKET_CLOSED = {errno.ECONNRESET, errno.ENOTCONN, errno.ESHUTDOWN}
+    SOCKET_BLOCKING = {EAGAIN, EWOULDBLOCK}
+    SOCKET_CLOSED = {ECONNRESET, ESHUTDOWN, ENOTCONN}
+    CONNECT_ERR = {EINPROGRESS, EALREADY, EWOULDBLOCK, EINVAL}
 else:
     # oddly, on linux/darwin, an unconnected socket is expected to block,
     # so we treat ENOTCONN the same as EWOULDBLOCK
-    SOCKET_BLOCKING = {errno.EAGAIN, errno.EWOULDBLOCK, errno.ENOTCONN}
-    SOCKET_CLOSED = {errno.ECONNRESET, errno.ESHUTDOWN, errno.EPIPE}
+    SOCKET_BLOCKING = {EAGAIN, EWOULDBLOCK, ENOTCONN}
+    SOCKET_CLOSED = {ECONNRESET, ESHUTDOWN, EPIPE}
+    CONNECT_ERR = {EINPROGRESS, EALREADY, EWOULDBLOCK}
+
+CONNECT_SUCCESS = {0, EISCONN}
 
 osocket = patcher.original('socket')
 AF_INET = osocket.AF_INET
@@ -52,9 +43,6 @@ getaddrinfo = osocket.getaddrinfo
 cancel_wait_ex = error(EBADF, 'File descriptor was closed in another greenlet')
 
 SocketIO = osocket.SocketIO
-
-CONNECT_ERR = {EINPROGRESS, EALREADY, EWOULDBLOCK}
-CONNECT_SUCCESS = {0, EISCONN}
 
 
 def _get_memory(buf, offset):
@@ -183,7 +171,7 @@ class socket(_socket.socket):
                 try:
                     self._trampoline(self.fileno(), write=True)
                 except IOClosed:
-                    raise socket.error(errno.EBADFD)
+                    raise socket.error(EBADFD)
                 socket_checkerr(self)
         else:
             # blocking mode, with timeout
