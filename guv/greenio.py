@@ -208,21 +208,10 @@ class socket(_socket.socket):
                 raise
 
     def sendall(self, data, flags=0):
-        if self.timeout is None:
-            data_sent = 0
-            while data_sent < len(data):
-                data_sent += self.send(memoryview(data)[data_sent:], flags)
-        else:
-            timeleft = self.timeout
-            end = time.time() + timeleft
-            data_sent = 0
-            while True:
-                data_sent += self.send(memoryview(data)[data_sent:], flags, timeout=timeleft)
-                if data_sent >= len(data):
-                    break
-                timeleft = end - time.time()
-                if timeleft <= 0:
-                    raise osocket.timeout('timed out')
+        mv = memoryview(data)
+        while mv:
+            b_sent = self.send(mv, flags)
+            mv = mv[b_sent:]
 
     def sendto(self, *args):
         try:
@@ -230,8 +219,10 @@ class socket(_socket.socket):
         except error as ex:
             if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                 raise
+
             self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
                              timeout_exc=osocket.timeout("timed out"))
+
             try:
                 return super().sendto(*args)
             except error as ex2:
@@ -245,16 +236,16 @@ class socket(_socket.socket):
         else:
             self.timeout = 0.0
 
-    def settimeout(self, howlong):
-        if howlong is not None:
+    def settimeout(self, t):
+        if t is not None:
             try:
-                f = howlong.__float__
+                f = t.__float__
             except AttributeError:
                 raise TypeError('a float is required')
-            howlong = f()
-            if howlong < 0.0:
+            t = f()
+            if t < 0.0:
                 raise ValueError('Timeout value out of range')
-        self.timeout = howlong
+        self.timeout = t
 
     def gettimeout(self):
         return self.timeout
