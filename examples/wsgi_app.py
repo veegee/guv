@@ -1,22 +1,23 @@
 import guv
 
 guv.monkey_patch()
-import json
-
-import bottle
-
 import guv.wsgi
 import logger
 
 logger.configure()
 
-app = bottle.Bottle()
 
+def app(environ, start_response):
+    status = '200 OK'
+    output = [b'Hello World!']
+    content_length = str(len(b''.join(output)))
 
-@app.route('/')
-def index():
-    data = json.dumps({'status': True})
-    return data
+    response_headers = [('Content-type', 'text/plain'),
+                        ('Content-Length', content_length)]
+
+    start_response(status, response_headers)
+
+    return output
 
 
 if __name__ == '__main__':
