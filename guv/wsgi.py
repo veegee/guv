@@ -9,7 +9,7 @@ from greenlet import GreenletExit
 from urllib.parse import unquote
 import socket
 
-from . import version_info
+from . import version_info, gyield
 from .server import Server
 
 log = logging.getLogger('guv.wsgi')
@@ -249,10 +249,14 @@ class WSGIHandler:
                 self.time_start = time.time()
                 self.time_finish = 0
                 result = self.handle_one_request()
+
                 if result is None:
                     break
+
                 if result is True:
+                    gyield()
                     continue
+
                 self.status, response_body = result
                 self.socket.sendall(response_body)
                 if self.time_finish == 0:
@@ -644,8 +648,6 @@ class WSGIServer(Server):
 
         self.application = application
         self.set_environ(environ)
-        self.set_max_accept()
-        self.response_times = []
         self.num_connections = 0
 
     def set_environ(self, environ=None):
@@ -658,10 +660,6 @@ class WSGIServer(Server):
             self.environ.update(environ_update)
         if self.environ.get('wsgi.errors') is None:
             self.environ['wsgi.errors'] = sys.stderr
-
-    def set_max_accept(self):
-        if self.environ.get('wsgi.multiprocess'):
-            self.max_accept = 1
 
     def get_environ(self):
         return self.environ.copy()
