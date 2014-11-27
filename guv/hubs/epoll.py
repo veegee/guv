@@ -93,6 +93,8 @@ class Hub(abc.AbstractHub):
         for cb, args, kwargs in callbacks:
             cb(*args, **kwargs)
 
+            # TODO: (urgent) add support for idle_h, as used in pyuv_cffi.py
+
     def run(self):
         assert self is greenlet.getcurrent()
 

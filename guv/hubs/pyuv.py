@@ -75,6 +75,8 @@ class Hub(abc.AbstractHub):
         for cb, args, kwargs in callbacks:
             cb(*args, **kwargs)
 
+        # TODO: (urgent) add support for idle_h, as used in pyuv_cffi.py
+
     def schedule_call_now(self, cb, *args, **kwargs):
         self.callbacks.append((cb, args, kwargs))
 
