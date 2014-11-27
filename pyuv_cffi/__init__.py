@@ -143,6 +143,31 @@ class Handle:
         self._close_called = True
 
 
+class Idle(Handle):
+    def __init__(self, loop):
+        """
+        :type loop: Loop
+        """
+        self.loop = loop
+        self.handle = ffi.new('uv_idle_t *')
+        libuv.uv_idle_init(loop.loop_h, self.handle)
+        super().__init__(self.handle)
+
+    def start(self, callback):
+        """
+        :type callback: Callable(idle_handle: Idle)
+        """
+
+        def cb_wrapper(idle_h):
+            callback(self)
+
+        self._ffi_cb = ffi.callback('void (*)(uv_idle_t *)', cb_wrapper)
+        libuv.uv_idle_start(self.handle, self._ffi_cb)
+
+    def stop(self):
+        libuv.uv_idle_stop(self.handle)
+
+
 class Prepare(Handle):
     def __init__(self, loop):
         """
