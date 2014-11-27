@@ -1,8 +1,8 @@
 import signal
 import logging
-import pyuv
 import greenlet
 
+import pyuv
 from ..const import READ, WRITE
 from . import abc
 from .watchers import UvFdListener
@@ -37,9 +37,15 @@ class Hub(abc.AbstractHub):
         sig = pyuv.Signal(self.loop)
         sig.start(self.signal_received, signal.SIGINT)
 
+        # set up a uv_idle handle to help make sure that non-io callbacks get called quickly
+        self.idle_h = pyuv.Idle(self.loop)
+
         # fire immediate callbacks every loop iteration
         self.prepare = pyuv.Prepare(self.loop)
         self.prepare.start(self._fire_callbacks)
+
+    def _idle_cb(self, idle_h):
+        idle_h.stop()
 
     def run(self):
         assert self is greenlet.getcurrent()
@@ -75,7 +81,11 @@ class Hub(abc.AbstractHub):
         for cb, args, kwargs in callbacks:
             cb(*args, **kwargs)
 
-        # TODO: (urgent) add support for idle_h, as used in pyuv_cffi.py
+        # Check if more callbacks have been scheduled. Since these may be non-io callbacks (such
+        # as calls to `gyield()` or `schedule_call_now()`, start a uv_async_t handle so that libuv
+        # can do a zero-timeout poll and quickly start another loop iteration.
+        if self.callbacks:
+            self.idle_h.start(self._idle_cb)
 
     def schedule_call_now(self, cb, *args, **kwargs):
         self.callbacks.append((cb, args, kwargs))
@@ -95,18 +105,6 @@ class Hub(abc.AbstractHub):
         return Timer(timer_handle)
 
     def add(self, evtype, fd, cb, tb):
-        """Signals an intent to or write a particular file descriptor
-
-        Signature of Callable cb: cb(fd: int)
-
-        :param str evtype: either the constant READ or WRITE
-        :param int fd: file number of the file of interest
-        :param cb: callback which will be called when the file is ready for reading/writing
-        :param tb: throwback used to signal (into the greenlet) that the file was closed
-        :return: listener
-        :rtype: self.Listener
-        """
-
         def pyuv_cb(poll_handle, events, errno):
             """Read callback for pyuv
 
@@ -166,20 +164,3 @@ class Hub(abc.AbstractHub):
             sig_handle.stop()
             self.abort()
             self.parent.throw(KeyboardInterrupt)
-
-    def _debug(self):
-        msg = ['', '---------- hub state ----------']
-        msg.append('listeners: {}'.format(self.listeners))
-        msg.append('poll handles:')
-
-        for h in self.loop.handles:
-            if h.closed:
-                msg.append('fd: {}, active: {}, closed: {}, handle: {}'
-                           .format(None, h.active, h.closed, h))
-                continue
-            if hasattr(h, 'fileno'):
-                msg.append('fd: {}, active: {}, closed: {}, handle: {}'
-                           .format(h.fileno(), h.active, h.closed, h))
-
-        msg.append('---------- end report ----------')
-        log.debug('\n'.join(msg))
