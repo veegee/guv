@@ -8,6 +8,7 @@ try:
     from . import timeout
     from . import patcher
     from . import server
+    from .hubs.trampoline import gyield
     import greenlet
     import pyuv_cffi  # only to compile the shared library before monkey-patching
 

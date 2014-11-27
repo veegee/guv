@@ -60,3 +60,15 @@ def trampoline(fd, read=False, write=False, timeout=None, timeout_exc=Timeout):
     finally:
         if timer is not None:
             timer.cancel()
+
+
+def gyield():
+    """Yield to other greenlets
+
+    This is a cooperative yield which suspends the current greenlet and allows other greenlets to
+    run. The current greenlet is resumed at the beginning of the next event loop iteration.
+    """
+    current = greenlet.getcurrent()
+    hub = get_hub()
+    hub.schedule_call_now(current.switch)
+    hub.switch()

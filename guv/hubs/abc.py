@@ -58,7 +58,7 @@ class AbstractHub(greenlet.greenlet, metaclass=ABCMeta):
 
     @abstractmethod
     def schedule_call_now(self, cb, *args, **kwargs):
-        """Schedule a callable to be called immediately
+        """Schedule a callable to be called on the next event loop iteration
 
         This is faster than calling :meth:`schedule_call_global(0, ...)`
 
