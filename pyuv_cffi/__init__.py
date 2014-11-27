@@ -156,16 +156,11 @@ class Idle(Handle):
     def start(self, callback):
         """Start the idle handle
 
-        `callback` may be None, in which case a dummy callback will automatically be used.
-
-        :type callback: Callable(idle_handle: Idle) or None
+        :type callback: Callable(idle_handle: Idle)
         """
-        if callback is None:
-            def cb_wrapper(idle_h):
-                pass
-        else:
-            def cb_wrapper(idle_h):
-                callback(self)
+
+        def cb_wrapper(idle_h):
+            callback(self)
 
         self._ffi_cb = ffi.callback('void (*)(uv_idle_t *)', cb_wrapper)
         libuv.uv_idle_start(self.handle, self._ffi_cb)

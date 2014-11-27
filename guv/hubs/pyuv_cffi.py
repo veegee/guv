@@ -44,6 +44,9 @@ class Hub(abc.AbstractHub):
         self.prepare = pyuv_cffi.Prepare(self.loop)
         self.prepare.start(self._fire_callbacks)
 
+    def _idle_cb(self, idle_h):
+        idle_h.stop()
+
     def run(self):
         assert self is greenlet.getcurrent()
 
@@ -82,9 +85,7 @@ class Hub(abc.AbstractHub):
         # as calls to `gyield()` or `schedule_call_now()`, start a uv_async_t handle so that libuv
         # can do a zero-timeout poll and quickly start another loop iteration.
         if self.callbacks:
-            self.idle_h.start(None)
-        else:
-            self.idle_h.stop()
+            self.idle_h.start(self._idle_cb)
 
     def schedule_call_now(self, cb, *args, **kwargs):
         self.callbacks.append((cb, args, kwargs))
