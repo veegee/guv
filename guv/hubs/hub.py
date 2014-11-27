@@ -19,6 +19,7 @@ def notify_close(fd):
     """Register for any waiting listeners to be notified on the next run loop that a particular file
     descriptor has been explicitly closed
     """
+    # FIXME: implement this in the hub
     hub = get_hub()
     hub.notify_close(fd)
 
@@ -31,6 +32,7 @@ def notify_opened(fd):
     We let the hub know that the old file descriptor is dead; any stuck listeners will be disabled
     and notified in turn.
     """
+    # FIXME: implement this in the hub
     hub = get_hub()
     hub.mark_as_reopened(fd)
 
