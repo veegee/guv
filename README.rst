@@ -18,18 +18,18 @@ the above list. Default is pyuv_cffi.
 pyuv_cffi Status
 ----------------
 
-- Currently implemented handles: Loop, Handle, Timer, Signal, Poll, Prepare
+- Currently implemented handles: Loop, Handle, Idle, Prepare, Timer, Signal, Poll
 - No memory leaks on CPython as well as pypy3
 
 
 To do
 -----
 
-- Optimize the WSGI server for pypy3. Currently, pypy3 is running the WSGI
-  server VERY slow (almost as slow as cPython). However, pypy3 is running the
-  simple event TCP handler very fast, so the issue must be with the WSGI server
-  implementation.
-- Rewrite "greenified" modules
+- Address all ``FIXME`` items (these are critical)
+- Rewrite greenthread and greenpool
+- Rewrite high-priority "greenified" modules: threading
+- Optimize the WSGI server by using ``http-parser`` and removing the dependency
+  of socket.makefile().
 
 **pyuv_cffi**
 
