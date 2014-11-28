@@ -1,7 +1,11 @@
 """epoll loop backend
 
 This module is deprecated and will be removed once pyuv_cffi is fully implemented.
+
+This module is currently broken until support for non-I/O callbacks is added, similar to how this is
+handled in pyuv_cffi.py
 """
+# FIXME: (critical) add support for non-I/O callbacks for gyield()
 import logging
 import heapq
 import select
@@ -92,8 +96,6 @@ class Hub(abc.AbstractHub):
         self.callbacks = []
         for cb, args, kwargs in callbacks:
             cb(*args, **kwargs)
-
-            # TODO: (urgent) add support for idle_h, as used in pyuv_cffi.py
 
     def run(self):
         assert self is greenlet.getcurrent()
