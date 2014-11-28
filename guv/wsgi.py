@@ -1,16 +1,19 @@
-import errno
 import sys
 import time
 import traceback
-import ssl
 import logging
-from datetime import datetime
-from greenlet import GreenletExit
-from urllib.parse import unquote
 import socket
+import wsgiref.headers
 
 from . import version_info, gyield
 from .server import Server
+from .support import PYPY
+from .exceptions import BROKEN_SOCK
+
+if PYPY:
+    raise Exception('pypy3 currently not supported; TODO: create CFFI wrapper for http-parser')
+
+from http_parser.parser import HttpParser
 
 log = logging.getLogger('guv.wsgi')
 log.setLevel(logging.INFO)
@@ -21,12 +24,6 @@ MAX_REQUEST_LINE = 8192
 MAX_HEADER_LINE = 8192
 MAX_TOTAL_HEADER_SIZE = 65536
 MINIMUM_CHUNK_SIZE = 4096
-
-BAD_SOCK = {errno.EBADF, errno.ECONNABORTED}
-BROKEN_SOCK = {errno.EPIPE, errno.ECONNRESET}
-
-ACCEPT_EXCEPTIONS = {socket.error, ssl.SSLError}
-ACCEPT_ERRNO = {errno.EPIPE, errno.EBADF, errno.ECONNRESET, ssl.SSL_ERROR_EOF, ssl.SSL_ERROR_SSL}
 
 __all__ = ['serve', 'format_date_time']
 
@@ -184,490 +181,150 @@ class Input:
         return line
 
 
-from http import client
-
-
-class OldMessage(client.HTTPMessage):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.status = ''
-
-    def getheader(self, name, default=None):
-        return self.get(name, default)
-
-    @property
-    def headers(self):
-        for key, value in self._headers:
-            yield '%s: %s\r\n' % (key, value)
-
-    @property
-    def typeheader(self):
-        return self.get('content-type')
-
-
-def headers_factory(fp, *args):
-    try:
-        ret = client.parse_headers(fp, _class=OldMessage)
-    except client.LineTooLong:
-        ret = OldMessage()
-        ret.status = 'Line too long'
-    return ret
-
-
 class WSGIHandler:
-    protocol_version = 'HTTP/1.1'
+    def __init__(self, sock, addr, app, environ):
+        """
+        :param sock: client socket
+        :param addr: address information
+        :param app: WSGI application
+        :type addr: tuple[str, int]
+        :type sock: socket.socket
+        :type app: Callable(dict, Callable)
+        """
+        self.sock = sock
+        self.addr = addr
+        self.app = app
+        self.environ = environ
 
-    def __init__(self, client_sock, address, server):
-        self.MessageClass = headers_factory
-        self.socket = client_sock
-        self.client_address = address
-        self.server = server
-        self.application = self.server.application
-        self.rfile = client_sock.makefile('rb', MINIMUM_CHUNK_SIZE)
+        # request data
+        self.req_headers = {}
 
-        # set up instance attributes
-        self.requestline = None
-        self.status = None
-        self.time_start = None
-        self.time_finish = None
-        self.headers = None
-        self.content_length = None
-        self.close_connection = None
-        self.response_length = None
-        self.environ = None
-        self.response_use_chunked = None
-        self.headers_sent = None
-        self.result = None
-        self.code = None
-        self.response_headers = None
-        self.provided_date = None
-        self.provided_content_length = None
+        # response data
+        self.resp_status = ''
+        self.resp_headers = wsgiref.headers.Headers([])
+
+    def create_response(self, body):
+        """
+        :type body: list[bytes]
+        :type headers: dict
+        :rtype: str
+        """
+        lines = ['HTTP/1.1 200 OK']
+        lines.extend(['%s: %s' % (k, v) for k, v in self.resp_headers.items()])
+        lines.append('Content-Length: %s' % len(body))
+
+        resp = ('\r\n'.join(lines)).encode('latin-1')
+        resp += ('\r\n\r\n' + body).encode(final_headers['Content-Encoding'])
+
+        return resp
 
     def handle(self):
-        try:
-            while self.socket is not None:
-                self.time_start = time.time()
-                self.time_finish = 0
-                result = self.handle_one_request()
+        sock = self.sock
 
-                if result is None:
-                    break
+        # main request loop
+        while True:
+            p = HttpParser()
 
-                if result is True:
-                    gyield()
-                    continue
-
-                self.status, response_body = result
-                self.socket.sendall(response_body)
-                if self.time_finish == 0:
-                    self.time_finish = time.time()
-                self.log_request()
+            if not self.recv_request(p):
                 break
-        finally:
-            if self.socket is not None:
-                try:
-                    try:
-                        # read out request data to prevent errno 104 Connection reset by peer
-                        self.socket.recv(16384)
-                    finally:
-                        self.socket.close()
-                except socket.error:
-                    pass
-            self.socket = None
-            self.rfile = None
 
-        return self.time_finish - self.time_start
+            self.req_headers = p.get_headers()
+            ka = p.should_keep_alive()
+            h_connection = 'keep-alive' if ka else 'close'
+            self.resp_headers.add_header('Connection', h_connection)
 
-    def _check_http_version(self):
-        version = self.request_version
-        if not version.startswith('HTTP/'):
-            return False
-        version = tuple(int(x) for x in version[5:].split('.'))
-        if version[1] < 0 or version < (0, 9) or version >= (2, 0):
-            return False
-        return True
+            # TODO: p.get_wsgi_environ() is very slow for some reason
+            self.environ.update(p.get_wsgi_environ())
 
-    def read_request(self, raw_requestline):
-        self.requestline = raw_requestline.rstrip().decode()
-        words = self.requestline.split()
-        if len(words) == 3:
-            self.command, self.path, self.request_version = words
-            if not self._check_http_version():
-                self.log_error('Invalid http version: %r', raw_requestline)
-                return
-        else:
-            self.log_error('Invalid HTTP method: %r', raw_requestline)
-            return
+            result = self.app(self.environ, self.start_response)
 
-        self.headers = self.MessageClass(self.rfile, 0)
-        if self.headers.status:
-            self.log_error('Invalid headers status: %r', self.headers.status)
-            return
+            resp = self.create_response(result)
+            sock.sendall(resp)
 
-        if self.headers.get("transfer-encoding", "").lower() == "chunked":
-            try:
-                del self.headers["content-length"]
-            except KeyError:
-                pass
-
-        content_length = self.headers.get("content-length")
-        if content_length is not None:
-            content_length = int(content_length)
-            if content_length < 0:
-                self.log_error('Invalid Content-Length: %r', content_length)
-                return
-            if content_length and self.command in ('HEAD', ):
-                self.log_error('Unexpected Content-Length')
-                return
-
-        self.content_length = content_length
-
-        if self.request_version == "HTTP/1.1":
-            conn_type = self.headers.get("Connection", "").lower()
-            if conn_type == "close":
-                self.close_connection = True
+            if not ka:
+                break
             else:
-                self.close_connection = False
-        else:
-            self.close_connection = True
+                # we should keep-alive, but yield to drastically improve
+                # overall request/response latency
+                gyield()
 
-        return True
+        sock.close()
 
-    def log_error(self, msg, *args):
-        try:
-            message = msg % args
-        except Exception:
-            traceback.print_exc()
-            message = '%r %r' % (msg, args)
-        try:
-            message = '%s: %s' % (self.socket, message)
-        except Exception:
-            pass
-        try:
-            sys.stderr.write(message + '\n')
-        except Exception:
-            traceback.print_exc()
+    def recv_request(self, p):
+        sock = self.sock
 
-    def read_requestline(self):
-        return self.rfile.readline(MAX_REQUEST_LINE)
+        while True:
+            data = sock.recv(8192)
 
-    def handle_one_request(self):
-        """Handle one request
+            if not data:
+                return False
 
-        :return: None if the connection should be closed; True if everything is ok and we can
-            proceed to read more requests; tuple[status code, message] if there is an HTTP error
-        :rtype: None or bool or tuple[int, str]
-        """
-        if self.rfile.closed:
-            return
+            nb = len(data)
+            nparsed = p.execute(data, nb)
+            assert nparsed == nb
 
-        try:
-            self.requestline = self.read_requestline()
-        except socket.error:
-            # "Connection reset by peer" or other socket errors aren't interesting here
-            return
-
-        if not self.requestline:
-            return
-
-        self.response_length = 0
-
-        if len(self.requestline) >= MAX_REQUEST_LINE:
-            return '414', _REQUEST_TOO_LONG_RESPONSE
-
-        try:
-            # for compatibility with older versions of pywsgi, we pass self.requestline as an
-            # argument there
-            if not self.read_request(self.requestline):
-                return '400', _BAD_REQUEST_RESPONSE
-        except Exception as ex:
-            traceback.print_exc()
-            log.error('Invalid request: {}'.format(str(ex) or ex.__class__.__name__))
-            return '400', _BAD_REQUEST_RESPONSE
-
-        self.environ = self.get_environ()
-        try:
-            self.handle_one_response()
-        except socket.error as ex:
-            if ex.args[0] in BROKEN_SOCK:
-                log.error(ex)
-                return
-            else:
-                raise
-
-        if self.close_connection:
-            return
-
-        if self.rfile.closed:
-            return
-
-        return True  # everything is ok, read more requests
-
-    def finalize_headers(self):
-        if self.provided_date is None:
-            self.response_headers.append(('Date', format_date_time(time.time())))
-
-        if self.code not in (304, 204):
-            # the reply will include message-body; make sure we have either Content-Length or
-            # chunked
-            if self.provided_content_length is None:
-                if hasattr(self.result, '__len__'):
-                    self.response_headers.append(
-                        ('Content-Length', str(sum(len(chunk) for chunk in self.result))))
-                else:
-                    if self.request_version != 'HTTP/1.0':
-                        self.response_use_chunked = True
-                        self.response_headers.append(('Transfer-Encoding', 'chunked'))
-
-    def _sendall(self, data):
-        try:
-            self.socket.sendall(data)
-        except socket.error as ex:
-            self.status = 'socket error: %s' % ex
-            if self.code > 0:
-                self.code = -self.code
-            raise
-        self.response_length += len(data)
-
-    def _write(self, data):
-        if not data:
-            return
-        if self.response_use_chunked:
-            # write the chunked encoding
-            data = "%x\r\n%s\r\n" % (len(data), data)
-        self._sendall(data)
-
-    def write(self, data):
-        if self.code in (304, 204) and data:
-            raise AssertionError('The %s response must have no body' % self.code)
-
-        if self.headers_sent:
-            self._write(data)
-        else:
-            if not self.status:
-                raise AssertionError("The application did not call start_response()")
-            self._write_with_headers(data)
-
-    def _write_with_headers(self, data):
-        towrite = bytearray()
-        self.headers_sent = True
-        self.finalize_headers()
-
-        towrite.extend(b('HTTP/1.1 %s\r\n' % self.status))
-        for header in self.response_headers:
-            towrite.extend(b('%s: %s\r\n' % header))
-
-        towrite.extend(b('\r\n'))
-        if data:
-            if self.response_use_chunked:
-                # write the chunked encoding
-                towrite.extend(b("%x\r\n%s\r\n" % (len(data), data)))
-            else:
-                towrite.extend(data)
-        self._sendall(towrite)
+            if p.is_message_complete():
+                return True
 
     def start_response(self, status, headers, exc_info=None):
-        if exc_info:
-            try:
-                if self.headers_sent:
-                    # re-raise original exception if headers sent
-                    raise exc_info[1]
-            finally:
-                # avoid dangling circular ref
-                exc_info = None
-        self.code = int(status.split(' ', 1)[0])
-        self.status = status
-        self.response_headers = headers
+        """Start creating the HTTP response
 
-        provided_connection = None
-        self.provided_date = None
-        self.provided_content_length = None
+        This is the method passed to the WSGI application.
 
-        for header, value in headers:
-            header = header.lower()
-            if header == 'connection':
-                provided_connection = value
-            elif header == 'date':
-                self.provided_date = value
-            elif header == 'content-length':
-                self.provided_content_length = value
+        :param status: HTTP status code
+        :param headers: list of headers
+        :param exc_info: exception info, in the form of sys.exc_info()
+        :type status: str
+        :type headers: list[tuple[str, str]]
+        :type exc_info: tuple or None
+        :rtype: Callable
+        """
+        self.resp_status = status
 
-        if self.request_version == 'HTTP/1.0' and provided_connection is None:
-            headers.append(('Connection', 'close'))
-            self.close_connection = True
-        elif provided_connection == 'close':
-            self.close_connection = True
-
-        if self.code in (304, 204):
-            if self.provided_content_length is not None and self.provided_content_length != '0':
-                msg = 'Invalid Content-Length for %s response: %r (must be absent or zero)' % (
-                    self.code, self.provided_content_length)
-                raise AssertionError(msg)
+        for k, v in headers:
+            self.resp_headers.add_header(k, v)
 
         return self.write
 
-    def log_request(self):
-        log.debug(self.format_request())
-
-    def format_request(self):
-        now = datetime.now().replace(microsecond=0)
-        length = self.response_length or '-'
-        if self.time_finish:
-            delta = '%.6f' % (self.time_finish - self.time_start)
-        else:
-            delta = '-'
-        client_address = self.client_address[0] if isinstance(self.client_address,
-                                                              tuple) else self.client_address
-        return '%s [%s] "%s" -> %s %s %s' % (
-            client_address or '-', now, getattr(self, 'requestline', ''),
-            (getattr(self, 'status', None) or '000').split()[0], length, delta)
-
-    def process_result(self):
-        for data in self.result:
-            if data:
-                self.write(data)
-        if self.status and not self.headers_sent:
-            self.write('')
-        if self.response_use_chunked:
-            self.socket.sendall('0\r\n\r\n')
-            self.response_length += 5
-
-    def run_application(self):
-        self.result = self.application(self.environ, self.start_response)
-        self.process_result()
-
-    def handle_one_response(self):
-        self.time_start = time.time()
-        self.status = None
-        self.headers_sent = False
-
-        self.result = None
-        self.response_use_chunked = False
-        self.response_length = 0
-
-        try:
-            try:
-                self.run_application()
-            finally:
-                close = getattr(self.result, 'close', None)
-                if close is not None:
-                    close()
-                self.wsgi_input._discard()
-        except Exception as e:
-            self.handle_error(*sys.exc_info())
-        finally:
-            self.time_finish = time.time()
-            self.log_request()
-
-    def handle_error(self, type, value, tb):
-        if not issubclass(type, GreenletExit):
-            self.server.loop.handle_error(self.environ, type, value, tb)
-        del tb
-        if self.response_length:
-            self.close_connection = True
-        else:
-            self.start_response(_INTERNAL_ERROR_STATUS, _INTERNAL_ERROR_HEADERS[:])
-            self.write(_INTERNAL_ERROR_BODY)
-
-    def _headers(self):
-        key = None
-        value = None
-        for header in self.headers.headers:
-            if key is not None and header[:1] in " \t":
-                value += header
-                continue
-
-            if key not in (None, 'CONTENT_TYPE', 'CONTENT_LENGTH'):
-                yield 'HTTP_' + key, value.strip()
-
-            key, value = header.split(':', 1)
-            key = key.replace('-', '_').upper()
-
-        if key not in (None, 'CONTENT_TYPE', 'CONTENT_LENGTH'):
-            yield 'HTTP_' + key, value.strip()
-
-    def get_environ(self):
-        env = self.server.get_environ()
-        env['REQUEST_METHOD'] = self.command
-        env['SCRIPT_NAME'] = ''
-
-        if '?' in self.path:
-            path, query = self.path.split('?', 1)
-        else:
-            path, query = self.path, ''
-        env['PATH_INFO'] = unquote(path)
-        env['QUERY_STRING'] = query
-
-        if self.headers.typeheader is not None:
-            env['CONTENT_TYPE'] = self.headers.typeheader
-
-        length = self.headers.getheader('content-length')
-        if length:
-            env['CONTENT_LENGTH'] = length
-        env['SERVER_PROTOCOL'] = self.request_version
-
-        client_address = self.client_address
-        if isinstance(client_address, tuple):
-            env['REMOTE_ADDR'] = str(client_address[0])
-            env['REMOTE_PORT'] = str(client_address[1])
-
-        for key, value in self._headers():
-            if key in env:
-                if 'COOKIE' in key:
-                    env[key] += '; ' + value
-                else:
-                    env[key] += ',' + value
-            else:
-                env[key] = value
-
-        if env.get('HTTP_EXPECT') == '100-continue':
-            socket = self.socket
-        else:
-            socket = None
-        chunked = env.get('HTTP_TRANSFER_ENCODING', '').lower() == 'chunked'
-        self.wsgi_input = Input(self.rfile, self.content_length, socket=socket,
-                                chunked_input=chunked)
-        env['wsgi.input'] = self.wsgi_input
-        return env
+    def write(self, data):
+        self.sock.send(data)
 
 
 class WSGIServer(Server):
     #: :type: tuple
     server_version = version_info[:2] + sys.version_info[:2]
 
-    base_env = {'GATEWAY_INTERFACE': 'CGI/1.1',
-                'SERVER_SOFTWARE': 'guv/%d.%d Python/%d.%d' % server_version,
-                'SCRIPT_NAME': '',
-                'wsgi.version': (1, 0),
-                'wsgi.multithread': False,
-                'wsgi.multiprocess': False,
-                'wsgi.run_once': False}
+    base_env = {
+        'SERVER_SOFTWARE': 'guv/%d.%d Python/%d.%d' % server_version,
+        'SCRIPT_NAME': '',
+        'wsgi.version': (1, 0),
+        'wsgi.multithread': False,
+        'wsgi.multiprocess': False,
+        'wsgi.run_once': False
+    }
 
     def __init__(self, server_sock, application=None, environ=None):
         super().__init__(server_sock, self.handle_client)
 
         self.application = application
+        self.environ = None
+
         self.set_environ(environ)
-        self.num_connections = 0
 
     def set_environ(self, environ=None):
         if environ is not None:
             self.environ = environ
+
         environ_update = getattr(self, 'environ', None)
         self.environ = self.base_env.copy()
         self.environ['wsgi.url_scheme'] = 'http'
+
         if environ_update is not None:
             self.environ.update(environ_update)
+
         if self.environ.get('wsgi.errors') is None:
             self.environ['wsgi.errors'] = sys.stderr
 
-    def get_environ(self):
-        return self.environ.copy()
-
-    def init_socket(self):
-        self.update_environ()
-
-    def update_environ(self):
         address = self.address
         if isinstance(address, tuple):
             if 'SERVER_NAME' not in self.environ:
@@ -681,20 +338,18 @@ class WSGIServer(Server):
             self.environ.setdefault('SERVER_NAME', '')
             self.environ.setdefault('SERVER_PORT', '')
 
+    def get_environ(self):
+        return self.environ.copy()
+
     def handle_client(self, client_sock, address):
-        self.num_connections += 1
-        # log.debug('Open fd: {0}, Current total number of connections: {1.num_connections}'
-        #           .format(client_sock.fileno(), self))
-        handler = WSGIHandler(client_sock, address, self)
+        handler = WSGIHandler(client_sock, address, self.application, self.get_environ())
         handler.handle()
-        # log.debug('Done with fd: {}'.format(client_sock.fileno()))
-        self.num_connections -= 1
 
 
-def serve(server_sock, app, log_output=True):
+def serve(server_sock, app):
     """Start up a WSGI server handling requests from the supplied server socket
 
-    This function loops forever. The *sock* object will be closed after server exits, but the
+    This function loops forever. The `sock` object will be closed after server exits, but the
     underlying file descriptor will remain open, so if you have a dup() of *sock*, it will remain
     usable.
 
