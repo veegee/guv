@@ -28,6 +28,8 @@ To do
 - Address all ``FIXME`` items (these are critical)
 - Rewrite greenthread and greenpool
 - Rewrite high-priority "greenified" modules: threading
+- Check and update remaining "greenified" modules; these may have been broken
+  after the core event loop rewrite.
 - Optimize the WSGI server by using ``http-parser`` and removing the dependency
   of socket.makefile().
 
