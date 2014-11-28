@@ -9,10 +9,8 @@ _threadlocal = _threading.local()
 
 log = logging.getLogger('guv')
 
-# set hub_names to a list of hub types to try; set to None to try the default list in order
-hub_names = os.environ.get('GUV_HUBS')
-if hub_names:
-    hub_names = hub_names.split(',')
+# set hub_name to a valid loop backend name from an environment variable; None to use default
+hub_name = os.environ.get('GUV_HUB')
 
 
 def notify_close(fd):
@@ -40,7 +38,7 @@ def notify_opened(fd):
 def get_default_hub():
     """Get default hub implementation
     """
-    names = hub_names or ['pyuv_cffi', 'pyuv', 'epoll']
+    names = [hub_name] if hub_name else ['pyuv_cffi', 'pyuv', 'epoll']
 
     for name in names:
         try:
