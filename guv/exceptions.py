@@ -1,3 +1,8 @@
+"""Errors and Exceptions
+
+This module is the main module for all errors and exceptions for guv. Platform-specific socket
+errors are appropriately configured here.
+"""
 from errno import (EWOULDBLOCK, EINPROGRESS, EALREADY, EISCONN, EBADF, ENOTCONN, ESHUTDOWN, EAGAIN,
                    ECONNRESET, EPIPE, EINVAL, ECONNABORTED)
 
