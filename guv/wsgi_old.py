@@ -1,8 +1,6 @@
-import errno
 import sys
 import time
 import traceback
-import ssl
 import logging
 from datetime import datetime
 from greenlet import GreenletExit
@@ -11,6 +9,7 @@ import socket
 
 from . import version_info, gyield
 from .server import Server
+from .exceptions import BROKEN_SOCK
 
 log = logging.getLogger('guv.wsgi')
 log.setLevel(logging.INFO)
@@ -21,12 +20,6 @@ MAX_REQUEST_LINE = 8192
 MAX_HEADER_LINE = 8192
 MAX_TOTAL_HEADER_SIZE = 65536
 MINIMUM_CHUNK_SIZE = 4096
-
-BAD_SOCK = {errno.EBADF, errno.ECONNABORTED}
-BROKEN_SOCK = {errno.EPIPE, errno.ECONNRESET}
-
-ACCEPT_EXCEPTIONS = {socket.error, ssl.SSLError}
-ACCEPT_ERRNO = {errno.EPIPE, errno.EBADF, errno.ECONNRESET, ssl.SSL_ERROR_EOF, ssl.SSL_ERROR_SSL}
 
 __all__ = ['serve', 'format_date_time']
 
