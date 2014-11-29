@@ -1,6 +1,6 @@
 import sys
 
-PYPY = 'PyPy' in sys.version
+PYPY = hasattr(sys, 'pypy_version_info')
 
 OS_WINDOWS = sys.platform == 'win32'
 
