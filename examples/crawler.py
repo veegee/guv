@@ -3,9 +3,11 @@ import guv
 guv.monkey_patch()
 import requests
 
+
 def get_url(url):
     print('get_url()')
     return requests.get(url)
+
 
 def main():
     urls = ['http://httpbin.org/delay/1'] * 10

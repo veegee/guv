@@ -1,6 +1,7 @@
 import signal
 import logging
 import greenlet
+import sys
 
 import pyuv_cffi
 from ..const import READ, WRITE
@@ -79,7 +80,10 @@ class Hub(abc.AbstractHub):
         callbacks = self.callbacks
         self.callbacks = []
         for cb, args, kwargs in callbacks:
-            cb(*args, **kwargs)
+            try:
+                cb(*args, **kwargs)
+            except:
+                self._squelch_generic_exception(sys.exc_info())
 
         # Check if more callbacks have been scheduled. Since these may be non-io callbacks (such
         # as calls to `gyield()` or `schedule_call_now()`, start a uv_async_t handle so that libuv
@@ -103,7 +107,10 @@ class Hub(abc.AbstractHub):
         """
 
         def timer_callback(timer_handle):
-            cb(*args, **kwargs)
+            try:
+                cb(*args, **kwargs)
+            except:
+                self._squelch_generic_exception(sys.exc_info())
 
             # required for cleanup
             if not timer_handle.closed:
@@ -128,21 +135,23 @@ class Hub(abc.AbstractHub):
         :rtype: self.Listener
         """
 
-        def pyuv_cb(poll_handle, events, errno):
+        poll_h = pyuv_cffi.Poll(self.loop, fd)
+        listener = UvFdListener(evtype, fd, poll_h)
+
+        def poll_cb(poll_h, events, errno):
             """Read callback for pyuv
 
             pyuv requires a callback with this signature
 
-            :type poll_handle: pyuv.Poll
+            :type poll_h: pyuv.Poll
             :type events: int
             :type errno: int
             """
-            cb()
+            try:
+                cb()
+            except:
+                self._squelch_exception(listener, sys.exc_info())
 
-        poll_handle = pyuv_cffi.Poll(self.loop, fd)
-
-        # create and add listener object
-        listener = UvFdListener(evtype, fd, poll_handle)
         self._add_listener(listener)
 
         # start the pyuv Poll object
@@ -152,7 +161,7 @@ class Hub(abc.AbstractHub):
         elif evtype == WRITE:
             flags = pyuv_cffi.UV_WRITABLE
 
-        poll_handle.start(flags, pyuv_cb)
+        poll_h.start(flags, poll_cb)
 
         # self.debug()
         return listener

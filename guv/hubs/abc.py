@@ -117,6 +117,16 @@ class AbstractHub(greenlet.greenlet, metaclass=ABCMeta):
             traceback.print_exception(*exc_info)
             sys.stderr.flush()
 
+    def _squelch_exception(self, listener, exc_info):
+        traceback.print_exception(*exc_info)
+        sys.stderr.write('Removing listener: {}\n'.format(listener))
+        sys.stderr.flush()
+        try:
+            self.remove(listener)
+        except Exception as e:
+            sys.stderr.write('Exception while removing listener: {}\n'.format(e))
+            sys.stderr.flush()
+
     def _add_listener(self, listener):
         """Add listener to internal dictionary
 
