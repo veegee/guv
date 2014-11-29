@@ -1,10 +1,10 @@
-from guv import patcher
-from guv.green import socket
+from .. import patcher
+from ..green import socket
 
 to_patch = [('socket', socket)]
 
 try:
-    from guv.green import ssl
+    from ..green import ssl
 
     to_patch.append(('ssl', ssl))
 except ImportError:

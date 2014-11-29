@@ -3,10 +3,9 @@ import time
 from types import FunctionType
 
 import guv
-from guv import greenio
-from guv import patcher
-from guv.green import select
-from guv.support import six
+from .. import patcher, greenio
+from ..green import select
+from ..support import six
 
 patcher.inject('subprocess', globals(), ('select', select))
 subprocess_orig = __import__("subprocess")

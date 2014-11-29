@@ -1,8 +1,8 @@
-from guv.exceptions import IOClosed
+from ..exceptions import IOClosed
 
 __ssl = __import__('ssl')
 
-from guv.patcher import slurp_properties
+from ..patcher import slurp_properties
 
 slurp_properties(__ssl, globals(), srckeys=dir(__ssl))
 
@@ -11,9 +11,9 @@ import errno
 
 time = __import__('time')
 
-from guv.support import get_errno, six
-from guv.hubs import trampoline
-from guv.greenio import socket, SOCKET_CLOSED, CONNECT_ERR, CONNECT_SUCCESS
+from ..support import get_errno, six
+from ..hubs import trampoline
+from ..greenio import socket, SOCKET_CLOSED, CONNECT_ERR, CONNECT_SUCCESS
 
 orig_socket = __import__('socket')
 socket = orig_socket.socket

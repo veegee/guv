@@ -7,8 +7,8 @@ The builtins 'file' and 'open' are patched to collaborate with the notify_opened
 
 builtins_orig = __builtins__
 
-from guv import hubs
-from guv.patcher import slurp_properties
+from .. import hubs
+from ..patcher import slurp_properties
 
 __all__ = dir(builtins_orig)
 __patched__ = ['open']

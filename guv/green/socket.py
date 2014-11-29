@@ -7,14 +7,14 @@ __socket = sys.modules['guv.green._socket_nodns']
 __all__ = __socket.__all__
 __patched__ = __socket.__patched__ + ['gethostbyname', 'getaddrinfo', 'create_connection', ]
 
-from guv.patcher import slurp_properties
+from ..patcher import slurp_properties
 
 slurp_properties(__socket, globals(), srckeys=dir(__socket))
 
 greendns = None
 if os.environ.get("EVENTLET_NO_GREENDNS", '').lower() != "yes":
     try:
-        from guv.support import greendns
+        from ..support import greendns
     except ImportError as ex:
         pass
 

@@ -1,9 +1,9 @@
 """Implements the standard thread module, using greenthreads."""
 import greenlet
 
-from guv.support.six.moves import _thread as __thread
-from guv import greenthread
-from guv.semaphore import Semaphore as LockType
+import _thread as __thread
+from .. import greenthread
+from ..semaphore import Semaphore as LockType
 
 __patched__ = ['get_ident', 'start_new_thread', 'start_new', 'allocate_lock',
                'allocate', 'exit', 'interrupt_main', 'stack_size', '_local',

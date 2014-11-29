@@ -32,7 +32,7 @@ FIXME: No testcases for this module.
 profile_orig = __import__('profile')
 __all__ = profile_orig.__all__
 
-from guv.patcher import slurp_properties
+from ..patcher import slurp_properties
 
 slurp_properties(profile_orig, globals(), srckeys=dir(profile_orig))
 
@@ -40,9 +40,8 @@ import sys
 import functools
 import greenlet
 
-from guv import greenthread
-from guv import patcher
-from guv.support import six
+from .. import patcher
+from ..support import six
 
 thread = patcher.original('thread')  # non-monkeypatched module needed
 

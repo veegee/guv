@@ -3,16 +3,15 @@ __socket = __import__('socket')
 __all__ = __socket.__all__
 __patched__ = ['fromfd', 'socketpair', 'ssl', 'socket']
 
-from guv.patcher import slurp_properties
+from ..patcher import slurp_properties
 
 slurp_properties(__socket, globals(),
                  ignore=__patched__, srckeys=dir(__socket))
 
 os = __import__('os')
-#from guv.greenio import GreenSocket as socket
-from guv.greenio import socket
+from ..greenio import socket
 
-from guv.greenio import SSL as _SSL  # for exceptions
+from ..greenio import SSL as _SSL  # for exceptions
 
 try:
     __original_fromfd__ = __socket.fromfd

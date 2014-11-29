@@ -1,9 +1,8 @@
 """Implements the standard threading module, using greenthreads."""
 import greenlet
 
-from guv import patcher
-from guv.green import thread
-from guv.green import time
+from .. import patcher
+from ..green import time, thread
 
 __patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep',
                'local', 'stack_size', 'Lock', 'currentThread',

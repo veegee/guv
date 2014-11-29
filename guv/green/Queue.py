@@ -1,4 +1,4 @@
-from guv import queue
+from .. import queue
 
 __all__ = ['Empty', 'Full', 'LifoQueue', 'PriorityQueue', 'Queue']
 
