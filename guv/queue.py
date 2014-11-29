@@ -348,7 +348,7 @@ class ItemWaiter(Waiter):
 
 
 class Queue(LightQueue):
-    '''Create a queue object with a given maximum size.
+    """Create a queue object with a given maximum size
 
     If *maxsize* is less than zero or ``None``, the queue size is infinite.
 
@@ -358,7 +358,7 @@ class Queue(LightQueue):
 
     In all other respects, this Queue class resembled the standard library,
     :class:`Queue`.
-    '''
+    """
 
     def __init__(self, maxsize=None):
         LightQueue.__init__(self, maxsize)
@@ -381,7 +381,7 @@ class Queue(LightQueue):
             self._cond.reset()
 
     def task_done(self):
-        '''Indicate that a formerly enqueued task is complete. Used by queue consumer threads.
+        """Indicate that a formerly enqueued task is complete. Used by queue consumer threads.
         For each :meth:`get <Queue.get>` used to fetch a task, a subsequent call to
         :meth:`task_done` tells the queue
         that the processing on the task is complete.
@@ -391,7 +391,7 @@ class Queue(LightQueue):
         :meth:`put <Queue.put>` into the queue).
 
         Raises a :exc:`ValueError` if called more times than there were items placed in the queue.
-        '''
+        """
 
         if self.unfinished_tasks <= 0:
             raise ValueError('task_done() called too many times')
@@ -400,22 +400,22 @@ class Queue(LightQueue):
             self._cond.send(None)
 
     def join(self):
-        '''Block until all items in the queue have been gotten and processed.
+        """Block until all items in the queue have been gotten and processed
 
         The count of unfinished tasks goes up whenever an item is added to the queue.
         The count goes down whenever a consumer thread calls :meth:`task_done` to indicate
         that the item was retrieved and all work on it is complete. When the count of
         unfinished tasks drops to zero, :meth:`join` unblocks.
-        '''
+        """
         if self.unfinished_tasks > 0:
             self._cond.wait()
 
 
 class PriorityQueue(Queue):
-    '''A subclass of :class:`Queue` that retrieves entries in priority order (lowest first).
+    """A subclass of :class:`Queue` that retrieves entries in priority order (lowest first)
 
     Entries are typically tuples of the form: ``(priority number, data)``.
-    '''
+    """
 
     def _init(self, maxsize):
         self.queue = []
@@ -429,7 +429,8 @@ class PriorityQueue(Queue):
 
 
 class LifoQueue(Queue):
-    '''A subclass of :class:`Queue` that retrieves most recently added entries first.'''
+    """A subclass of :class:`Queue` that retrieves most recently added entries first
+    """
 
     def _init(self, maxsize):
         self.queue = []
