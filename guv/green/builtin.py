@@ -8,13 +8,12 @@ The builtins 'file' and 'open' are patched to collaborate with the notify_opened
 builtins_orig = __builtins__
 
 from .. import hubs
-from ..patcher import slurp_properties
+from ..patcher import copy_attributes
 
 __all__ = dir(builtins_orig)
 __patched__ = ['open']
 
-slurp_properties(builtins_orig, globals(),
-                 ignore=__patched__, srckeys=dir(builtins_orig))
+copy_attributes(builtins_orig, globals(), ignore=__patched__, srckeys=dir(builtins_orig))
 
 hubs.get_hub()
 

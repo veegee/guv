@@ -284,7 +284,7 @@ def is_monkey_patched(module):
     return module in already_patched or getattr(module, '__name__', None) in already_patched
 
 
-def slurp_properties(source, destination, ignore=[], srckeys=None):
+def copy_attributes(source, destination, ignore=[], srckeys=None):
     """Copy properties from `source` to `destination`
 
     :param module source: source module

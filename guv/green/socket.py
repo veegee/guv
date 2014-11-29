@@ -7,9 +7,9 @@ __socket = sys.modules['guv.green._socket_nodns']
 __all__ = __socket.__all__
 __patched__ = __socket.__patched__ + ['gethostbyname', 'getaddrinfo', 'create_connection', ]
 
-from ..patcher import slurp_properties
+from ..patcher import copy_attributes
 
-slurp_properties(__socket, globals(), srckeys=dir(__socket))
+copy_attributes(__socket, globals(), srckeys=dir(__socket))
 
 greendns = None
 if os.environ.get("EVENTLET_NO_GREENDNS", '').lower() != "yes":

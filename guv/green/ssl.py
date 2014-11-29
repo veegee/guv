@@ -2,9 +2,9 @@ from ..exceptions import IOClosed
 
 __ssl = __import__('ssl')
 
-from ..patcher import slurp_properties
+from ..patcher import copy_attributes
 
-slurp_properties(__ssl, globals(), srckeys=dir(__ssl))
+copy_attributes(__ssl, globals(), srckeys=dir(__ssl))
 
 import sys
 import errno

@@ -3,9 +3,9 @@ __socket = __import__('socket')
 __all__ = __socket.__all__
 __patched__ = ['fromfd', 'socketpair', 'ssl', 'socket']
 
-from ..patcher import slurp_properties
+from ..patcher import copy_attributes
 
-slurp_properties(__socket, globals(),
+copy_attributes(__socket, globals(),
                  ignore=__patched__, srckeys=dir(__socket))
 
 os = __import__('os')

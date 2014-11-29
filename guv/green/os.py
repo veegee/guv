@@ -5,12 +5,12 @@ import socket
 from ..exceptions import IOClosed
 from ..support import get_errno
 from .. import hubs, greenthread
-from ..patcher import slurp_properties
+from ..patcher import copy_attributes
 
 __all__ = os_orig.__all__
 __patched__ = ['read', 'write', 'wait', 'waitpid', 'open']
 
-slurp_properties(os_orig, globals(), ignore=__patched__, srckeys=dir(os_orig))
+copy_attributes(os_orig, globals(), ignore=__patched__, srckeys=dir(os_orig))
 
 __open = os_orig.open
 __read = os_orig.read

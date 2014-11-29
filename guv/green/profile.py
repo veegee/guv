@@ -32,9 +32,9 @@ FIXME: No testcases for this module.
 profile_orig = __import__('profile')
 __all__ = profile_orig.__all__
 
-from ..patcher import slurp_properties
+from ..patcher import copy_attributes
 
-slurp_properties(profile_orig, globals(), srckeys=dir(profile_orig))
+copy_attributes(profile_orig, globals(), srckeys=dir(profile_orig))
 
 import sys
 import functools
