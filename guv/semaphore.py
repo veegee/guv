@@ -1,6 +1,7 @@
 from guv import greenthread
 from guv import hubs
 from guv.timeout import Timeout
+import greenlet
 
 
 class Semaphore(object):
@@ -79,7 +80,7 @@ class Semaphore(object):
         if not blocking and self.locked():
             return False
         if self.counter <= 0:
-            self._waiters.add(greenthread.getcurrent())
+            self._waiters.add(greenlet.getcurrent())
             try:
                 if timeout is not None:
                     ok = False
@@ -93,7 +94,7 @@ class Semaphore(object):
                     while self.counter <= 0:
                         hubs.get_hub().switch()
             finally:
-                self._waiters.discard(greenthread.getcurrent())
+                self._waiters.discard(greenlet.getcurrent())
         self.counter -= 1
         return True
 

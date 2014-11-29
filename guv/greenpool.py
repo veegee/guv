@@ -56,7 +56,7 @@ class GreenPool:
         """
         # if reentering an empty pool, don't try to wait on a coroutine freeing
         # itself -- instead, just execute in the current coroutine
-        current = greenthread.getcurrent()
+        current = greenlet.getcurrent()
         if self.sem.locked() and current in self.coroutines_running:
             # a bit hacky to use the GT without switching to it
             gt = greenthread.GreenThread(current)
@@ -84,7 +84,7 @@ class GreenPool:
             if coro is None:
                 return
             else:
-                coro = greenthread.getcurrent()
+                coro = greenlet.getcurrent()
                 self._spawn_done(coro)
 
     def spawn_n(self, function, *args, **kwargs):
@@ -95,7 +95,7 @@ class GreenPool:
         """
         # if reentering an empty pool, don't try to wait on a coroutine freeing
         # itself -- instead, just execute in the current coroutine
-        current = greenthread.getcurrent()
+        current = greenlet.getcurrent()
         if self.sem.locked() and current in self.coroutines_running:
             self._spawn_n_impl(function, args, kwargs, None)
         else:
@@ -108,7 +108,7 @@ class GreenPool:
     def waitall(self):
         """Wait until all greenthreads in the pool are finished working
         """
-        assert greenthread.getcurrent() not in self.coroutines_running, \
+        assert greenlet.getcurrent() not in self.coroutines_running, \
             "Calling waitall() from within one of the " \
             "GreenPool's greenthreads will never terminate."
         if self.running():
