@@ -7,11 +7,13 @@ __exclude = {'__builtins__', '__file__', '__name__'}
 
 
 class SysModulesSaver(object):
-    """Class that captures some subset of the current state of
-    sys.modules.  Pass in an iterator of module names to the
-    constructor."""
+    """Class that captures some subset of the current state of sys.modules
+    """
 
     def __init__(self, module_names=()):
+        """
+        :param module_names: iterator of module names
+        """
         self._saved = {}
         imp.acquire_lock()
         self.save(*module_names)
@@ -39,19 +41,18 @@ class SysModulesSaver(object):
 
 
 def inject(module_name, new_globals, *additional_modules):
-    """Base method for "injecting" greened modules into an imported module.  It
-    imports the module specified in *module_name*, arranging things so
-    that the already-imported modules in *additional_modules* are used when
-    *module_name* makes its imports.
+    """Inject greenified modules into an imported module
 
-    *new_globals* is either None or a globals dictionary that gets populated
-    with the contents of the *module_name* module.  This is useful when creating
-    a "green" version of some other module.
+    This method imports the module specified in `module_name`, arranging things so that the
+    already-imported modules in `additional_modules` are used when `module_name` makes its imports.
 
-    *additional_modules* should be a collection of two-element tuples, of the
-    form (<name>, <module>).  If it's not specified, a default selection of
-    name/module pairs is used, which should cover all use cases but may be
-    slower because there are inevitably redundant or unnecessary imports.
+    `new_globals` is either None or a globals dictionary that gets populated with the contents of
+    the `module_name` module. This is useful when creating a "green" version of some other module.
+
+    `additional_modules` should be a collection of two-element tuples, of the form
+    `(name: str,  module: str)`. If it's not specified, a default selection of name/module pairs
+    is used, which should cover all use cases but may be slower because there are inevitably
+    redundant or unnecessary imports.
     """
     patched_name = '__patched_module_' + module_name
     if patched_name in sys.modules:
@@ -66,32 +67,32 @@ def inject(module_name, new_globals, *additional_modules):
             _green_select_modules() +
             _green_socket_modules() +
             _green_thread_modules() +
-            _green_time_modules())
-        # _green_MySQLdb()) # enable this after a short baking-in period
+            _green_time_modules()
+        )
 
-    # after this we are gonna screw with sys.modules, so capture the
-    # state of all the modules we're going to mess with, and lock
+    # after this, we will be modifying sys.modules, so save the state
+    # of all modules that will be modified, and lock
     saver = SysModulesSaver([name for name, m in additional_modules])
     saver.save(module_name)
 
-    # Cover the target modules so that when you import the module it
-    # sees only the patched versions
+    # cover the target modules, so that when you import the module, it will import
+    # the patched version
     for name, mod in additional_modules:
         sys.modules[name] = mod
 
-    # Remove the old module from sys.modules and reimport it while
+    # remove the old module from sys.modules and reimport it while
     # the specified modules are in place
     sys.modules.pop(module_name, None)
     try:
         module = __import__(module_name, {}, {}, module_name.split('.')[:-1])
 
         if new_globals is not None:
-            # Update the given globals dictionary with everything from this new module
+            # update the given globals dictionary with everything from this new module
             for name in dir(module):
                 if name not in __exclude:
                     new_globals[name] = getattr(module, name)
 
-        # Keep a reference to the new module to prevent it from dying
+        # keep a reference to the new module to prevent it from dying
         sys.modules[patched_name] = module
     finally:
         saver.restore()  # Put the original modules back
@@ -100,24 +101,20 @@ def inject(module_name, new_globals, *additional_modules):
 
 
 def import_patched(module_name, *additional_modules, **kw_additional_modules):
-    """Imports a module in a way that ensures that the module uses "green"
-    versions of the standard library modules, so that everything works
-    nonblockingly.
+    """Import patched version of module
 
-    The only required argument is the name of the module to be imported.
+    :param str module_name: name of module to import
     """
-    return inject(
-        module_name,
-        None,
-        *additional_modules + tuple(kw_additional_modules.items()))
+    return inject(module_name, None, *additional_modules + tuple(kw_additional_modules.items()))
 
 
 def patch_function(func, *additional_modules):
-    """Decorator that returns a version of the function that patches
-    some modules for the duration of the function call.  This is
-    deeply gross and should only be used for functions that import
-    network libraries within their function bodies that there is no
-    way of getting around."""
+    """Decorator that returns a version of the function that patches some modules for the
+    duration of the function call.
+
+    This should only be used for functions that import network libraries within their function
+    bodies that there is no way of getting around.
+    """
     if not additional_modules:
         # supply some defaults
         additional_modules = (
@@ -125,7 +122,8 @@ def patch_function(func, *additional_modules):
             _green_select_modules() +
             _green_socket_modules() +
             _green_thread_modules() +
-            _green_time_modules())
+            _green_time_modules()
+        )
 
     def patched(*args, **kw):
         saver = SysModulesSaver()
@@ -141,12 +139,12 @@ def patch_function(func, *additional_modules):
 
 
 def _original_patch_function(func, *module_names):
-    """Kind of the contrapositive of patch_function: decorates a
-    function such that when it's called, sys.modules is populated only
-    with the unpatched versions of the specified modules.  Unlike
-    patch_function, only the names of the modules need be supplied,
-    and there are no defaults.  This is a gross hack; tell your kids not
-    to import inside function bodies!"""
+    """Opposite of :func:`patch_function`
+
+    Decorates a function such that when it's called, sys.modules is populated only with the
+    unpatched versions of the specified modules. Unlike patch_function, only the names of the
+    modules need be supplied, and there are no defaults.
+    """
 
     def patched(*args, **kw):
         saver = SysModulesSaver(module_names)
@@ -161,8 +159,10 @@ def _original_patch_function(func, *module_names):
 
 
 def original(modname):
-    """ This returns an unpatched version of a module; this is useful for
-    Eventlet itself (i.e. tpool)."""
+    """Return an unpatched version of a module
+
+    This is useful for guv itself.
+    """
     # note that it's not necessary to temporarily install unpatched
     # versions of all patchable modules during the import of the
     # module; this is because none of them import each other, except
@@ -175,7 +175,7 @@ def original(modname):
     # dict; be sure to restore whatever module had that name already
     saver = SysModulesSaver((modname,))
     sys.modules.pop(modname, None)
-    # some rudimentary dependency checking -- fortunately the modules
+    # some rudimentary dependency checking; fortunately the modules
     # we're working on don't have many dependencies so we can just do
     # some special-casing here
     deps = {'threading': '_thread', 'queue': 'threading'}
@@ -183,15 +183,9 @@ def original(modname):
         dependency = deps[modname]
         saver.save(dependency)
         sys.modules[dependency] = original(dependency)
+
     try:
         real_mod = __import__(modname, {}, {}, modname.split('.')[:-1])
-        if modname in ('Queue', 'queue') and not hasattr(real_mod, '_threading'):
-            # tricky hack: Queue's constructor in <2.7 imports
-            # threading on every instantiation; therefore we wrap
-            # it so that it always gets the original threading
-            real_mod.Queue.__init__ = _original_patch_function(
-                real_mod.Queue.__init__,
-                'threading')
         # save a reference to the unpatched module so it doesn't get lost
         sys.modules[original_name] = real_mod
     finally:
@@ -204,7 +198,7 @@ already_patched = {}
 
 
 def monkey_patch(**on):
-    """Globally patches certain system modules to be greenthread-friendly.
+    """Globally patch certain system modules to be greenlet-friendly
 
     The keyword arguments afford some control over which modules are patched.
     If no keyword arguments are supplied, all possible modules are patched.
@@ -216,19 +210,14 @@ def monkey_patch(**on):
 
     It's safe to call monkey_patch multiple times.
     """
-    accepted_args = {'os', 'select', 'socket', 'thread', 'time', 'psycopg', 'MySQLdb',
-                     '__builtin__'}
-    default_on = on.pop("all", None)
+    accepted_args = {'os', 'select', 'socket', 'thread', 'time', 'psycopg', '__builtin__'}
+    default_on = on.pop('all', None)
     for k in on.keys():
         if k not in accepted_args:
-            raise TypeError("monkey_patch() got an unexpected "
-                            "keyword argument %r" % k)
+            raise TypeError('monkey_patch() got an unexpected keyword argument %r' % k)
     if default_on is None:
         default_on = not (True in on.values())
     for modname in accepted_args:
-        if modname == 'MySQLdb':
-            # MySQLdb is only on when explicitly patched for the moment
-            on.setdefault(modname, False)
         if modname == '__builtin__':
             on.setdefault(modname, False)
         on.setdefault(modname, default_on)
@@ -249,9 +238,6 @@ def monkey_patch(**on):
     if on['time'] and not already_patched.get('time'):
         modules_to_patch += _green_time_modules()
         already_patched['time'] = True
-    if on.get('MySQLdb') and not already_patched.get('MySQLdb'):
-        modules_to_patch += _green_MySQLdb()
-        already_patched['MySQLdb'] = True
     if on.get('__builtin__') and not already_patched.get('__builtin__'):
         modules_to_patch += _green_builtins()
         already_patched['__builtin__'] = True
@@ -284,15 +270,34 @@ def monkey_patch(**on):
 
 
 def is_monkey_patched(module):
-    """Returns True if the given module is monkeypatched currently, False if
-    not.  *module* can be either the module itself or its name.
+    """Check if the specified module is currently patched
 
-    Based entirely off the name of the module, so if you import a
-    module some other way than with the import keyword (including
-    import_patched), this might not be correct about that particular
-    module."""
-    return module in already_patched or \
-           getattr(module, '__name__', None) in already_patched
+    Based entirely off the name of the module, so if you import a module some other way than with
+    the import keyword (including import_patched), this might not be correct about that particular
+    module
+
+    :param module: module to check (moduble object itself, or its name str)
+    :type module: module or str
+    :return: True if the module is patched else False
+    :rtype: bool
+    """
+    return module in already_patched or getattr(module, '__name__', None) in already_patched
+
+
+def slurp_properties(source, destination, ignore=[], srckeys=None):
+    """Copy properties from `source` to `destination`
+
+    :param module source: source module
+    :param dict destination: destination dict
+    :param list ignore: list of properties that should not be copied
+    :param list srckeys: list of keys to copy, if the source's __all__ is untrustworthy
+    """
+    if srckeys is None:
+        srckeys = source.__all__
+
+    d = {name: getattr(source, name) for name in srckeys
+         if not (name.startswith('__') or name in ignore)}
+    destination.update(d)
 
 
 def _green_os_modules():
@@ -332,15 +337,6 @@ def _green_time_modules():
     return [('time', time)]
 
 
-def _green_MySQLdb():
-    try:
-        from guv.green import MySQLdb
-
-        return [('MySQLdb', MySQLdb)]
-    except ImportError:
-        return []
-
-
 def _green_builtins():
     try:
         from guv.green import builtin
@@ -348,28 +344,3 @@ def _green_builtins():
         return [('__builtin__', builtin)]
     except ImportError:
         return []
-
-
-def slurp_properties(source, destination, ignore=[], srckeys=None):
-    """Copy properties from *source* (assumed to be a module) to
-    *destination* (assumed to be a dict).
-
-    *ignore* lists properties that should not be thusly copied.
-    *srckeys* is a list of keys to copy, if the source's __all__ is
-    untrustworthy.
-    """
-    if srckeys is None:
-        srckeys = source.__all__
-    destination.update(dict([
-        (name, getattr(source, name))
-        for name in srckeys
-        if not (name.startswith('__') or name in ignore)
-    ]))
-
-
-if __name__ == "__main__":
-    sys.argv.pop(0)
-    monkey_patch()
-    with open(sys.argv[0]) as f:
-        code = compile(f.read(), sys.argv[0], 'exec')
-        exec(code)
