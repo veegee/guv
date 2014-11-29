@@ -1,7 +1,8 @@
-from guv import greenthread
-from guv import hubs
-from guv.timeout import Timeout
 import greenlet
+
+from . import hubs
+
+from .timeout import Timeout
 
 
 class Semaphore(object):
