@@ -12,7 +12,7 @@ from ..patcher import copy_attributes
 copy_attributes(__socket, globals(), srckeys=dir(__socket))
 
 greendns = None
-if os.environ.get("EVENTLET_NO_GREENDNS", '').lower() != "yes":
+if os.environ.get('EVENTLET_NO_GREENDNS', '').lower() != 'yes':
     try:
         from ..support import greendns
     except ImportError as ex:
@@ -26,20 +26,11 @@ if greendns:
     __patched__ = __patched__ + ['gethostbyname_ex', 'getnameinfo']
 
 
-def create_connection(address,
-                      timeout=_GLOBAL_DEFAULT_TIMEOUT,
-                      source_address=None):
-    """Connect to *address* and return the socket object.
-
-    Convenience function.  Connect to *address* (a 2-tuple ``(host,
-    port)``) and return the socket object.  Passing the optional
-    *timeout* parameter will set the timeout on the socket instance
-    before attempting to connect.  If no *timeout* is supplied, the
-    global default timeout setting returned by :func:`getdefaulttimeout`
-    is used.
+def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT, source_address=None):
+    """Connect to `address` and return the socket object
     """
 
-    msg = "getaddrinfo returns an empty list"
+    msg = 'getaddrinfo returns an empty list'
     host, port = address
     for res in getaddrinfo(host, port, 0, SOCK_STREAM):
         af, socktype, proto, canonname, sa = res
