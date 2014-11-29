@@ -26,6 +26,7 @@ cancel_wait_ex = error(EBADF, 'File descriptor was closed in another greenlet')
 SocketIO = osocket.SocketIO
 
 
+# noinspection PyPep8Naming
 class socket(_socket.socket):
     __slots__ = ["__weakref__", "_io_refs", "_closed", "timeout"]
 
@@ -78,6 +79,7 @@ class socket(_socket.socket):
 
     def _real_close(self, _ss=_socket.socket):
         # This function should not reference any globals. See Python issue #808164.
+        # noinspection PyArgumentList
         _ss.close(self)
 
     def close(self):
