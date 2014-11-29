@@ -37,12 +37,12 @@ def read(fd, n):
             return ''
 
 
-def write(fd, st):
+def write(fd, data):
     """Wrap os.write
     """
     while True:
         try:
-            return __write(fd, st)
+            return __write(fd, data)
         except (OSError, IOError) as e:
             if get_errno(e) != errno.EAGAIN:
                 raise
