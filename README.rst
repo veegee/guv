@@ -7,31 +7,31 @@ Multiple event loop backends are provided:
 
 - **pyuv_cffi** (supported fully on CPython and pypy3, very fast), this is
   highly-experimental and a work-in-progress. Requires libuv >= 1.0.0
-- **epoll** (currently the fastest for pypy3, and very fast on CPython)
 - **pyuv** (complete implementation, not supported on pypy3)
+- **epoll** (currently the fastest for pypy3, and very fast on CPython)
 
-In order to select a specific hub type or list of hub types to try, set the
-``GUV_HUBS`` environment variable to one or more comma-separated hub names from
-the above list. Default is pyuv_cffi.
+In order to select a specific hub type, set the ``GUV_HUB`` environment variable
+to a hub name from the above list; default is pyuv_cffi.
 
 
 pyuv_cffi Status
 ----------------
 
-- Currently implemented handles: Loop, Handle, Idle, Prepare, Timer, Signal, Poll
-- No memory leaks on CPython as well as pypy3
+- Currently implemented handles: Loop, Handle, Idle, Prepare, Timer, Signal,
+  Poll
 
 
 To do
 -----
 
 - Address all ``FIXME`` items (these are critical)
+- Rewrite high-priority "greenified" modules: threading and database
 - Rewrite greenthread and greenpool
-- Rewrite high-priority "greenified" modules: threading
 - Check and update remaining "greenified" modules; these may have been broken
-  after the core event loop rewrite.
+  after the core rewrite.
+- Rewrite the patcher module
 - Optimize the WSGI server by using ``http-parser`` and removing the dependency
-  of socket.makefile().
+  of socket.makefile(), which seems to be slow on Python 3.
 
 **pyuv_cffi**
 
