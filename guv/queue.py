@@ -8,10 +8,10 @@ A major difference is that queues in this module operate as channels when initia
 of zero. In such case, both :meth:`Queue.empty` and :meth:`Queue.full` return ``True`` and
 :meth:`Queue.put` always blocks until a call to :meth:`Queue.get` retrieves the item.
 
-An interesting difference, made possible because of greenthreads, is that :meth:`Queue.qsize`,
+An interesting difference, made possible because of GreenThreads, is that :meth:`Queue.qsize`,
 :meth:`Queue.empty`, and :meth:`Queue.full` *can* be used as indicators of whether the subsequent
 :meth:`Queue.get` or :meth:`Queue.put` will not block. The new methods :meth:`Queue.getting` and
-:meth:`Queue.putting` report on the number of greenthreads blocking in :meth:`put <Queue.put>` or
+:meth:`Queue.putting` report on the number of GreenThreads blocking in :meth:`put <Queue.put>` or
 :meth:`get <Queue.get>` respectively.
 """
 
@@ -174,12 +174,12 @@ class LightQueue(object):
         self.maxsize = size
 
     def putting(self):
-        """Returns the number of greenthreads that are blocked waiting to put
+        """Returns the number of GreenThreads that are blocked waiting to put
         items into the queue."""
         return len(self.putters)
 
     def getting(self):
-        """Returns the number of greenthreads that are blocked waiting on an
+        """Returns the number of GreenThreads that are blocked waiting on an
         empty queue."""
         return len(self.getters)
 

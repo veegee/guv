@@ -9,7 +9,7 @@ DEBUG = True
 
 
 class GreenPool:
-    """The GreenPool class is a pool of green threads.
+    """Pool of greenlets/GreenThreads
     """
 
     def __init__(self, size=1000):
