@@ -55,7 +55,7 @@ def spawn(func, *args, **kwargs):
     """
     hub = hubs.get_hub()
     g = GreenThread(hub)
-    hub.schedule_call_now(g.switch, *args, **kwargs)
+    hub.schedule_call_now(g.switch, func, *args, **kwargs)
     return g
 
 
@@ -78,7 +78,7 @@ def spawn_after(seconds, func, *args, **kwargs):
     """
     hub = hubs.get_hub()
     g = GreenThread(hub)
-    hub.schedule_call_global(seconds, g.switch, func, args, kwargs)
+    hub.schedule_call_global(seconds, g.switch, func, *args, **kwargs)
     return g
 
 
@@ -143,7 +143,8 @@ class GreenThread(greenlet.greenlet):
         except ValueError:
             return False
 
-    def main(self, function, args, kwargs):
+    def main(self, function, *args, **kwargs):
+        print('::: {} {} {}'.format(function, args, kwargs))
         try:
             result = function(*args, **kwargs)
         except:

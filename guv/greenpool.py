@@ -60,7 +60,7 @@ class GreenPool:
         if self.sem.locked() and current in self.coroutines_running:
             # a bit hacky to use the GT without switching to it
             gt = greenthread.GreenThread(current)
-            gt.main(function, args, kwargs)
+            gt.main(function, *args, **kwargs)
             return gt
         else:
             self.sem.acquire()

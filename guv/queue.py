@@ -54,7 +54,7 @@ class Waiter(object):
         else:
             waiting = ''
         return '<%s at %s%s greenlet=%r>' % (
-        type(self).__name__, hex(id(self)), waiting, self.greenlet)
+            type(self).__name__, hex(id(self)), waiting, self.greenlet)
 
     def __str__(self):
         """
@@ -80,8 +80,8 @@ class Waiter(object):
         """Wake up the greenlet that is calling wait() currently (if there is one).
         Can only be called from Hub's greenlet.
         """
-        assert greenlet.getcurrent() is get_hub(
-        ).greenlet, "Can only use Waiter.switch method from the mainloop"
+        assert greenlet.getcurrent() is get_hub(), "Can only use Waiter.switch method from the " \
+                                                   "mainloop"
         if self.greenlet is not None:
             try:
                 self.greenlet.switch(value)
@@ -92,8 +92,8 @@ class Waiter(object):
         """Make greenlet calling wait() wake up (if there is a wait()).
         Can only be called from Hub's greenlet.
         """
-        assert greenlet.getcurrent() is get_hub(
-        ).greenlet, "Can only use Waiter.switch method from the mainloop"
+        assert greenlet.getcurrent() is get_hub(), "Can only use Waiter.switch method from the " \
+                                                   "mainloop"
         if self.greenlet is not None:
             try:
                 self.greenlet.throw(*throw_args)
@@ -168,7 +168,7 @@ class LightQueue(object):
 
         If the size is increased, and there are putters waiting, they may be woken up."""
         if self.maxsize is not None and (
-                size is None or size > self.maxsize):  # None is not comparable in 3.x
+                        size is None or size > self.maxsize):  # None is not comparable in 3.x
             # Maybe wake some stuff up
             self._schedule_unlock()
         self.maxsize = size
@@ -211,7 +211,7 @@ class LightQueue(object):
             self._put(item)
             if self.getters:
                 self._schedule_unlock()
-        elif not block and get_hub().greenlet is greenlet.getcurrent():
+        elif not block and get_hub() is greenlet.getcurrent():
             # we're in the mainloop, so we cannot wait; we can switch() to other greenlets though
             # find a getter and deliver an item to it
             while self.getters:
@@ -221,11 +221,11 @@ class LightQueue(object):
                     item = self._get()
                     getter.switch(item)
                     return
-            raise queue.Full
+            raise Full
         elif block:
             waiter = ItemWaiter(item)
             self.putters.add(waiter)
-            timeout = Timeout(timeout, queue.Full)
+            timeout = Timeout(timeout, Full)
             try:
                 if self.getters:
                     self._schedule_unlock()
@@ -237,7 +237,7 @@ class LightQueue(object):
                 timeout.cancel()
                 self.putters.discard(waiter)
         else:
-            raise queue.Full
+            raise Full
 
     def put_nowait(self, item):
         """Put an item into the queue without blocking.
@@ -261,7 +261,7 @@ class LightQueue(object):
             if self.putters:
                 self._schedule_unlock()
             return self._get()
-        elif not block and get_hub().greenlet is greenlet.getcurrent():
+        elif not block and get_hub() is greenlet.getcurrent():
             # special case to make get_nowait() runnable in the mainloop greenlet
             # there are no items in the queue; try to fix the situation by unlocking putters
             while self.putters:
@@ -270,10 +270,10 @@ class LightQueue(object):
                     putter.switch(putter)
                     if self.qsize():
                         return self._get()
-            raise queue.Empty
+            raise Empty
         elif block:
             waiter = Waiter()
-            timeout = Timeout(timeout, queue.Empty)
+            timeout = Timeout(timeout, Empty)
             try:
                 self.getters.add(waiter)
                 if self.putters:
@@ -283,7 +283,7 @@ class LightQueue(object):
                 self.getters.discard(waiter)
                 timeout.cancel()
         else:
-            raise queue.Empty
+            raise Empty
 
     def get_nowait(self):
         """Remove and return an item from the queue without blocking.
@@ -320,7 +320,8 @@ class LightQueue(object):
                         else:
                             self.putters.add(putter)
                 elif self.putters and (
-                        self.getters or self.maxsize is None or self.qsize() < self.maxsize):
+                                self.getters or self.maxsize is None or self.qsize() <
+                            self.maxsize):
                     putter = self.putters.pop()
                     putter.switch(putter)
                 else:
@@ -334,7 +335,8 @@ class LightQueue(object):
 
     def _schedule_unlock(self):
         if self._event_unlock is None:
-            self._event_unlock = get_hub().schedule_call_global(0, self._unlock)
+            # self._event_unlock = get_hub().schedule_call_global(0, self._unlock)
+            self._event_unlock = get_hub().schedule_call_now(self._unlock)
 
 
 class ItemWaiter(Waiter):
