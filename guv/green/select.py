@@ -1,6 +1,6 @@
 __select = __import__('select')
 error = __select.error
-from ..greenthread import getcurrent
+from greenlet import getcurrent
 from ..hubs import get_hub
 from ..support import six
 from ..const import READ, WRITE

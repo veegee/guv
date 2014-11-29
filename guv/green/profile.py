@@ -38,6 +38,7 @@ slurp_properties(profile_orig, globals(), srckeys=dir(profile_orig))
 
 import sys
 import functools
+import greenlet
 
 from guv import greenthread
 from guv import patcher
@@ -51,7 +52,7 @@ class Profile(profile_orig.Profile):
     base = profile_orig.Profile
 
     def __init__(self, timer=None, bias=None):
-        self.current_tasklet = greenthread.getcurrent()
+        self.current_tasklet = greenlet.getcurrent()
         self.thread_id = thread.get_ident()
         self.base.__init__(self, timer, bias)
         self.sleeping = {}
@@ -64,7 +65,7 @@ class Profile(profile_orig.Profile):
         self._has_setup = True
         self.cur = None
         self.timings = {}
-        self.current_tasklet = greenthread.getcurrent()
+        self.current_tasklet = greenlet.getcurrent()
         self.thread_id = thread.get_ident()
         self.simulate_call("profiler")
 
@@ -145,7 +146,7 @@ class Profile(profile_orig.Profile):
     def ContextWrap(f):
         @functools.wraps(f)
         def ContextWrapper(self, arg, t):
-            current = greenthread.getcurrent()
+            current = greenlet.getcurrent()
             if current != self.current_tasklet:
                 self.SwitchTasklet(self.current_tasklet, current, t)
                 t = 0.0  # the time was billed to the previous tasklet
