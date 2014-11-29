@@ -1,11 +1,12 @@
 import guv
 
 guv.monkey_patch()
+
 import requests
 
 
 def get_url(url):
-    print('get_url()')
+    print('get_url({})'.format(url))
     return requests.get(url)
 
 
