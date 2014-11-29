@@ -101,6 +101,9 @@ class AbstractHub(greenlet.greenlet, metaclass=ABCMeta):
     def remove(self, listener):
         """Remove listener
 
+        This method safely stops and removes the listener, as well as performs any necessary
+        cleanup related to the listener.
+
         :param listener: listener to remove
         :type listener: self.Listener
         """
@@ -112,10 +115,27 @@ class AbstractHub(greenlet.greenlet, metaclass=ABCMeta):
         assert greenlet.getcurrent() is not self, 'Cannot switch to the hub from the hub'
         return super().switch()
 
-    def _squelch_generic_exception(self, exc_info):
-        if self._debug_exceptions:
-            traceback.print_exception(*exc_info)
-            sys.stderr.flush()
+    def notify_opened(self, fd):
+        """Mark the specified file descriptor as recently opened
+
+        When the OS returns a file descriptor from an `open()` (or something similar), this may be
+        the only indication we have that the FD has been closed and then recycled. We let the hub
+        know that the old file descriptor is dead; any stuck listeners will be disabled and notified
+        in turn.
+
+        :param int fd: file descriptor
+        :return: True if found else false
+        """
+        found = False
+
+        # remove any existing listeners for this file descriptor
+        for bucket in self.listeners.values():
+            if fd in bucket:
+                found = True
+                listener = bucket[fd]
+                self.remove(listener)
+
+        return found
 
     def _squelch_exception(self, listener, exc_info):
         traceback.print_exception(*exc_info)
@@ -151,3 +171,8 @@ class AbstractHub(greenlet.greenlet, metaclass=ABCMeta):
         """
         self.listeners[listener.evtype][listener.fd] = None
         del self.listeners[listener.evtype][listener.fd]
+
+    def _squelch_generic_exception(self, exc_info):
+        if self._debug_exceptions:
+            traceback.print_exception(*exc_info)
+            sys.stderr.flush()

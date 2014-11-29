@@ -14,16 +14,18 @@ hub_name = os.environ.get('GUV_HUB')
 
 
 def notify_opened(fd):
-    """
+    """Mark the specified file descriptor as recently opened
+
     Some file descriptors may be closed 'silently' - that is, by the garbage collector, by an
     external library, etc. When the OS returns a file descriptor from an `open()` (or something
     similar), this may be the only indication we have that the FD has been closed and then recycled.
     We let the hub know that the old file descriptor is dead; any stuck listeners will be disabled
     and notified in turn.
+
+    :param int fd: file descriptor
     """
-    # FIXME: implement this in the hub
     hub = get_hub()
-    hub.mark_as_reopened(fd)
+    hub.notify_opened(fd)
 
 
 def get_default_hub():
