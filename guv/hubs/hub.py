@@ -13,15 +13,6 @@ log = logging.getLogger('guv')
 hub_name = os.environ.get('GUV_HUB')
 
 
-def notify_close(fd):
-    """Register for any waiting listeners to be notified on the next run loop that a particular file
-    descriptor has been explicitly closed
-    """
-    # FIXME: implement this in the hub
-    hub = get_hub()
-    hub.notify_close(fd)
-
-
 def notify_opened(fd):
     """
     Some file descriptors may be closed 'silently' - that is, by the garbage collector, by an
