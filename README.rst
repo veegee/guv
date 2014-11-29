@@ -24,9 +24,13 @@ pyuv_cffi Status
 To do
 -----
 
+- Add docs
+
+
 - Address all ``FIXME`` items (these are critical)
 - Rewrite high-priority "greenified" modules: threading and database
 - Rewrite greenthread and greenpool
+- Ensure that SSL is fully supported
 - Check and update remaining "greenified" modules; these may have been broken
   after the core rewrite.
 - Rewrite the patcher module
