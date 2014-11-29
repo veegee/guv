@@ -39,7 +39,8 @@ To do
 
 - Move handle classes into their own modules
 - Fully implement the pyuv interface
-- Write tests (using py.test)
+- Write tests using py.test, include checks for proper releasing of resources
+  and memory leaks
 
 **Stability**
 
