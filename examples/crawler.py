@@ -10,7 +10,7 @@ def get_url(url):
 
 
 def main():
-    urls = ['http://httpbin.org/delay/1'] * 10
+    urls = ['http://reddit.com'] * 10
 
     pool = guv.GreenPool()
 
