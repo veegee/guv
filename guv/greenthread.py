@@ -3,6 +3,7 @@ import sys
 import greenlet
 
 from . import event, hubs
+from .support import reraise
 
 __all__ = ['sleep', 'spawn', 'spawn_n', 'kill', 'spawn_after', 'GreenThread']
 
@@ -212,7 +213,7 @@ def kill(g, *throw_args):
         # want it to be as though the main method never got called
         def just_raise(*a, **kw):
             if throw_args:
-                raise throw_args[1]
+                reraise(throw_args[0], throw_args[1], throw_args[2])
             else:
                 raise greenlet.GreenletExit()
 

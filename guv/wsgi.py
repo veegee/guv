@@ -10,6 +10,7 @@ import socket
 from . import version_info, gyield
 from .server import Server
 from .exceptions import BROKEN_SOCK
+from .support import reraise
 
 log = logging.getLogger('guv.wsgi')
 log.setLevel(logging.INFO)
@@ -464,7 +465,7 @@ class WSGIHandler:
             try:
                 if self.headers_sent:
                     # re-raise original exception if headers sent
-                    raise exc_info[1]
+                    reraise(exc_info[0], exc_info[1], exc_info[2])
             finally:
                 # avoid dangling circular ref
                 exc_info = None

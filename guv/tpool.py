@@ -17,6 +17,7 @@ import imp
 import os
 import sys
 import traceback
+from .support import reraise
 
 from guv import event, greenio, greenthread, patcher, timeout
 
@@ -112,7 +113,7 @@ def execute(meth, *args, **kwargs):
         if not QUIET:
             traceback.print_exception(c, e, tb)
             traceback.print_stack()
-        raise e
+        reraise(c, e, tb)
     return rv
 
 
