@@ -8,7 +8,6 @@ from guv import gyield
 import logging
 from guv.support import PYPY
 
-from util import create_response
 import logger
 
 logger.configure()
@@ -25,8 +24,29 @@ else:
     log.debug('Using fast C HTTP parser')
     USING_PYPARSER = False
 
-sem = 0
-max_req = 50
+
+def create_response(body, headers):
+    """
+    :type body: str
+    :type headers: dict
+    :rtype: str
+    """
+    final_headers = {
+        'Connection': 'keep-alive',
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Encoding': 'UTF-8'
+    }
+
+    final_headers.update(headers)
+
+    lines = ['HTTP/1.1 200 OK']
+    lines.extend(['%s: %s' % (k, v) for k, v in final_headers.items()])
+    lines.append('Content-Length: %s' % len(body))
+
+    resp = ('\r\n'.join(lines)).encode('latin-1')
+    resp += ('\r\n\r\n' + body).encode(final_headers['Content-Encoding'])
+
+    return resp
 
 
 def handle_http_10(sock, addr):
