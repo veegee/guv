@@ -32,6 +32,8 @@ To do
 - Rewrite the patcher module
 - Optimize the WSGI server by using ``http-parser`` and removing the dependency
   of socket.makefile(), which seems to be slow on Python 3.
+- Speed up program startup. The initial delay may be caused by CFFI and the
+  patcher module.
 
 **pyuv_cffi**
 
