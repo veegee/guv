@@ -144,7 +144,6 @@ class GreenThread(greenlet.greenlet):
             return False
 
     def main(self, function, *args, **kwargs):
-        print('::: {} {} {}'.format(function, args, kwargs))
         try:
             result = function(*args, **kwargs)
         except:

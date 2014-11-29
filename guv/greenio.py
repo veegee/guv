@@ -3,7 +3,7 @@ import time
 import os
 import _socket
 import errno
-from errno import (EWOULDBLOCK, EBADF, EAGAIN)
+from errno import (EWOULDBLOCK, EBADF)
 
 from . import patcher
 from .hubs import trampoline
@@ -118,15 +118,33 @@ class socket(_socket.socket):
                 self._socket_checkerr()
 
     def connect_ex(self, address):
-        try:
-            return self.connect(address) or 0
-        except osocket.timeout:
-            return EAGAIN
-        except error as ex:
-            if type(ex) is error:
-                return ex.args[0]
-            else:
-                raise  # gaierror is not silented by connect_ex
+        if self.timeout == 0.0:
+            # nonblocking mode
+            return super().connect_ex(address)
+
+        if self.gettimeout() is None:
+            # blocking mode, no timeout
+            while not self._socket_connect(address):
+                try:
+                    self._trampoline(self.fileno(), write=True)
+                    self._socket_checkerr()
+                except socket.error as ex:
+                    return ex.args[0]
+            return 0
+        else:
+            # blocking mode, with timeout
+            end = time.time() + self.gettimeout()
+            while True:
+                try:
+                    if self._socket_connect(address):
+                        return 0
+                    if time.time() >= end:
+                        raise socket.timeout(errno.EAGAIN)
+                    self._trampoline(self.fileno(), write=True, timeout=end - time.time(),
+                                     timeout_exc=socket.timeout(errno.EAGAIN))
+                    self._socket_checkerr()
+                except socket.error as ex:
+                    return ex.args[0]
 
     def recv(self, *args):
         while True:
@@ -295,7 +313,7 @@ class socket(_socket.socket):
 
         :return: True if successful, None if need to trampoline
         """
-        err = self.connect_ex(address)
+        err = super().connect_ex(address)
         if err in CONNECT_ERR:
             return None
         if err not in CONNECT_SUCCESS:
@@ -303,9 +321,9 @@ class socket(_socket.socket):
         return True
 
     def _socket_checkerr(self):
-        err = self.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+        err = self.getsockopt(osocket.SOL_SOCKET, osocket.SO_ERROR)
         if err not in CONNECT_SUCCESS:
-            raise socket.error(err, errno.errorcode[err])
+            raise error(err, errno.errorcode[err])
 
     def __enter__(self):
         return self
