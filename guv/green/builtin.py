@@ -15,6 +15,7 @@ __patched__ = ['open']
 
 copy_attributes(builtins_orig, globals(), ignore=__patched__, srckeys=dir(builtins_orig))
 
+# TODO: should this even be here?
 hubs.get_hub()
 
 __original_open = open
