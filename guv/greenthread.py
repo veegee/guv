@@ -203,9 +203,9 @@ def kill(g, *throw_args):
 
     Calling :func:`kill` causes the calling GreenThread to cooperatively yield.
     """
-    # FIXME: update this function to work with the redesigned Hub interface
     if g.dead:
         return
+
     hub = hubs.get_hub()
     if not g:
         # greenlet hasn't started yet and therefore throw won't work on its own; semantically we
@@ -224,9 +224,10 @@ def kill(g, *throw_args):
                 g.main(just_raise, (), {})
             except:
                 pass
+
     current = greenlet.getcurrent()
     if current is not hub:
         # arrange to wake the caller back up immediately
-        hub.ensure_greenlet()
-        hub.schedule_call_global(0, current.switch)
+        hub.schedule_call_now(current.switch)
+
     g.throw(*throw_args)
