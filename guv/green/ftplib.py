@@ -7,7 +7,3 @@ from guv.green import socket
 patcher.inject('ftplib', globals(), ('socket', socket))
 
 del patcher
-
-# Run test program when run as a script
-if __name__ == '__main__':
-    test()
