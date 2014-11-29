@@ -367,22 +367,20 @@ def fromfd(fd, family, type, proto=0):
 
 if hasattr(_socket.socket, "share"):
     def fromshare(info):
-        """ fromshare(info) -> socket object
+        """ Create a socket object from a the bytes object returned by socket.share(pid)
 
-        Create a socket object from a the bytes object returned by
-        socket.share(pid).
+        ;rtype: socket.socket
         """
         return socket(0, 0, 0, info)
 
 if hasattr(_socket, "socketpair"):
-
     def socketpair(family=None, type=SOCK_STREAM, proto=0):
-        """socketpair([family[, type[, proto]]]) -> (socket object, socket object)
+        """Create a pair of socket objects
 
-        Create a pair of socket objects from the sockets returned by the platform
-        socketpair() function.
-        The arguments are the same as for socket() except the default family is
-        AF_UNIX if defined on the platform; otherwise, the default is AF_INET.
+        The arguments are the same as for socket() except the default family is AF_UNIX if defined
+        on the platform; otherwise, the default is AF_INET.
+
+        rtype: tuple[socket.socket, socket.socket]
         """
         if family is None:
             try:
