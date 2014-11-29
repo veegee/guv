@@ -1,48 +1,29 @@
-from guv.exceptions import IOClosed
-
-os_orig = __import__("os")
+import os as os_orig
 import errno
+import socket
 
-socket = __import__("socket")
-
-from guv import greenio
-from guv.support import get_errno
-from guv import greenthread
-from guv import hubs
-from guv.patcher import slurp_properties
+from ..exceptions import IOClosed
+from ..support import get_errno
+from .. import hubs, greenthread
+from ..patcher import slurp_properties
 
 __all__ = os_orig.__all__
-__patched__ = ['fdopen', 'read', 'write', 'wait', 'waitpid', 'open']
+__patched__ = ['read', 'write', 'wait', 'waitpid', 'open']
 
-slurp_properties(
-    os_orig,
-    globals(),
-    ignore=__patched__,
-    srckeys=dir(os_orig))
+slurp_properties(os_orig, globals(), ignore=__patched__, srckeys=dir(os_orig))
 
-
-def fdopen(fd, *args, **kw):
-    """fdopen(fd [, mode='r' [, bufsize]]) -> file_object
-
-    Return an open file object connected to a file descriptor."""
-    if not isinstance(fd, int):
-        raise TypeError('fd should be int, not %r' % fd)
-    try:
-        return greenio.GreenPipe(fd, *args, **kw)
-    except IOError as e:
-        raise OSError(*e.args)
-
-
-__original_read__ = os_orig.read
+__open = os_orig.open
+__read = os_orig.read
+__write = os_orig.write
+__waitpid = os_orig.waitpid
 
 
 def read(fd, n):
-    """read(fd, buffersize) -> string
-
-    Read a file descriptor."""
+    """Wrap os.read
+    """
     while True:
         try:
-            return __original_read__(fd, n)
+            return __read(fd, n)
         except (OSError, IOError) as e:
             if get_errno(e) != errno.EAGAIN:
                 raise
@@ -56,17 +37,12 @@ def read(fd, n):
             return ''
 
 
-__original_write__ = os_orig.write
-
-
 def write(fd, st):
-    """write(fd, string) -> byteswritten
-
-    Write a string to a file descriptor.
+    """Wrap os.write
     """
     while True:
         try:
-            return __original_write__(fd, st)
+            return __write(fd, st)
         except (OSError, IOError) as e:
             if get_errno(e) != errno.EAGAIN:
                 raise
@@ -77,39 +53,34 @@ def write(fd, st):
 
 
 def wait():
-    """wait() -> (pid, status)
+    """Wait for completion of a child process
 
-    Wait for completion of a child process."""
+    :return: (pid, status)
+    """
     return waitpid(0, 0)
 
 
-__original_waitpid__ = os_orig.waitpid
-
-
 def waitpid(pid, options):
-    """waitpid(...)
-    waitpid(pid, options) -> (pid, status)
+    """Wait for completion of a given child process
 
-    Wait for completion of a given child process."""
+    :return: (pid, status)
+    """
     if options & os_orig.WNOHANG != 0:
-        return __original_waitpid__(pid, options)
+        return __waitpid(pid, options)
     else:
         new_options = options | os_orig.WNOHANG
         while True:
-            rpid, status = __original_waitpid__(pid, new_options)
+            rpid, status = __waitpid(pid, new_options)
             if rpid and status >= 0:
                 return rpid, status
             greenthread.sleep(0.01)
 
 
-__original_open__ = os_orig.open
-
-
 def open(file, flags, mode=0o777):
-    """ Wrap os.open
-        This behaves identically, but collaborates with
-        the hub's notify_opened protocol.
+    """Wrap os.open
+
+    This behaves identically, but collaborates with the hub's notify_opened protocol.
     """
-    fd = __original_open__(file, flags, mode)
+    fd = __open(file, flags, mode)
     hubs.notify_opened(fd)
     return fd
