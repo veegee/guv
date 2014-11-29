@@ -14,16 +14,16 @@ NOT_USED = NOT_USED()
 
 
 class Event:
-    """An abstraction where an arbitrary number of coroutines can wait for one event from another
+    """An abstraction where an arbitrary number of greenlets can wait for one event from another
 
     Events are similar to a Queue that can only hold one item, but differ
     in two important ways:
 
-    1. calling :meth:`send` never unschedules the current greenthread
+    1. Calling :meth:`send` never unschedules the current GreenThread
     2. :meth:`send` can only be called once; create a new event to send again.
 
-    They are good for communicating results between coroutines, and are the basis for how
-    :meth:`GreenThread.wait() <guv.greenthread.GreenThread.wait>` is implemented.
+    They are good for communicating results between greenlets, and are the basis for how
+    :meth:`GreenThread.wait() <guv.GreenThread.GreenThread.wait>` is implemented.
 
     >>> from guv import event
     >>> import guv
