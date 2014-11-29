@@ -25,14 +25,13 @@ To do
 -----
 
 - Add docs
-
-
 - Address all ``FIXME`` items (these are critical)
 - Rewrite high-priority "greenified" modules: threading and database
-- Rewrite greenthread and greenpool
 - Ensure that SSL is fully supported
+- Rewrite greenthread and greenpool
 - Check and update remaining "greenified" modules; these may have been broken
   after the core rewrite.
+
 - Rewrite the patcher module
 - Optimize the WSGI server by using ``http-parser`` and removing the dependency
   of socket.makefile(), which seems to be slow on Python 3.
