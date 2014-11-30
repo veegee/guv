@@ -3,12 +3,22 @@ import logging
 import greenlet
 import sys
 
+from guv.hubs.abc import AbstractListener
 import pyuv_cffi
 from ..const import READ, WRITE
 from . import abc
-from .watchers import UvFdListener
 
 log = logging.getLogger('guv')
+
+
+class UvFdListener(AbstractListener):
+    def __init__(self, evtype, fd, handle):
+        """
+        :param handle: pyuv_cffi Handle object
+        :type handle: pyuv_cffi.Handle
+        """
+        super().__init__(evtype, fd)
+        self.handle = handle
 
 
 class Timer(abc.AbstractTimer):
@@ -95,17 +105,6 @@ class Hub(abc.AbstractHub):
         self.callbacks.append((cb, args, kwargs))
 
     def schedule_call_global(self, seconds, cb, *args, **kwargs):
-        """Schedule a callable to be called after 'seconds' seconds have elapsed. The timer will NOT
-        be canceled if the current greenlet has exited before the timer fires.
-
-        :param float seconds: number of seconds to wait
-        :param Callable cb: callback to call after timer fires
-        :param args: positional arguments to pass to the callback
-        :param kwargs: keyword arguments to pass to the callback
-        :return: timer object that can be cancelled
-        :rtype: hubs.abc.Timer
-        """
-
         def timer_callback(timer_handle):
             try:
                 cb(*args, **kwargs)
@@ -122,19 +121,7 @@ class Hub(abc.AbstractHub):
 
         return Timer(timer_handle)
 
-    def add(self, evtype, fd, cb, tb):
-        """Signals an intent to or write a particular file descriptor
-
-        Signature of Callable cb: cb(fd: int)
-
-        :param str evtype: either the constant READ or WRITE
-        :param int fd: file number of the file of interest
-        :param cb: callback which will be called when the file is ready for reading/writing
-        :param tb: throwback used to signal (into the greenlet) that the file was closed
-        :return: listener
-        :rtype: self.Listener
-        """
-
+    def add(self, evtype, fd, cb, tb, cb_args=()):
         poll_h = pyuv_cffi.Poll(self.loop, fd)
         listener = UvFdListener(evtype, fd, poll_h)
 
@@ -148,7 +135,7 @@ class Hub(abc.AbstractHub):
             :type errno: int
             """
             try:
-                cb()
+                cb(*cb_args)
             except:
                 self._squelch_exception(listener, sys.exc_info())
 

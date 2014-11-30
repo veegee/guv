@@ -83,15 +83,17 @@ class AbstractHub(greenlet.greenlet, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def add(self, evtype, fd, cb, tb):
-        """Signals an intent to or write a particular file descriptor
+    def add(self, evtype, fd, cb, tb, cb_args=()):
+        """Signal the hub to watch the given file descriptor for an I/O event
 
-        Signature of Callable cb: cb(fd: int)
+        When the file descriptor is ready for the specified I/O event type, `cb` is called with
+        the specified `cb_args`.
 
         :param str evtype: either the constant READ or WRITE
         :param int fd: file number of the file of interest
         :param cb: callback which will be called when the file is ready for reading/writing
         :param tb: throwback used to signal (into the greenlet) that the file was closed
+        :param tuple cb_args: (optional) callback positional arguments
         :return: listener
         :rtype: self.Listener
         """

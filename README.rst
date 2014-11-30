@@ -3,15 +3,9 @@ guv = greenlets + libuv
 
 guv is a fast networking library and WSGI server for Python >= 3.2 and pypy3
 
-Multiple event loop backends are provided:
-
-- **pyuv_cffi** (supported fully on CPython and pypy3, very fast), this is
-  highly-experimental and a work-in-progress. Requires libuv >= 1.0.0
-- **pyuv** (complete implementation, not supported on pypy3)
-- **epoll** (currently the fastest for pypy3, and very fast on CPython)
-
-In order to select a specific hub type, set the ``GUV_HUB`` environment variable
-to a hub name from the above list; default is pyuv_cffi.
+The event loop backend is ``pyuv_cffi``, which aims to be compatible with the
+``pyuv`` interface. ``pyuv_cffi`` is fully supported on CPython and pypy3, but
+is still experimental and in heavy development. libuv >= 1.0.0 is required
 
 
 pyuv_cffi Status
