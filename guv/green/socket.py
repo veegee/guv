@@ -31,10 +31,10 @@ if os.environ.get('GUV_NO_GREENDNS') is None:
         getnameinfo = greendns.getnameinfo
         __patched__ = __patched__ + ['gethostbyname_ex', 'getnameinfo']
 
-        log.debug('Using greendns module for non-blocking DNS querying')
+        log.debug('Patcher: using greendns module for non-blocking DNS querying')
     except ImportError as ex:
         greendns = None
-        log.warn('dnspython3 not found, falling back to blocking DNS querying'.format(ex))
+        log.warn('Patcher: dnspython3 not found, falling back to blocking DNS querying'.format(ex))
 
 
 def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT, source_address=None):
