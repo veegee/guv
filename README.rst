@@ -38,8 +38,7 @@ To do
 
 High priority (these must be done before an alpha release):
 
-- Rewrite the following green modules: ``ssl``, ``subprocess``, ``thread``,
-  ``threading``
+- Rewrite the following green modules: ``thread``, ``threading``
 - Ensure ``greenthread`` and ``greenpool`` are fully working
 
 Medium priority:
