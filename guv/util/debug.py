@@ -1,6 +1,5 @@
-"""The debug module contains utilities and functions for better
-debugging Eventlet-powered applications."""
-
+"""Module containing utilities and functions for better debugging guv-powered applications
+"""
 import os
 import sys
 import linecache
