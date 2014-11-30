@@ -16,6 +16,16 @@ Windows support is not far off and can be added in the near future if there is a
 demand for this.
 
 
+Installing
+----------
+
+Install using pip:
+
+    pip install guv
+
+You can now run the examples in the ``examples`` directory
+
+
 pyuv_cffi Status
 ----------------
 
