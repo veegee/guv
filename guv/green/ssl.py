@@ -1,164 +1,290 @@
-# FIXME: rewrite this module
-from ..exceptions import IOClosed
-
 ssl_orig = __import__('ssl')
+time_orig = __import__('time')
+socket_orig = __import__('socket')
+
+import errno
 
 from ..patcher import copy_attributes
 
 copy_attributes(ssl_orig, globals(), srckeys=dir(ssl_orig))
 
-import sys
-import errno
+from ..greenio import socket
 
-time = __import__('time')
+SSLContext_orig = ssl_orig.SSLContext
+SSLSocket_orig = ssl_orig.SSLSocket
 
-from ..support import get_errno, six
-from ..hubs import trampoline
-from ..greenio import socket, SOCKET_CLOSED, CONNECT_ERR, CONNECT_SUCCESS
+__patched__ = ['SSLContext', 'SSLSocket', 'wrap_socket', 'get_server_certificate']
 
-socket_orig = __import__('socket')
-socket = socket_orig.socket
+timeout_default = object()
 
-if sys.version_info >= (2, 7):
-    has_ciphers = True
-    timeout_exc = SSLError
+# define module attributes to silence IDE errors
+CERT_NONE = ssl_orig.CERT_NONE
+CERT_REQUIRED = ssl_orig.CERT_REQUIRED
 
-__patched__ = ['SSLSocket', 'wrap_socket', 'sslwrap_simple']
+PROTOCOL_SSLv23 = ssl_orig.PROTOCOL_SSLv23
+PROTOCOL_SSLv3 = ssl_orig.PROTOCOL_SSLv3
 
-_original_sslsocket = ssl_orig.SSLSocket
+CHANNEL_BINDING_TYPES = ssl_orig.CHANNEL_BINDING_TYPES
+AF_INET = ssl_orig.AF_INET
+SOCK_STREAM = ssl_orig.SOCK_STREAM
+SOL_SOCKET = ssl_orig.SOL_SOCKET
+SO_TYPE = ssl_orig.SO_TYPE
+
+SSL_ERROR_WANT_READ = ssl_orig.SSL_ERROR_WANT_READ
+SSL_ERROR_WANT_WRITE = ssl_orig.SSL_ERROR_WANT_WRITE
+SSL_ERROR_EOF = ssl_orig.SSL_ERROR_EOF
+SSLWantReadError = ssl_orig.SSLWantReadError
+SSLWantWriteError = ssl_orig.SSLWantWriteError
+
+_ssl = ssl_orig._ssl
+socket_error = ssl_orig.socket_error
+SSLError = ssl_orig.SSLError
+timeout_exc = SSLError
+
+create_connection = ssl_orig.create_connection
+DER_cert_to_PEM_cert = ssl_orig.DER_cert_to_PEM_cert
+
+# define exceptions for convenience
+_timeout_exc = SSLError('timed out')
+_SSLErrorReadTimeout = SSLError('The read operation timed out')
+_SSLErrorWriteTimeout = SSLError('The write operation timed out')
+_SSLErrorHandshakeTimeout = SSLError('The handshake operation timed out')
 
 
-class GreenSSLSocket(_original_sslsocket):
-    """ This is a green version of the SSLSocket class from the ssl module added
-    in 2.6.  For documentation on it, please see the Python standard
-    documentation.
+class SSLContext(SSLContext_orig):
+    def wrap_socket(self, sock, server_side=False,
+                    do_handshake_on_connect=True,
+                    suppress_ragged_eofs=True,
+                    server_hostname=None):
+        return SSLSocket(sock=sock, server_side=server_side,
+                         do_handshake_on_connect=do_handshake_on_connect,
+                         suppress_ragged_eofs=suppress_ragged_eofs,
+                         server_hostname=server_hostname,
+                         _context=self)
 
-    Python nonblocking ssl objects don't give errors when the other end
-    of the socket is closed (they do notice when the other end is shutdown,
-    though).  Any write/read operations will simply hang if the socket is
-    closed from the other end.  There is no obvious fix for this problem;
-    it appears to be a limitation of Python's ssl object implementation.
-    A workaround is to set a reasonable timeout on the socket using
-    settimeout(), and to close/reopen the connection when a timeout
-    occurs at an unexpected juncture in the code.
-    """
-    # we are inheriting from SSLSocket because its constructor calls
-    # do_handshake whose behavior we wish to override
 
-    def __init__(self, sock, keyfile=None, certfile=None,
+class SSLSocket(socket):
+    def __init__(self, sock=None, keyfile=None, certfile=None,
                  server_side=False, cert_reqs=CERT_NONE,
                  ssl_version=PROTOCOL_SSLv23, ca_certs=None,
-                 do_handshake_on_connect=True, *args, **kw):
-        if not isinstance(sock, GreenSocket):
-            sock = GreenSocket(sock)
-
-        self.act_non_blocking = sock.act_non_blocking
-
-        if six.PY2:
-            # On Python 2 SSLSocket constructor queries the timeout, it'd break without
-            # this assignment
-            self._timeout = sock.gettimeout()
-
-        # nonblocking socket handshaking on connect got disabled so let's pretend it's disabled
-        # even when it's on
-        super(GreenSSLSocket, self).__init__(
-            sock.sock, keyfile, certfile, server_side, cert_reqs, ssl_version,
-            ca_certs, do_handshake_on_connect and six.PY2, *args, **kw)
-
-        # the superclass initializer trashes the methods so we remove
-        # the local-object versions of them and let the actual class
-        # methods shine through
-        # Note: This for Python 2
-        try:
-            for fn in socket_orig._delegate_methods:
-                delattr(self, fn)
-        except AttributeError:
-            pass
-
-        if six.PY3:
-            # Python 3 SSLSocket construction process overwrites the timeout so restore it
-            self._timeout = sock.gettimeout()
-
-            # it also sets timeout to None internally apparently (tested with 3.4.2)
-            _original_sslsocket.settimeout(self, 0.0)
-            assert _original_sslsocket.gettimeout(self) == 0.0
-
-            # see note above about handshaking
-            self.do_handshake_on_connect = do_handshake_on_connect
-            if do_handshake_on_connect and self._connected:
-                self.do_handshake()
-
-    def settimeout(self, timeout):
-        self._timeout = timeout
-
-    def gettimeout(self):
-        return self._timeout
-
-    def setblocking(self, flag):
-        if flag:
-            self.act_non_blocking = False
-            self._timeout = None
+                 do_handshake_on_connect=True,
+                 family=AF_INET, type=SOCK_STREAM, proto=0, fileno=None,
+                 suppress_ragged_eofs=True, npn_protocols=None, ciphers=None,
+                 server_hostname=None,
+                 _context=None):
+        if _context:
+            self.context = _context
         else:
-            self.act_non_blocking = True
-            self._timeout = 0.0
-
-    def _call_trampolining(self, func, *a, **kw):
-        if self.act_non_blocking:
-            return func(*a, **kw)
+            if server_side and not certfile:
+                raise ValueError("certfile must be specified for server-side "
+                                 "operations")
+            if keyfile and not certfile:
+                raise ValueError("certfile must be specified")
+            if certfile and not keyfile:
+                keyfile = certfile
+            self.context = SSLContext(ssl_version)
+            self.context.verify_mode = cert_reqs
+            if ca_certs:
+                self.context.load_verify_locations(ca_certs)
+            if certfile:
+                self.context.load_cert_chain(certfile, keyfile)
+            if npn_protocols:
+                self.context.set_npn_protocols(npn_protocols)
+            if ciphers:
+                self.context.set_ciphers(ciphers)
+            self.keyfile = keyfile
+            self.certfile = certfile
+            self.cert_reqs = cert_reqs
+            self.ssl_version = ssl_version
+            self.ca_certs = ca_certs
+            self.ciphers = ciphers
+        # Can't use sock.type as other flags (such as SOCK_NONBLOCK) get
+        # mixed in.
+        if sock.getsockopt(SOL_SOCKET, SO_TYPE) != SOCK_STREAM:
+            raise NotImplementedError("only stream sockets are supported")
+        if server_side and server_hostname:
+            raise ValueError("server_hostname can only be specified "
+                             "in client mode")
+        self.server_side = server_side
+        self.server_hostname = server_hostname
+        self.do_handshake_on_connect = do_handshake_on_connect
+        self.suppress_ragged_eofs = suppress_ragged_eofs
+        connected = False
+        if sock is not None:
+            socket.__init__(self,
+                            family=sock.family,
+                            type=sock.type,
+                            proto=sock.proto,
+                            fileno=sock.fileno())
+            self.settimeout(sock.gettimeout())
+            # see if it's connected
+            try:
+                sock.getpeername()
+            except socket_error as e:
+                if e.errno != errno.ENOTCONN:
+                    raise
+            else:
+                connected = True
+            sock.detach()
+        elif fileno is not None:
+            socket.__init__(self, fileno=fileno)
         else:
-            while True:
-                try:
-                    return func(*a, **kw)
-                except SSLError as exc:
-                    if get_errno(exc) == SSL_ERROR_WANT_READ:
-                        trampoline(self,
-                                   read=True,
-                                   timeout=self.gettimeout(),
-                                   timeout_exc=timeout_exc('timed out'))
-                    elif get_errno(exc) == SSL_ERROR_WANT_WRITE:
-                        trampoline(self,
-                                   write=True,
-                                   timeout=self.gettimeout(),
-                                   timeout_exc=timeout_exc('timed out'))
+            socket.__init__(self, family=family, type=type, proto=proto)
+
+        self._closed = False
+        self._sslobj = None
+        self._connected = connected
+        if connected:
+            # create the SSL object
+            try:
+                self._sslobj = self.context._wrap_socket(self, server_side,
+                                                         server_hostname)
+                if do_handshake_on_connect:
+                    timeout = self.gettimeout()
+                    if timeout == 0.0:
+                        # non-blocking
+                        raise ValueError(
+                            "do_handshake_on_connect should not be specified for non-blocking "
+                            "sockets")
+                    self.do_handshake()
+
+            except socket_error as x:
+                self.close()
+                raise x
+
+    def dup(self):
+        raise NotImplemented("Can't dup() %s instances" %
+                             self.__class__.__name__)
+
+    def _checkClosed(self, msg=None):
+        # raise an exception here if you wish to check for spurious closes
+        pass
+
+    def read(self, len=1024, buffer=None):
+        """Read up to `len` bytes
+
+        :return: read data (zero-length bytes on EOF)
+        :rtype: bytes
+        """
+        while True:
+            try:
+                if buffer is not None:
+                    return self._sslobj.read(len, buffer)
+                else:
+                    return self._sslobj.read(len or 1024)
+            except SSLWantReadError:
+                if self.timeout == 0.0:
+                    raise
+                self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+                                 timeout_exc=_SSLErrorReadTimeout)
+            except SSLWantWriteError:
+                if self.timeout == 0.0:
+                    raise
+                # note: using _SSLErrorReadTimeout rather than _SSLErrorWriteTimeout below is
+                # intentional
+                self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
+                                 timeout_exc=_SSLErrorReadTimeout)
+            except SSLError as ex:
+                if ex.args[0] == SSL_ERROR_EOF and self.suppress_ragged_eofs:
+                    if buffer is None:
+                        return ''
                     else:
-                        raise
+                        return 0
+                else:
+                    raise
 
     def write(self, data):
         """Write DATA to the underlying SSL channel.  Returns
         number of bytes of DATA actually transmitted."""
-        return self._call_trampolining(
-            super(GreenSSLSocket, self).write, data)
+        while True:
+            try:
+                return self._sslobj.write(data)
+            except SSLError as ex:
+                if ex.args[0] == SSL_ERROR_WANT_READ:
+                    if self.timeout == 0.0:
+                        raise
+                    self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+                                     timeout_exc=_SSLErrorWriteTimeout)
+                elif ex.args[0] == SSL_ERROR_WANT_WRITE:
+                    if self.timeout == 0.0:
+                        raise
+                    self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
+                                     timeout_exc=_SSLErrorWriteTimeout)
+                else:
+                    raise
 
-    def read(self, *args, **kwargs):
-        """Read up to LEN bytes and return them.
-        Return zero-length string on EOF."""
-        try:
-            return self._call_trampolining(
-                super(GreenSSLSocket, self).read, *args, **kwargs)
-        except IOClosed:
-            return b''
+    def getpeercert(self, binary_form=False):
+        """Returns a formatted version of the data in the
+        certificate provided by the other end of the SSL channel.
+        Return None if no certificate was provided, {} if a
+        certificate was provided, but not validated."""
 
-    def send(self, data, flags=0):
-        if self._sslobj:
-            return self._call_trampolining(
-                super(GreenSSLSocket, self).send, data, flags)
+        self._checkClosed()
+        return self._sslobj.peer_certificate(binary_form)
+
+    def selected_npn_protocol(self):
+        self._checkClosed()
+        if not self._sslobj or not _ssl.HAS_NPN:
+            return None
         else:
-            trampoline(self, write=True, timeout_exc=timeout_exc('timed out'))
+            return self._sslobj.selected_npn_protocol()
+
+    def cipher(self):
+        self._checkClosed()
+        if not self._sslobj:
+            return None
+        else:
+            return self._sslobj.cipher()
+
+    def compression(self):
+        self._checkClosed()
+        if not self._sslobj:
+            return None
+        else:
+            return self._sslobj.compression()
+
+    def send(self, data, flags=0, timeout=timeout_default):
+        self._checkClosed()
+        if timeout is timeout_default:
+            timeout = self.timeout
+        if self._sslobj:
+            if flags != 0:
+                raise ValueError('non-zero flags not allowed in calls to send() on {}'
+                                 .format(self.__class__))
+            while True:
+                try:
+                    return self._sslobj.write(data)
+                except SSLWantReadError:
+                    if self.timeout == 0.0:
+                        return 0
+                    self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+                                     timeout_exc=_timeout_exc)
+                except SSLWantWriteError:
+                    if self.timeout == 0.0:
+                        return 0
+                    self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
+                                     timeout_exc=_timeout_exc)
+        else:
             return socket.send(self, data, flags)
 
-    def sendto(self, data, addr, flags=0):
-        # *NOTE: gross, copied code from ssl.py becase it's not factored well enough to be used
-        # as-is
+    def sendto(self, data, flags_or_addr, addr=None):
+        self._checkClosed()
         if self._sslobj:
             raise ValueError("sendto not allowed on instances of %s" %
                              self.__class__)
+        elif addr is None:
+            return socket.sendto(self, data, flags_or_addr)
         else:
-            trampoline(self, write=True, timeout_exc=timeout_exc('timed out'))
-            return socket.sendto(self, data, addr, flags)
+            return socket.sendto(self, data, flags_or_addr, addr)
+
+    def sendmsg(self, *args, **kwargs):
+        # Ensure programs don't send data unencrypted if they try to
+        # use this method.
+        raise NotImplementedError("sendmsg not allowed on instances of %s" %
+                                  self.__class__)
 
     def sendall(self, data, flags=0):
-        # *NOTE: gross, copied code from ssl.py becase it's not factored well enough to be used
-        # as-is
+        self._checkClosed()
         if self._sslobj:
             if flags != 0:
                 raise ValueError(
@@ -169,187 +295,187 @@ class GreenSSLSocket(_original_sslsocket):
             while (count < amount):
                 v = self.send(data[count:])
                 count += v
-                if v == 0:
-                    trampoline(self, write=True, timeout_exc=timeout_exc('timed out'))
             return amount
         else:
-            while True:
-                try:
-                    return socket.sendall(self, data, flags)
-                except socket_orig.error as e:
-                    if self.act_non_blocking:
-                        raise
-                    if get_errno(e) == errno.EWOULDBLOCK:
-                        trampoline(self, write=True,
-                                   timeout=self.gettimeout(), timeout_exc=timeout_exc('timed out'))
-                    if get_errno(e) in SOCKET_CLOSED:
-                        return ''
-                    raise
+            return socket.sendall(self, data, flags)
 
     def recv(self, buflen=1024, flags=0):
-        # *NOTE: gross, copied code from ssl.py becase it's not factored well enough to be used
-        # as-is
+        self._checkClosed()
+        if self._sslobj:
+            if flags != 0:
+                raise ValueError("non-zero flags not allowed in calls to recv() on {}"
+                                 .format(self.__class__))
+            return self.read(buflen)
+        else:
+            return socket.recv(self, buflen, flags)
+
+    def recv_into(self, buffer, nbytes=None, flags=0):
+        self._checkClosed()
+        if buffer and (nbytes is None):
+            nbytes = len(buffer)
+        elif nbytes is None:
+            nbytes = 1024
         if self._sslobj:
             if flags != 0:
                 raise ValueError(
-                    "non-zero flags not allowed in calls to recv() on %s" %
-                    self.__class__)
-            read = self.read(buflen)
-            return read
+                    "non-zero flags not allowed in calls to recv_into() on %s" % self.__class__)
+            return self.read(nbytes, buffer)
         else:
-            while True:
-                try:
-                    return socket.recv(self, buflen, flags)
-                except socket_orig.error as e:
-                    if self.act_non_blocking:
-                        raise
-                    if get_errno(e) == errno.EWOULDBLOCK:
-                        try:
-                            trampoline(self, read=True,
-                                       timeout=self.gettimeout(),
-                                       timeout_exc=timeout_exc('timed out'))
-                        except IOClosed:
-                            return b''
-                    if get_errno(e) in SOCKET_CLOSED:
-                        return b''
-                    raise
+            return socket.recv_into(self, buffer, nbytes, flags)
 
-    def recv_into(self, buffer, nbytes=None, flags=0):
-        if not self.act_non_blocking:
-            trampoline(self, read=True, timeout=self.gettimeout(),
-                       timeout_exc=timeout_exc('timed out'))
-        return super(GreenSSLSocket, self).recv_into(buffer, nbytes, flags)
-
-    def recvfrom(self, addr, buflen=1024, flags=0):
-        if not self.act_non_blocking:
-            trampoline(self, read=True, timeout=self.gettimeout(),
-                       timeout_exc=timeout_exc('timed out'))
-        return super(GreenSSLSocket, self).recvfrom(addr, buflen, flags)
+    def recvfrom(self, buflen=1024, flags=0):
+        self._checkClosed()
+        if self._sslobj:
+            raise ValueError("recvfrom not allowed on instances of %s" %
+                             self.__class__)
+        else:
+            return socket.recvfrom(self, buflen, flags)
 
     def recvfrom_into(self, buffer, nbytes=None, flags=0):
-        if not self.act_non_blocking:
-            trampoline(self, read=True, timeout=self.gettimeout(),
-                       timeout_exc=timeout_exc('timed out'))
-        return super(GreenSSLSocket, self).recvfrom_into(buffer, nbytes, flags)
+        self._checkClosed()
+        if self._sslobj:
+            raise ValueError("recvfrom_into not allowed on instances of %s" %
+                             self.__class__)
+        else:
+            return socket.recvfrom_into(self, buffer, nbytes, flags)
+
+    def recvmsg(self, *args, **kwargs):
+        raise NotImplementedError("recvmsg not allowed on instances of %s" %
+                                  self.__class__)
+
+    def recvmsg_into(self, *args, **kwargs):
+        raise NotImplementedError("recvmsg_into not allowed on instances of "
+                                  "%s" % self.__class__)
+
+    def pending(self):
+        self._checkClosed()
+        if self._sslobj:
+            return self._sslobj.pending()
+        else:
+            return 0
+
+    def shutdown(self, how):
+        self._checkClosed()
+        self._sslobj = None
+        socket.shutdown(self, how)
 
     def unwrap(self):
-        return GreenSocket(self._call_trampolining(
-            super(GreenSSLSocket, self).unwrap))
+        if self._sslobj:
+            s = self._sslobj.shutdown()
+            self._sslobj = None
+            return s
+        else:
+            raise ValueError("No SSL wrapper around " + str(self))
+
+    def _real_close(self):
+        self._sslobj = None
+        # self._closed = True
+        socket._real_close(self)
 
     def do_handshake(self):
         """Perform a TLS/SSL handshake."""
-        return self._call_trampolining(
-            super(GreenSSLSocket, self).do_handshake)
+        while True:
+            try:
+                return self._sslobj.do_handshake()
+            except SSLWantReadError:
+                if self.timeout == 0.0:
+                    raise
+                self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+                                 timeout_exc=_SSLErrorHandshakeTimeout)
+            except SSLWantWriteError:
+                if self.timeout == 0.0:
+                    raise
+                self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
+                                 timeout_exc=_SSLErrorHandshakeTimeout)
 
-    def _socket_connect(self, addr):
-        real_connect = socket.connect
-        if self.act_non_blocking:
-            return real_connect(self, addr)
-        else:
-            # *NOTE: gross, copied code from greenio because it's not factored
-            # well enough to reuse
-            if self.gettimeout() is None:
-                while True:
-                    try:
-                        return real_connect(self, addr)
-                    except socket_orig.error as exc:
-                        if get_errno(exc) in CONNECT_ERR:
-                            trampoline(self, write=True)
-                        elif get_errno(exc) in CONNECT_SUCCESS:
-                            return
-                        else:
-                            raise
+    def _real_connect(self, addr, connect_ex):
+        if self.server_side:
+            raise ValueError("can't connect in server-side mode")
+        # Here we assume that the socket is client-side, and not
+        # connected at the time of the call.  We connect it, then wrap it.
+        if self._connected:
+            raise ValueError("attempt to connect already-connected SSLSocket!")
+        self._sslobj = self.context._wrap_socket(self, False, self.server_hostname)
+        try:
+            if connect_ex:
+                rc = socket.connect_ex(self, addr)
             else:
-                end = time.time() + self.gettimeout()
-                while True:
-                    try:
-                        real_connect(self, addr)
-                    except socket_orig.error as exc:
-                        if get_errno(exc) in CONNECT_ERR:
-                            trampoline(self, write=True,
-                                       timeout=end - time.time(),
-                                       timeout_exc=timeout_exc('timed out'))
-                        elif get_errno(exc) in CONNECT_SUCCESS:
-                            return
-                        else:
-                            raise
-                    if time.time() >= end:
-                        raise timeout_exc('timed out')
+                rc = None
+                socket.connect(self, addr)
+            if not rc:
+                if self.do_handshake_on_connect:
+                    self.do_handshake()
+                self._connected = True
+            return rc
+        except socket_error:
+            self._sslobj = None
+            raise
 
     def connect(self, addr):
         """Connects to remote ADDR, and then wraps the connection in
         an SSL channel."""
-        # *NOTE: grrrrr copied this code from ssl.py because of the reference
-        # to socket.connect which we don't want to call directly
-        if self._sslobj:
-            raise ValueError("attempt to connect already-connected SSLSocket!")
-        self._socket_connect(addr)
-        server_side = False
-        try:
-            sslwrap = _ssl.sslwrap
-        except AttributeError:
-            # sslwrap was removed in 3.x and later in 2.7.9
-            context = self.context
-            sslobj = context._wrap_socket(self, server_side)
-        else:
-            sslobj = sslwrap(self._sock, server_side, self.keyfile, self.certfile,
-                             self.cert_reqs, self.ssl_version,
-                             self.ca_certs, *([self.ciphers] if has_ciphers else []))
+        self._real_connect(addr, False)
 
-        self._sslobj = sslobj
-        if self.do_handshake_on_connect:
-            self.do_handshake()
+    def connect_ex(self, addr):
+        """Connects to remote ADDR, and then wraps the connection in
+        an SSL channel."""
+        return self._real_connect(addr, True)
 
     def accept(self):
         """Accepts a new connection from a remote client, and returns
         a tuple containing that new connection wrapped with a server-side
         SSL channel, and the address of the remote client."""
-        # RDW grr duplication of code from greenio
-        if self.act_non_blocking:
-            newsock, addr = socket.accept(self)
-        else:
-            while True:
-                try:
-                    newsock, addr = socket.accept(self)
-                    newsock.setblocking(False)
-                    break
-                except socket_orig.error as e:
-                    if get_errno(e) != errno.EWOULDBLOCK:
-                        raise
-                    trampoline(self, read=True, timeout=self.gettimeout(),
-                               timeout_exc=timeout_exc('timed out'))
 
-        new_ssl = type(self)(
-            newsock,
-            keyfile=self.keyfile,
-            certfile=self.certfile,
-            server_side=True,
-            cert_reqs=self.cert_reqs,
-            ssl_version=self.ssl_version,
-            ca_certs=self.ca_certs,
-            do_handshake_on_connect=self.do_handshake_on_connect,
-            suppress_ragged_eofs=self.suppress_ragged_eofs)
-        return (new_ssl, addr)
+        newsock, addr = socket.accept(self)
+        newsock = self.context.wrap_socket(newsock,
+                                           do_handshake_on_connect=self.do_handshake_on_connect,
+                                           suppress_ragged_eofs=self.suppress_ragged_eofs,
+                                           server_side=True)
+        return newsock, addr
 
-    def dup(self):
-        raise NotImplementedError("Can't dup an ssl object")
+    def get_channel_binding(self, cb_type="tls-unique"):
+        """Get channel binding data for current connection.  Raise ValueError
+        if the requested `cb_type` is not supported.  Return bytes of the data
+        or None if the data is not available (e.g. before the handshake).
+        """
+        if cb_type not in CHANNEL_BINDING_TYPES:
+            raise ValueError("Unsupported channel binding type")
+        if cb_type != "tls-unique":
+            raise NotImplementedError("{0} channel binding type not implemented".format(cb_type))
+        if self._sslobj is None:
+            return None
+        return self._sslobj.tls_unique_cb()
 
 
-SSLSocket = GreenSSLSocket
+def wrap_socket(sock, keyfile=None, certfile=None,
+                server_side=False, cert_reqs=CERT_NONE,
+                ssl_version=PROTOCOL_SSLv23, ca_certs=None,
+                do_handshake_on_connect=True,
+                suppress_ragged_eofs=True,
+                ciphers=None):
+    return SSLSocket(sock=sock, keyfile=keyfile, certfile=certfile,
+                     server_side=server_side, cert_reqs=cert_reqs,
+                     ssl_version=ssl_version, ca_certs=ca_certs,
+                     do_handshake_on_connect=do_handshake_on_connect,
+                     suppress_ragged_eofs=suppress_ragged_eofs,
+                     ciphers=ciphers)
 
 
-def wrap_socket(sock, *a, **kw):
-    return GreenSSLSocket(sock, *a, **kw)
+def get_server_certificate(addr, ssl_version=PROTOCOL_SSLv3, ca_certs=None):
+    """Retrieve the certificate from the server at the specified address,
+    and return it as a PEM-encoded string.
+    If 'ca_certs' is specified, validate the server cert against it.
+    If 'ssl_version' is specified, use it in the connection attempt."""
 
+    host, port = addr
+    if (ca_certs is not None):
+        cert_reqs = CERT_REQUIRED
+    else:
+        cert_reqs = CERT_NONE
+    s = create_connection(addr)
+    s = wrap_socket(s, ssl_version=ssl_version,
+                    cert_reqs=cert_reqs, ca_certs=ca_certs)
+    dercert = s.getpeercert(True)
+    s.close()
+    return DER_cert_to_PEM_cert(dercert)
 
-if hasattr(ssl_orig, 'sslwrap_simple'):
-    def sslwrap_simple(sock, keyfile=None, certfile=None):
-        """A replacement for the old socket.ssl function.  Designed
-        for compability with Python 2.5 and earlier.  Will disappear in
-        Python 3.0."""
-        ssl_sock = GreenSSLSocket(sock, keyfile=keyfile, certfile=certfile,
-                                  server_side=False,
-                                  cert_reqs=CERT_NONE,
-                                  ssl_version=PROTOCOL_SSLv23,
-                                  ca_certs=None)
-        return ssl_sock
