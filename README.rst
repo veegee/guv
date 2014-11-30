@@ -19,7 +19,7 @@ demand for this.
 Installing
 ----------
 
-Install using pip:
+Install using pip::
 
     pip install guv
 
