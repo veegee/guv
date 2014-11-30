@@ -98,5 +98,7 @@ def configure():
         logging.basicConfig(level=logging.DEBUG)
         logging.root.handlers[0] = h
 
+    logging.getLogger('requests').setLevel(logging.WARNING)
+
 
 configure()
