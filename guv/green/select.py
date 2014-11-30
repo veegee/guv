@@ -3,7 +3,6 @@ error = __select.error
 from greenlet import getcurrent
 
 from ..hubs import get_hub
-from ..support import six
 from ..const import READ, WRITE
 
 __patched__ = ['select']
@@ -17,12 +16,12 @@ def get_fileno(obj):
     try:
         f = obj.fileno
     except AttributeError:
-        if not isinstance(obj, six.integer_types):
+        if not isinstance(obj, int):
             raise TypeError("Expected int or long, got " + type(obj))
         return obj
     else:
         rv = f()
-        if not isinstance(rv, six.integer_types):
+        if not isinstance(rv, int):
             raise TypeError("Expected int or long, got " + type(rv))
         return rv
 
@@ -75,7 +74,7 @@ def select(read_list, write_list, error_list, timeout=None):
     if timeout is not None:
         timers.append(hub.schedule_call_global(timeout, on_timeout))
     try:
-        for k, v in six.iteritems(ds):
+        for k, v in ds.items():
             if v.get('read'):
                 listeners.append(hub.add(READ, k, on_read, on_error))
             if v.get('write'):

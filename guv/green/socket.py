@@ -13,10 +13,12 @@ copy_attributes(__socket, globals(), srckeys=dir(__socket))
 
 greendns = None
 if os.environ.get('EVENTLET_NO_GREENDNS', '').lower() != 'yes':
+    print('try import greendns')
     try:
         from ..support import greendns
+        print('import greendns')
     except ImportError as ex:
-        pass
+        print(ex)
 
 if greendns:
     gethostbyname = greendns.gethostbyname
