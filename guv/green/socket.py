@@ -9,7 +9,7 @@ __import__('guv.green._socket3')
 gsocket = sys.modules['guv.green._socket3']
 
 __all__ = gsocket.__all__
-__patched__ = gsocket.__patched__ + ['gethostbyname', 'getaddrinfo', 'create_connection', ]
+__patched__ = gsocket.__patched__ + ['gethostbyname', 'getaddrinfo', 'create_connection']
 
 from ..patcher import copy_attributes
 

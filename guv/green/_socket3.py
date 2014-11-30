@@ -1,20 +1,20 @@
-__socket = __import__('socket')
+socket_orig = __import__('socket')
 os = __import__('os')
 
-__all__ = __socket.__all__
+__all__ = socket_orig.__all__
 __patched__ = ['fromfd', 'socketpair', 'ssl', 'socket']
 
 import ssl
 
 from ..patcher import copy_attributes
 
-copy_attributes(__socket, globals(),
-                ignore=__patched__, srckeys=dir(__socket))
+copy_attributes(socket_orig, globals(),
+                ignore=__patched__, srckeys=dir(socket_orig))
 
 from ..greenio import socket
 
 try:
-    __original_fromfd__ = __socket.fromfd
+    __original_fromfd__ = socket_orig.fromfd
 
     def fromfd(*args):
         return socket(__original_fromfd__(*args))
@@ -22,7 +22,7 @@ except AttributeError:
     pass
 
 try:
-    __original_socketpair__ = __socket.socketpair
+    __original_socketpair__ = socket_orig.socketpair
 
     def socketpair(*args):
         one, two = __original_socketpair__(*args)
