@@ -56,3 +56,7 @@ Low priority:
 - Speed up importing and monkey-patching. The initial delay may be caused by
   CFFI compiling/verifying and the patcher module.
 - Implement the asyncio interface
+- When we drop Python 3.2 support, we can greatly simplify I/O exceptions by
+  using ``BlockingIOError`` rather than ``socket.error`` and checking for
+  ``args[0]``. It would be a good idea to patch ``BlockingIOError`` now to ease
+  the transition to drop Python 3.2 support later.
