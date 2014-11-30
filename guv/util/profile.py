@@ -41,7 +41,6 @@ import functools
 import greenlet
 
 from .. import patcher
-from ..support import six
 
 thread = patcher.original('thread')  # non-monkeypatched module needed
 
@@ -154,7 +153,7 @@ class Profile(profile_orig.Profile):
         return ContextWrapper
 
     # Add automatic tasklet detection to the callbacks.
-    dispatch = dict([(key, ContextWrap(val)) for key, val in six.iteritems(dispatch)])
+    dispatch = dict([(key, ContextWrap(val)) for key, val in dispatch.items()])
 
     def TallyTimings(self):
         oldtimings = self.sleeping
@@ -166,10 +165,10 @@ class Profile(profile_orig.Profile):
         # we must keep the timings dicts separate for each tasklet, since it contains
         # the 'ns' item, recursion count of each function in that tasklet.  This is
         # used in the Unwind dude.
-        for tasklet, (cur, timings) in six.iteritems(oldtimings):
+        for tasklet, (cur, timings) in oldtimings.items():
             self.Unwind(cur, timings)
 
-            for k, v in six.iteritems(timings):
+            for k, v in timings.items():
                 if k not in self.timings:
                     self.timings[k] = v
                 else:
@@ -179,7 +178,7 @@ class Profile(profile_orig.Profile):
                     cc += v[0]
                     tt += v[2]
                     ct += v[3]
-                    for k1, v1 in six.iteritems(v[4]):
+                    for k1, v1 in v[4].items():
                         callers[k1] = callers.get(k1, 0) + v1
                     self.timings[k] = cc, ns, tt, ct, callers
 
