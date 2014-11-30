@@ -1,0 +1,2 @@
+READ = 'read'
+WRITE = 'write'
