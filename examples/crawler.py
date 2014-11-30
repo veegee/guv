@@ -1,8 +1,13 @@
-import guv
+import logging
+import logger
+logger.configure()
 
+import guv
 guv.monkey_patch()
 
 import requests
+
+log = logging.getLogger()
 
 
 def get_url(url):
