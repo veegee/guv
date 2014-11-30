@@ -1,3 +1,4 @@
+# FIXME: rewrite this module
 """Implements the standard threading module, using greenthreads."""
 import greenlet
 

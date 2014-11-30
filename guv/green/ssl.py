@@ -1,10 +1,11 @@
+# FIXME: rewrite this module
 from ..exceptions import IOClosed
 
-__ssl = __import__('ssl')
+ssl_orig = __import__('ssl')
 
 from ..patcher import copy_attributes
 
-copy_attributes(__ssl, globals(), srckeys=dir(__ssl))
+copy_attributes(ssl_orig, globals(), srckeys=dir(ssl_orig))
 
 import sys
 import errno
@@ -15,18 +16,16 @@ from ..support import get_errno, six
 from ..hubs import trampoline
 from ..greenio import socket, SOCKET_CLOSED, CONNECT_ERR, CONNECT_SUCCESS
 
-orig_socket = __import__('socket')
-socket = orig_socket.socket
+socket_orig = __import__('socket')
+socket = socket_orig.socket
+
 if sys.version_info >= (2, 7):
     has_ciphers = True
     timeout_exc = SSLError
-else:
-    has_ciphers = False
-    timeout_exc = orig_socket.timeout
 
 __patched__ = ['SSLSocket', 'wrap_socket', 'sslwrap_simple']
 
-_original_sslsocket = __ssl.SSLSocket
+_original_sslsocket = ssl_orig.SSLSocket
 
 
 class GreenSSLSocket(_original_sslsocket):
@@ -71,7 +70,7 @@ class GreenSSLSocket(_original_sslsocket):
         # methods shine through
         # Note: This for Python 2
         try:
-            for fn in orig_socket._delegate_methods:
+            for fn in socket_orig._delegate_methods:
                 delattr(self, fn)
         except AttributeError:
             pass
@@ -177,7 +176,7 @@ class GreenSSLSocket(_original_sslsocket):
             while True:
                 try:
                     return socket.sendall(self, data, flags)
-                except orig_socket.error as e:
+                except socket_orig.error as e:
                     if self.act_non_blocking:
                         raise
                     if get_errno(e) == errno.EWOULDBLOCK:
@@ -201,7 +200,7 @@ class GreenSSLSocket(_original_sslsocket):
             while True:
                 try:
                     return socket.recv(self, buflen, flags)
-                except orig_socket.error as e:
+                except socket_orig.error as e:
                     if self.act_non_blocking:
                         raise
                     if get_errno(e) == errno.EWOULDBLOCK:
@@ -253,7 +252,7 @@ class GreenSSLSocket(_original_sslsocket):
                 while True:
                     try:
                         return real_connect(self, addr)
-                    except orig_socket.error as exc:
+                    except socket_orig.error as exc:
                         if get_errno(exc) in CONNECT_ERR:
                             trampoline(self, write=True)
                         elif get_errno(exc) in CONNECT_SUCCESS:
@@ -265,7 +264,7 @@ class GreenSSLSocket(_original_sslsocket):
                 while True:
                     try:
                         real_connect(self, addr)
-                    except orig_socket.error as exc:
+                    except socket_orig.error as exc:
                         if get_errno(exc) in CONNECT_ERR:
                             trampoline(self, write=True,
                                        timeout=end - time.time(),
@@ -314,7 +313,7 @@ class GreenSSLSocket(_original_sslsocket):
                     newsock, addr = socket.accept(self)
                     newsock.setblocking(False)
                     break
-                except orig_socket.error as e:
+                except socket_orig.error as e:
                     if get_errno(e) != errno.EWOULDBLOCK:
                         raise
                     trampoline(self, read=True, timeout=self.gettimeout(),
@@ -343,7 +342,7 @@ def wrap_socket(sock, *a, **kw):
     return GreenSSLSocket(sock, *a, **kw)
 
 
-if hasattr(__ssl, 'sslwrap_simple'):
+if hasattr(ssl_orig, 'sslwrap_simple'):
     def sslwrap_simple(sock, keyfile=None, certfile=None):
         """A replacement for the old socket.ssl function.  Designed
         for compability with Python 2.5 and earlier.  Will disappear in

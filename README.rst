@@ -26,13 +26,20 @@ pyuv_cffi Status
 To do
 -----
 
+High priority (these must be done before an alpha release):
+
+- Rewrite the following green modules: ``ssl``, ``subprocess``, ``thread``,
+  ``threading``
+- Ensure ``greenthread`` and ``greenpool`` are fully working
+
+Medium priority:
+
+- Rewrite tests using py.test and make sure all tests pass
 - Add docs
 - Address all ``FIXME`` items (these are critical)
-- Rewrite high-priority "greenified" modules: threading and database
-- Ensure that SSL is fully supported
-- Rewrite greenthread and greenpool
-- Check and update remaining "greenified" modules; these may have been broken
-  after the core rewrite.
+- Finish implementation of ``pyuv_cffi`` (reorganize modules and write tests)
+
+Low priority:
 
 - Optimize the WSGI server by using ``http-parser`` and removing the dependency
   of socket.makefile(), which seems to be slow on Python 3.
@@ -52,4 +59,6 @@ To do
 
 **Event loop backends**
 
-- Implement the asyncio interface
+=======
+- Speed up importing and monkey-patching. The initial delay may be caused by
+  CFFI compiling/verifying and the patcher module.

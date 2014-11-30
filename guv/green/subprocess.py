@@ -4,6 +4,7 @@ from types import FunctionType
 
 import guv
 from .. import patcher, greenio
+# FIXME: rewrite this module
 from ..green import select
 from ..support import six
 
