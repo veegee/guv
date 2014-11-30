@@ -1,1 +1,5 @@
-# this package contains modules from the standard library converted to use eventlet
+"""Greenified modules
+
+This package contains "greenified" modules which replace standard library modules to work
+cooperatively with guv.
+"""
