@@ -53,22 +53,6 @@ Low priority:
 
 - Optimize the WSGI server by using ``http-parser`` and removing the dependency
   of socket.makefile(), which seems to be slow on Python 3.
-- Speed up program startup. The initial delay may be caused by CFFI and the
-  patcher module.
-
-**pyuv_cffi**
-
-- Move handle classes into their own modules
-- Fully implement the pyuv interface
-- Write tests using py.test, include checks for proper releasing of resources
-  and memory leaks
-
-**Stability**
-
-- Rewrite tests using py.test and make sure all tests pass
-
-**Event loop backends**
-
-=======
 - Speed up importing and monkey-patching. The initial delay may be caused by
   CFFI compiling/verifying and the patcher module.
+- Implement the asyncio interface
