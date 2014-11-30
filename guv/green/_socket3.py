@@ -14,26 +14,21 @@ copy_attributes(socket_orig, globals(),
 from ..greenio import socket
 
 try:
-    __original_fromfd__ = socket_orig.fromfd
+    _fromfd_orig = socket_orig.fromfd
 
     def fromfd(*args):
-        return socket(__original_fromfd__(*args))
+        return socket(_fromfd_orig(*args))
 except AttributeError:
     pass
 
 try:
-    __original_socketpair__ = socket_orig.socketpair
+    _socketpair_orig = socket_orig.socketpair
 
     def socketpair(*args):
-        one, two = __original_socketpair__(*args)
+        one, two = _socketpair_orig(*args)
         return socket(one), socket(two)
 except AttributeError:
     pass
-
-
-def _convert_to_sslerror(ex):
-    """ Transliterates SSL.SysCallErrors to socket.sslerrors"""
-    return ssl.SSLError((ex.args[0], ex.args[1]))
 
 
 class GreenSSLObject:
@@ -52,7 +47,7 @@ class GreenSSLObject:
             try:
                 self.connection.do_handshake()
             except ssl.SSLSyscallError as e:
-                raise _convert_to_sslerror(e)
+                raise
 
     def read(self, n=1024):
         """If n is provided, read n bytes from the SSL connection, otherwise read
@@ -62,7 +57,7 @@ class GreenSSLObject:
         except ssl.SSLZeroReturnError:
             return ''
         except ssl.SSLSyscallError as e:
-            raise _convert_to_sslerror(e)
+            raise
 
     def write(self, s):
         """Writes the string s to the on the object's SSL connection.
@@ -70,7 +65,7 @@ class GreenSSLObject:
         try:
             return self.connection.write(s)
         except ssl.SSLSyscallError as e:
-            raise _convert_to_sslerror(e)
+            raise
 
     def server(self):
         """ Returns a string describing the server's certificate. Useful for debugging
