@@ -4,7 +4,7 @@ This module is the main module for all errors and exceptions for guv. Platform-s
 errors are appropriately configured here.
 """
 from errno import (EWOULDBLOCK, EINPROGRESS, EALREADY, EISCONN, EBADF, ENOTCONN, ESHUTDOWN, EAGAIN,
-                   ECONNRESET, EPIPE, EINVAL, ECONNABORTED, EINTR)
+                   ECONNRESET, EPIPE, EINVAL, ECONNABORTED)
 
 from . import patcher
 
@@ -35,3 +35,6 @@ ACCEPT_ERRNO = {EPIPE, EBADF, ECONNRESET}
 
 class IOClosed(IOError):
     pass
+
+
+FileObjectClosed = IOError(EBADF, 'Bad file descriptor (FileObject was closed)')
