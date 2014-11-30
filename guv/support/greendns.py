@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-'''
-    greendns - non-blocking DNS support for Eventlet
-'''
-
 # Portions of this code taken from the gogreen project:
 #   http://github.com/slideinc/gogreen
 #
@@ -37,31 +32,22 @@
 import struct
 import sys
 
-from guv import patcher
-from guv.green import _socket_nodns
-from guv.green import time
-from guv.green import select
+from .. import patcher
+from ..green import _socket_nodns
+from ..green import time
+from ..green import select
 
-dns = patcher.import_patched('dns',
-                             socket=_socket_nodns,
-                             time=time,
-                             select=select)
+dns = patcher.import_patched('dns', socket=_socket_nodns, time=time, select=select)
 for pkg in ('dns.query', 'dns.exception', 'dns.inet', 'dns.message',
             'dns.rdatatype', 'dns.resolver', 'dns.reversename'):
-    setattr(dns, pkg.split('.')[1], patcher.import_patched(
-        pkg,
-        socket=_socket_nodns,
-        time=time,
-        select=select))
+    setattr(dns, pkg.split('.')[1],
+            patcher.import_patched(pkg, socket=_socket_nodns, time=time, select=select))
 
 socket = _socket_nodns
 
 DNS_QUERY_TIMEOUT = 10.0
 
 
-#
-# Resolver instance used to perfrom DNS lookups.
-#
 class FakeAnswer(list):
     expiration = 0
 
@@ -404,8 +390,7 @@ def udp(q, where, timeout=DNS_QUERY_TIMEOUT, port=53, af=None, source=None,
     return r
 
 
-def tcp(q, where, timeout=DNS_QUERY_TIMEOUT, port=53,
-        af=None, source=None, source_port=0):
+def tcp(q, where, timeout=DNS_QUERY_TIMEOUT, port=53, af=None, source=None, source_port=0):
     """coro friendly replacement for dns.query.tcp
     Return the response obtained after sending a query via TCP.
 
