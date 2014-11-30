@@ -4,7 +4,6 @@ from greenlet import getcurrent
 
 from ..hubs import get_hub
 from ..const import READ, WRITE
-
 ERROR = 'error'
 
 __patched__ = ['select']
@@ -55,7 +54,7 @@ def select(read_list, write_list, error_list, timeout=None):
         current.switch(([original], [], []))
 
     def on_write(d):
-        original = files[get_fileno(d)][READ]
+        original = files[get_fileno(d)][WRITE]
         current.switch(([], [original], []))
 
     def on_error(d, _err=None):
