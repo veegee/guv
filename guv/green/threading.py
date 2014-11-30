@@ -1,5 +1,5 @@
-# FIXME: rewrite this module
-"""Implements the standard threading module, using greenthreads."""
+"""Greenified threading module
+"""
 import greenlet
 
 from .. import patcher
@@ -9,23 +9,17 @@ __patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep',
                'local', 'stack_size', 'Lock', 'currentThread',
                'current_thread', '_after_fork', '_shutdown']
 
-__orig_threading = patcher.original('threading')
-__threadlocal = __orig_threading.local()
+threading_orig = patcher.original('threading')
+__threadlocal = threading_orig.local()
 
-patcher.inject(
-    'threading',
-    globals(),
-    ('thread', thread),
-    ('time', time))
-
-del patcher
+patcher.inject('threading', globals(), ('thread', thread), ('time', time))
 
 _count = 1
 
 
-class _GreenThread(object):
-    """Wrapper for GreenThread objects to provide Thread-like attributes
-    and methods"""
+class _GreenThread:
+    """Wrapper for GreenThread objects to provide Thread-like attributes and methods
+    """
 
     def __init__(self, g):
         global _count
@@ -90,7 +84,7 @@ def current_thread():
     g = greenlet.getcurrent()
     if not g:
         # Not currently in a greenthread, fall back to standard function
-        return _fixup_thread(__orig_threading.current_thread())
+        return _fixup_thread(threading_orig.current_thread())
 
     try:
         active = __threadlocal.active
@@ -110,7 +104,7 @@ def current_thread():
             # Not a GreenThread type, so there's no way to hook into
             # the green thread exiting. Fall back to the standard
             # function then.
-            t = _fixup_thread(__orig_threading.currentThread())
+            t = _fixup_thread(threading_orig.currentThread())
         else:
             t = active[id(g)] = _GreenThread(g)
 

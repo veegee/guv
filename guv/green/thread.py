@@ -1,8 +1,8 @@
-# FIXME: rewrite this module
-"""Implements the standard thread module, using greenthreads."""
+"""Greenified _thread
+"""
 import greenlet
+import _thread as _thread_orig
 
-import _thread as __thread
 from .. import greenthread
 from ..semaphore import Semaphore as LockType
 
@@ -10,7 +10,7 @@ __patched__ = ['get_ident', 'start_new_thread', 'start_new', 'allocate_lock',
                'allocate', 'exit', 'interrupt_main', 'stack_size', '_local',
                'LockType', '_count']
 
-error = __thread.error
+error = _thread_orig.error
 __threadcount = 0
 
 
@@ -54,7 +54,7 @@ def exit():
     raise greenlet.GreenletExit
 
 
-exit_thread = __thread.exit_thread
+exit_thread = _thread_orig.exit_thread
 
 
 def interrupt_main():
@@ -65,8 +65,8 @@ def interrupt_main():
         raise KeyboardInterrupt()
 
 
-if hasattr(__thread, 'stack_size'):
-    __original_stack_size__ = __thread.stack_size
+if hasattr(_thread_orig, 'stack_size'):
+    __original_stack_size__ = _thread_orig.stack_size
 
     def stack_size(size=None):
         if size is None:
