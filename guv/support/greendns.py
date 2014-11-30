@@ -33,17 +33,17 @@ import struct
 import sys
 
 from .. import patcher
-from ..green import _socket_nodns
+from ..green import _socket3
 from ..green import time
 from ..green import select
 
-dns = patcher.import_patched('dns', socket=_socket_nodns, time=time, select=select)
+dns = patcher.import_patched('dns', socket=_socket3, time=time, select=select)
 for pkg in ('dns.query', 'dns.exception', 'dns.inet', 'dns.message',
             'dns.rdatatype', 'dns.resolver', 'dns.reversename'):
     setattr(dns, pkg.split('.')[1],
-            patcher.import_patched(pkg, socket=_socket_nodns, time=time, select=select))
+            patcher.import_patched(pkg, socket=_socket3, time=time, select=select))
 
-socket = _socket_nodns
+socket = _socket3
 
 DNS_QUERY_TIMEOUT = 10.0
 

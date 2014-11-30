@@ -4,15 +4,16 @@ import logging
 
 log = logging.getLogger('guv')
 
-__import__('guv.green._socket_nodns')
-__socket = sys.modules['guv.green._socket_nodns']
+# we have to do it this way to access gsocket.__all__ (why?)
+__import__('guv.green._socket3')
+gsocket = sys.modules['guv.green._socket3']
 
-__all__ = __socket.__all__
-__patched__ = __socket.__patched__ + ['gethostbyname', 'getaddrinfo', 'create_connection', ]
+__all__ = gsocket.__all__
+__patched__ = gsocket.__patched__ + ['gethostbyname', 'getaddrinfo', 'create_connection', ]
 
 from ..patcher import copy_attributes
 
-copy_attributes(__socket, globals(), srckeys=dir(__socket))
+copy_attributes(gsocket, globals(), srckeys=dir(gsocket))
 
 greendns = None
 if os.environ.get('GUV_NO_GREENDNS') is not None:

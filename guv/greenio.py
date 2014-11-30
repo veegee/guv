@@ -393,20 +393,3 @@ if hasattr(_socket, "socketpair"):
         a = socket(family, type, proto, a.detach())
         b = socket(family, type, proto, b.detach())
         return a, b
-
-try:
-    from OpenSSL import SSL
-except ImportError:
-    # pyOpenSSL not installed, define exceptions anyway for convenience
-    class SSL(object):
-        class WantWriteError(Exception):
-            pass
-
-        class WantReadError(Exception):
-            pass
-
-        class ZeroReturnError(Exception):
-            pass
-
-        class SysCallError(Exception):
-            pass

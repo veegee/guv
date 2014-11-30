@@ -1,17 +1,17 @@
 __socket = __import__('socket')
+os = __import__('os')
 
 __all__ = __socket.__all__
 __patched__ = ['fromfd', 'socketpair', 'ssl', 'socket']
 
+import ssl
+
 from ..patcher import copy_attributes
 
 copy_attributes(__socket, globals(),
-                 ignore=__patched__, srckeys=dir(__socket))
+                ignore=__patched__, srckeys=dir(__socket))
 
-os = __import__('os')
 from ..greenio import socket
-
-from ..greenio import SSL as _SSL  # for exceptions
 
 try:
     __original_fromfd__ = __socket.fromfd
@@ -33,10 +33,10 @@ except AttributeError:
 
 def _convert_to_sslerror(ex):
     """ Transliterates SSL.SysCallErrors to socket.sslerrors"""
-    return sslerror((ex.args[0], ex.args[1]))
+    return ssl.SSLError((ex.args[0], ex.args[1]))
 
 
-class GreenSSLObject(object):
+class GreenSSLObject:
     """ Wrapper object around the SSLObjects returned by socket.ssl, which have a
     slightly different interface from SSL.Connection objects. """
 
@@ -51,7 +51,7 @@ class GreenSSLObject(object):
         else:
             try:
                 self.connection.do_handshake()
-            except _SSL.SysCallError as e:
+            except ssl.SSLSyscallError as e:
                 raise _convert_to_sslerror(e)
 
     def read(self, n=1024):
@@ -59,9 +59,9 @@ class GreenSSLObject(object):
         until EOF. The return value is a string of the bytes read."""
         try:
             return self.connection.read(n)
-        except _SSL.ZeroReturnError:
+        except ssl.SSLZeroReturnError:
             return ''
-        except _SSL.SysCallError as e:
+        except ssl.SSLSyscallError as e:
             raise _convert_to_sslerror(e)
 
     def write(self, s):
@@ -69,7 +69,7 @@ class GreenSSLObject(object):
         The return value is the number of bytes written. """
         try:
             return self.connection.write(s)
-        except _SSL.SysCallError as e:
+        except ssl.SSLSyscallError as e:
             raise _convert_to_sslerror(e)
 
     def server(self):
