@@ -21,21 +21,20 @@ socket = gsocket.socket
 error = gsocket.error
 _GLOBAL_DEFAULT_TIMEOUT = gsocket._GLOBAL_DEFAULT_TIMEOUT
 
-if os.environ.get('GUV_NO_GREENDNS') is not None:
+if os.environ.get('GUV_NO_GREENDNS') is None:
     try:
         from ..support import greendns
+
+        gethostbyname = greendns.gethostbyname
+        getaddrinfo = greendns.getaddrinfo
+        gethostbyname_ex = greendns.gethostbyname_ex
+        getnameinfo = greendns.getnameinfo
+        __patched__ = __patched__ + ['gethostbyname_ex', 'getnameinfo']
 
         log.debug('Using greendns module for non-blocking DNS querying')
     except ImportError as ex:
         greendns = None
         log.warn('dnspython3 not found, falling back to blocking DNS querying'.format(ex))
-
-if greendns:
-    gethostbyname = greendns.gethostbyname
-    getaddrinfo = greendns.getaddrinfo
-    gethostbyname_ex = greendns.gethostbyname_ex
-    getnameinfo = greendns.getnameinfo
-    __patched__ = __patched__ + ['gethostbyname_ex', 'getnameinfo']
 
 
 def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT, source_address=None):
