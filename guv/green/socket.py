@@ -15,13 +15,19 @@ from ..patcher import copy_attributes
 
 copy_attributes(gsocket, globals(), srckeys=dir(gsocket))
 
-greendns = None
+# explicitly define globals to silence IDE errors
+SOCK_STREAM = gsocket.SOCK_STREAM
+socket = gsocket.socket
+error = gsocket.error
+_GLOBAL_DEFAULT_TIMEOUT = gsocket._GLOBAL_DEFAULT_TIMEOUT
+
 if os.environ.get('GUV_NO_GREENDNS') is not None:
     try:
         from ..support import greendns
 
         log.debug('Using greendns module for non-blocking DNS querying')
     except ImportError as ex:
+        greendns = None
         log.warn('dnspython3 not found, falling back to blocking DNS querying'.format(ex))
 
 if greendns:
@@ -35,7 +41,6 @@ if greendns:
 def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT, source_address=None):
     """Connect to `address` and return the socket object
     """
-
     msg = 'getaddrinfo returns an empty list'
     host, port = address
     for res in getaddrinfo(host, port, 0, SOCK_STREAM):
