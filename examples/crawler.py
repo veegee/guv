@@ -16,7 +16,8 @@ def get_url(url):
 
 
 def main():
-    urls = ['http://reddit.com'] * 10
+    urls = ['http://reddit.com'] * 3
+    urls += ['https://twitter.com'] * 3
 
     pool = guv.GreenPool()
 
