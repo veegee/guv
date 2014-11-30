@@ -2,21 +2,17 @@ import errno
 import time
 from types import FunctionType
 
-import guv
-from .. import patcher, greenio
-# FIXME: rewrite this module
+from .. import patcher, sleep
 from ..green import select
-from ..support import six
+from ..fileobject import FileObject
 
 patcher.inject('subprocess', globals(), ('select', select))
-subprocess_orig = __import__("subprocess")
+subprocess_orig = __import__('subprocess')
 
 if getattr(subprocess_orig, 'TimeoutExpired', None) is None:
-    # Backported from Python 3.3.
-    # https://bitbucket.org/guv/guv/issue/89
+    # python < 3.3 needs this defined
     class TimeoutExpired(Exception):
-        """This exception is raised when the timeout expires while waiting for
-        a child process.
+        """This exception is raised when the timeout expires while waiting for a child process
         """
 
         def __init__(self, timeout, cmd, output=None):
@@ -24,33 +20,25 @@ if getattr(subprocess_orig, 'TimeoutExpired', None) is None:
             self.output = output
 
         def __str__(self):
-            return ("Command '%s' timed out after %s seconds" %
-                    (self.cmd, self.timeout))
+            return 'Command "{}" timed out after {} seconds'.format(self.cmd, self.timeout)
 
 
-# This is the meat of this module, the green version of Popen.
 class Popen(subprocess_orig.Popen):
-    """guv-friendly version of subprocess.Popen"""
-    # We do not believe that Windows pipes support non-blocking I/O. At least,
-    # the Python file objects stored on our base-class object have no
-    # setblocking() method, and the Python fcntl module doesn't exist on
-    # Windows. (see guv.greenio.set_nonblocking()) As the sole purpose of
-    # this __init__() override is to wrap the pipes for guv-friendly
-    # non-blocking I/O, don't even bother overriding it on Windows.
-    if not subprocess_orig.mswindows:
-        def __init__(self, args, bufsize=0, *argss, **kwds):
-            self.args = args
-            # Forward the call to base-class constructor
-            subprocess_orig.Popen.__init__(self, args, 0, *argss, **kwds)
-            # Now wrap the pipes, if any. This logic is loosely borrowed from
-            # guv.processes.Process.run() method.
-            for attr in "stdin", "stdout", "stderr":
-                pipe = getattr(self, attr)
-                if pipe is not None and not type(pipe) == greenio.GreenPipe:
-                    wrapped_pipe = greenio.GreenPipe(pipe, pipe.mode, bufsize)
-                    setattr(self, attr, wrapped_pipe)
+    """Greenified :class:`subprocess.Popen`
+    """
 
-        __init__.__doc__ = subprocess_orig.Popen.__init__.__doc__
+    def __init__(self, args, bufsize=0, *argss, **kwds):
+        if subprocess_orig.mswindows:
+            raise Exception('Greenified Popen not supported on Windows')
+
+        self.args = args
+        super().__init__(args, 0, *argss, **kwds)
+
+        for attr in 'stdin', 'stdout', 'stderr':
+            pipe = getattr(self, attr)
+            if pipe is not None and not type(pipe) == FileObject:
+                wrapped_pipe = FileObject(pipe, pipe.mode, bufsize)
+                setattr(self, attr, wrapped_pipe)
 
     def wait(self, timeout=None, check_interval=0.01):
         # Instead of a blocking OS call, this version of wait() uses logic
@@ -64,7 +52,7 @@ class Popen(subprocess_orig.Popen):
                     return status
                 if timeout is not None and time.time() > endtime:
                     raise TimeoutExpired(self.args, timeout)
-                guv.sleep(check_interval)
+                sleep(check_interval)
         except OSError as e:
             if e.errno == errno.ECHILD:
                 # no child process, this happens if the child process
@@ -73,29 +61,22 @@ class Popen(subprocess_orig.Popen):
             else:
                 raise
 
-    wait.__doc__ = subprocess_orig.Popen.wait.__doc__
-
-    if not subprocess_orig.mswindows:
         # don't want to rewrite the original _communicate() method, we
         # just want a version that uses guv.green.select.select()
         # instead of select.select().
-        _communicate = FunctionType(
-            six.get_function_code(six.get_unbound_function(
-                subprocess_orig.Popen._communicate)),
-            globals())
+        _communicate = FunctionType(subprocess_orig.Popen._communicate.__code__, globals())
         try:
             _communicate_with_select = FunctionType(
-                six.get_function_code(six.get_unbound_function(
-                    subprocess_orig.Popen._communicate_with_select)),
-                globals())
+                subprocess_orig.Popen._communicate_with_select.__code__, globals())
             _communicate_with_poll = FunctionType(
-                six.get_function_code(six.get_unbound_function(
-                    subprocess_orig.Popen._communicate_with_poll)),
-                globals())
+                subprocess_orig.Popen._communicate_with_poll.__code__, globals())
         except AttributeError:
             pass
 
-# Borrow subprocess.call() and check_call(), but patch them so they reference
-# OUR Popen class rather than subprocess.Popen.
-call = FunctionType(six.get_function_code(subprocess_orig.call), globals())
-check_call = FunctionType(six.get_function_code(subprocess_orig.check_call), globals())
+    __init__.__doc__ = super().__init__.__doc__
+    wait.__doc__ = super().wait.__doc__
+
+# Borrow `subprocess.call()` and `check_call()`, but patch them so they reference
+# the patched `Popen` class rather than `subprocess.Popen`
+call = FunctionType(subprocess_orig.call.__code__, globals())
+check_call = FunctionType(subprocess_orig.check_call.__code__, globals())
