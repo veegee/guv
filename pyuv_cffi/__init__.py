@@ -54,6 +54,7 @@ class Loop:
     @property
     def handles(self):
         # TODO: implement this method
+        raise NotImplementedError()
         return self._handles
 
     def run(self, mode=UV_RUN_DEFAULT):
@@ -209,13 +210,13 @@ class Timer(Handle):
 
     @property
     def repeat(self):
-        # TODO: implement this method
         return self._repeat
 
     @repeat.setter
     def repeat(self, timeout):
         # TODO implement this method
         self._repeat = timeout
+        raise NotImplementedError()
 
     def start(self, callback, timeout, repeat):
         """
