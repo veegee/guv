@@ -90,7 +90,7 @@ def handle_http(sock, addr):
                 h = p.get_headers()
                 if not (h.get('content-length') or h.get('transfer-length')):
                     # pass length=0 to signal end of body
-                    # FIXME: pyparser requires this, but not the C parser for some reason
+                    # TODO: pyparser requires this, but not the C parser for some reason
                     p.execute(data, 0)
                     return True
 
