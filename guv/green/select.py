@@ -5,6 +5,8 @@ from greenlet import getcurrent
 from ..hubs import get_hub
 from ..const import READ, WRITE
 
+ERROR = 'error'
+
 __patched__ = ['select']
 
 
@@ -32,53 +34,48 @@ def select(read_list, write_list, error_list, timeout=None):
         try:
             timeout = float(timeout)
         except ValueError:
-            raise TypeError("Expected number for timeout")
+            raise TypeError('Expected number for timeout')
+
     hub = get_hub()
     timers = []
     current = getcurrent()
     assert hub is not current, 'do not call blocking functions from the mainloop'
-    ds = {}
+    files = {}  # dict of socket objects or file descriptor integers
     for r in read_list:
-        ds[get_fileno(r)] = {'read': r}
+        files[get_fileno(r)] = {READ: r}
     for w in write_list:
-        ds.setdefault(get_fileno(w), {})['write'] = w
+        files.setdefault(get_fileno(w), {})[WRITE] = w
     for e in error_list:
-        ds.setdefault(get_fileno(e), {})['error'] = e
+        files.setdefault(get_fileno(e), {})[ERROR] = e
 
     listeners = []
 
     def on_read(d):
-        original = ds[get_fileno(d)]['read']
+        original = files[get_fileno(d)][READ]
         current.switch(([original], [], []))
 
     def on_write(d):
-        original = ds[get_fileno(d)]['write']
+        original = files[get_fileno(d)][READ]
         current.switch(([], [original], []))
 
     def on_error(d, _err=None):
-        original = ds[get_fileno(d)]['error']
+        original = files[get_fileno(d)][ERROR]
         current.switch(([], [], [original]))
 
     def on_timeout2():
         current.switch(([], [], []))
 
     def on_timeout():
-        # ensure that BaseHub.run() has a chance to call self.wait()
-        # at least once before timed out.  otherwise the following code
-        # can time out erroneously.
-        #
-        # s1, s2 = socket.socketpair()
-        # print(select.select([], [s1], [], 0))
         timers.append(hub.schedule_call_global(0, on_timeout2))
 
     if timeout is not None:
         timers.append(hub.schedule_call_global(timeout, on_timeout))
     try:
-        for k, v in ds.items():
+        for fd, v in files.items():
             if v.get('read'):
-                listeners.append(hub.add(READ, k, on_read, on_error))
+                listeners.append(hub.add(READ, fd, on_read, on_error, (fd,)))
             if v.get('write'):
-                listeners.append(hub.add(WRITE, k, on_write, on_error))
+                listeners.append(hub.add(WRITE, fd, on_write, on_error, (fd,)))
         try:
             return hub.switch()
         finally:
