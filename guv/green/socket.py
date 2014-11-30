@@ -1,5 +1,8 @@
 import os
 import sys
+import logging
+
+log = logging.getLogger('guv')
 
 __import__('guv.green._socket_nodns')
 __socket = sys.modules['guv.green._socket_nodns']
@@ -13,12 +16,12 @@ copy_attributes(__socket, globals(), srckeys=dir(__socket))
 
 greendns = None
 if os.environ.get('EVENTLET_NO_GREENDNS', '').lower() != 'yes':
-    print('try import greendns')
     try:
         from ..support import greendns
-        print('import greendns')
+
+        log.debug('Using greendns module for non-blocking DNS querying')
     except ImportError as ex:
-        print(ex)
+        log.warn('dnspython3 not found, falling back to blocking DNS querying'.format(ex))
 
 if greendns:
     gethostbyname = greendns.gethostbyname
