@@ -15,7 +15,7 @@ from ..patcher import copy_attributes
 copy_attributes(__socket, globals(), srckeys=dir(__socket))
 
 greendns = None
-if os.environ.get('EVENTLET_NO_GREENDNS', '').lower() != 'yes':
+if os.environ.get('GUV_NO_GREENDNS') is not None:
     try:
         from ..support import greendns
 

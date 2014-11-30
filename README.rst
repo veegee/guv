@@ -3,9 +3,17 @@ guv = greenlets + libuv
 
 guv is a fast networking library and WSGI server for Python >= 3.2 and pypy3
 
-The event loop backend is ``pyuv_cffi``, which aims to be compatible with the
-``pyuv`` interface. ``pyuv_cffi`` is fully supported on CPython and pypy3, but
-is still experimental and in heavy development. libuv >= 1.0.0 is required
+The event loop backend is ``pyuv_cffi``, which aims to be fully compatible with
+the ``pyuv`` interface. ``pyuv_cffi`` is fully supported on CPython and pypy3,
+but is still experimental and in heavy development. libuv >= 1.0.0 is required
+
+Asynchronous DNS queries are supported via dnspython3 if available (``pip
+install dnspython3``). To forcefully disable greendns, set the environment
+variable ``GUV_NO_GREENDNS`` to any value.
+
+Currently only runs on POSIX-compliant operating systems (no Windows), but
+Windows support is not far off and can be added in the near future if there is a
+demand for this.
 
 
 pyuv_cffi Status
