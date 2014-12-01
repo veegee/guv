@@ -20,7 +20,7 @@ def resize_buffer(sock, size):
 
 class TestGreenSocket:
     def test_socket_init(self):
-        sock = socket.socket()
+        sock = socket_patched.socket()
         assert isinstance(sock, green_socket)
 
     def test_socket_close(self, gsock):
