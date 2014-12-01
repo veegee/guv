@@ -79,7 +79,11 @@ class TestGreenSocket:
 
         with pytest.raises(socket.timeout):
             # large enough data to overwhelm most buffers
-            gsock.sendall(bytes(1000000))
+            msg_len = 10 ** 6
+            sent = 0
+
+            while sent < msg_len:
+                sent += gsock.send(bytes(msg_len))
 
         evt.send()
         g.wait()
