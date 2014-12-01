@@ -26,26 +26,50 @@ Install using pip::
 You can now run the examples in the ``examples`` directory
 
 
+Examples
+--------
+
+- **examples/crawler.py**: using ``requests`` to crawl the web (both HTTP and HTTPS)
+- **examples/wsgi_app.py**: serving a WSGI application (any WSGI application is
+  fully supported, since the current WSGI server implementation is heavily based
+  on gevent's server).
+- **examples/guv_simple_server.py**: a low-level example showing how to create
+  very fast TCP servers which can easily handle 10,000+ connections.
+
+With any of these examples, you can use wrk_ to get an idea of guv's performance
+in terms of open connections and requests/sec.
+
+
+Compatibility
+-------------
+
+guv aims to be compatible with all libraries which are compatible with the
+gevent/eventlet-patched standard library. Out of the box, the provided examples
+show how easy it is to use guv.
+
+
 pyuv_cffi Status
 ----------------
 
 - Currently implemented handles: Loop, Handle, Idle, Prepare, Timer, Signal,
   Poll
+- The remaining handles are trivial to handle, and will be implemented after
+  high priority goals are completed.
 
 
 To do
 -----
 
-High priority (these must be done before an alpha release):
+High priority:
 
-- Rewrite the following green modules: ``thread``, ``threading``
-- Ensure ``greenthread`` and ``greenpool`` are fully working
+- Rewrite tests using py.test and make sure all tests pass. Tests can be based
+  on gevent and eventlet tests.
+- Add docs and more examples
+- Address all ``FIXME`` items (these are critical)
 
 Medium priority:
 
-- Rewrite tests using py.test and make sure all tests pass
-- Add docs
-- Address all ``FIXME`` items (these are critical)
+- Compatibility with gunicorn
 - Finish implementation of ``pyuv_cffi`` (reorganize modules and write tests)
 
 Low priority:
@@ -59,3 +83,6 @@ Low priority:
   using ``BlockingIOError`` rather than ``socket.error`` and checking for
   ``args[0]``. It would be a good idea to patch ``BlockingIOError`` now to ease
   the transition to drop Python 3.2 support later.
+
+
+.. _wrk: https://github.com/wg/wrk
