@@ -2,11 +2,19 @@ import errno
 
 import pytest
 
+from .. import spawn
+from ..event import Event
+
 from ..green import socket
 from ..greenio import socket as green_socket
 
 TIMEOUT_SMALL = 0.01
 BACKLOG = 10
+
+
+def resize_buffer(sock, size):
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1)
 
 
 class TestGreenSocket:
@@ -52,6 +60,29 @@ class TestGreenSocket:
             gsock.recv(8192)
 
         assert exc_info.value.args[0] == 'timed out'
+
+    def test_send_timeout(self, gsock, server_sock):
+        resize_buffer(server_sock, 1)
+        evt = Event()
+
+        def server():
+            client_sock, addr = server_sock.accept()
+            resize_buffer(client_sock, 1)
+            evt.wait()
+
+        g = spawn(server)
+
+        server_addr = server_sock.getsockname()
+        resize_buffer(gsock, 1)
+        gsock.connect(server_addr)
+        gsock.settimeout(TIMEOUT_SMALL)
+
+        with pytest.raises(socket.timeout):
+            # large enough data to overwhelm most buffers
+            gsock.sendall(bytes(1000000))
+
+        evt.send()
+        g.wait()
 
     def test_send_to_closed_sock_raises(self, gsock):
         with pytest.raises(BrokenPipeError):

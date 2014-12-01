@@ -1,6 +1,7 @@
 import pytest
 
 from ..greenio import socket
+from .. import listen
 
 
 @pytest.fixture(scope='session')
@@ -20,4 +21,10 @@ def fail_addr():
 @pytest.fixture(scope='function')
 def gsock():
     return socket()
+
+
+@pytest.fixture(scope='function')
+def server_sock():
+    sock = listen(('', 0))
+    return sock
 
