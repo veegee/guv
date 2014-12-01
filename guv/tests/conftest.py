@@ -14,7 +14,7 @@ def pub_addr():
 def fail_addr():
     """An address that nothing is listening on
     """
-    return '192.0.0.0.0', 1000
+    return '192.0.0.0', 1000
 
 
 @pytest.fixture(scope='function')

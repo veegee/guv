@@ -19,16 +19,10 @@ class TestGreenSocket:
         print(gsock.getpeername())
         assert gsock.getpeername()
 
-        # check that connecting again raises with EISCONN
-        with pytest.raises(OSError) as exc_info:
-            gsock.connect(pub_addr)
-            if hasattr(exc_info, 'value'):
-                assert exc_info.value.args[0] == errno.EISCONN
-
     def test_connect_timeout(self, gsock, fail_addr):
         gsock.settimeout(0.01)
 
-        with pytest.raises(OSError):
+        with pytest.raises(socket.timeout):
             gsock.connect(fail_addr)
 
     def test_send_to_closed_sock_raises(self, gsock):
