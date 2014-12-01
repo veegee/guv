@@ -1,4 +1,3 @@
-recursive-include tests *.py *.crt *.key
-recursive-include doc *.rst *.txt *.py Makefile *.png
-recursive-include examples *.py *.html
-include MANIFEST.in NEWS AUTHORS LICENSE README.rst
+recursive-include examples *.py
+#recursive-include doc *.rst *.txt *.py Makefile *.png
+include MANIFEST.in LICENSE README.rst pytest.ini tox.ini

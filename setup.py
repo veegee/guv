@@ -1,7 +1,7 @@
 from os import path
 import sys
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 from guv import __version__
 
@@ -30,9 +30,11 @@ setup(
     author='V G',
     author_email='veegee@veegee.org',
     url='http://guv.readthedocs.org',
-    install_requires=['greenlet>=0.4.0', 'cffi>=0.8.0'],
+    install_requires=['greenlet>=0.4.0', 'cffi>=0.8.0', 'dnspython3>=1.12.0'],
     zip_safe=False,
     long_description=open(path.join(path.dirname(__file__), 'README.rst')).read(),
     tests_require=['pytest>=2.6'],
-    classifiers=classifiers
+    classifiers=classifiers,
+    packages=find_packages(exclude=['ez_setup']),
+    package_data={'pyuv_cffi': ['*.c']}
 )
