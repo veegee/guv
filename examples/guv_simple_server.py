@@ -61,7 +61,7 @@ def handle_http_10(sock, addr):
     sock.close()
 
 
-def handle2(sock, addr):
+def handle_http_11(sock, addr):
     """Very minimal client handler for HTTP 1.1 (Connection: keep-alive)
     """
     while True:
@@ -75,6 +75,8 @@ def handle2(sock, addr):
 
 
 def handle_http(sock, addr):
+    """A more complicated handler which detects HTTP headers
+    """
     def recv_request(p):
         while True:
             data = sock.recv(8192)
