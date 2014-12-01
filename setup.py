@@ -16,7 +16,7 @@ classifiers = [
     "Topic :: Internet",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Intended Audience :: Developers",
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
 ]
 
 setup(
