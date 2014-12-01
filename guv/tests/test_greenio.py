@@ -1,10 +1,10 @@
 import errno
+import gc
 
 import pytest
 
 from .. import spawn
 from ..event import Event
-
 from ..green import socket
 from ..greenio import socket as green_socket
 
@@ -91,6 +91,30 @@ class TestGreenSocket:
     def test_send_to_closed_sock_raises(self, gsock):
         with pytest.raises(BrokenPipeError):
             gsock.send(b'hello')
+
+    def test_del_closes_socket(self, gsock, server_sock):
+        def accept_once(sock):
+            # delete/overwrite the original conn object, only keeping the file object around
+            # closing the file object should close everything
+            try:
+                client_sock, addr = sock.accept()
+                file = client_sock.makefile('wb')
+                del client_sock
+                file.write(b'hello\n')
+                file.close()
+                gc.collect()
+                with pytest.raises(ValueError):
+                    file.write(b'a')
+            finally:
+                sock.close()
+
+        killer = spawn(accept_once, server_sock)
+        gsock.connect(('127.0.0.1', server_sock.getsockname()[1]))
+        f = gsock.makefile('rb')
+        gsock.close()
+        assert f.read() == b'hello\n'
+        assert f.read() == b''
+        killer.wait()
 
 
 class TestGreenModule:
