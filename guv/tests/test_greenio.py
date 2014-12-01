@@ -5,7 +5,7 @@ import pytest
 from ..green import socket
 from ..greenio import socket as green_socket
 
-TIMEOUT = 0.01
+TIMEOUT_SMALL = 0.01
 BACKLOG = 10
 
 
@@ -23,13 +23,13 @@ class TestGreenSocket:
         assert gsock.getpeername()
 
     def test_connect_timeout(self, gsock, fail_addr):
-        gsock.settimeout(TIMEOUT)
+        gsock.settimeout(TIMEOUT_SMALL)
 
         with pytest.raises(socket.timeout):
             gsock.connect(fail_addr)
 
     def test_connect_ex_timeout(self, gsock, fail_addr):
-        gsock.settimeout(TIMEOUT)
+        gsock.settimeout(TIMEOUT_SMALL)
 
         e = gsock.connect_ex(fail_addr)
 
@@ -37,7 +37,7 @@ class TestGreenSocket:
             assert e == errno.EAGAIN
 
     def test_accept_timeout(self, gsock):
-        gsock.settimeout(TIMEOUT)
+        gsock.settimeout(TIMEOUT_SMALL)
         gsock.bind(('', 0))
         gsock.listen(BACKLOG)
 
@@ -45,8 +45,8 @@ class TestGreenSocket:
             gsock.accept()
 
     def test_recv_timeout(self, gsock, pub_addr):
-        gsock.settimeout(TIMEOUT)
         gsock.connect(pub_addr)
+        gsock.settimeout(TIMEOUT_SMALL)
 
         with pytest.raises(socket.timeout) as exc_info:
             gsock.recv(8192)
