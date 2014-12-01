@@ -15,15 +15,28 @@ Currently only runs on POSIX-compliant operating systems (no Windows), but
 Windows support is not far off and can be added in the near future if there is a
 demand for this.
 
+**This project is under heavy, active development and any help is
+appreciated.**
+
 
 Installing
 ----------
 
+Since guv is in very heavy, active development, it is currently highly
+recommended to pull often and install manually::
+
+    git clone https://github.com/veegee/guv.git
+    cd guv
+    python setup.py install
+
+While you're there, you can run some examples::
+
+    cd examples
+    python3 crawler.py
+
 Install using pip::
 
     pip install guv
-
-You can now run the examples in the ``examples`` directory
 
 
 Examples
