@@ -1,8 +1,12 @@
 from os import path
+import sys
 
 from setuptools import setup
 
 from guv import __version__
+
+if sys.version_info < (3, 2):
+    raise Exception('amqpy requires Python 3.2 or higher')
 
 classifiers = [
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
