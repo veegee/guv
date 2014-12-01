@@ -1,5 +1,3 @@
-import errno
-
 import pytest
 
 from ..green import socket
