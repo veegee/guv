@@ -10,8 +10,6 @@ from .hubs import trampoline
 from .exceptions import IOClosed, SOCKET_BLOCKING, SOCKET_CLOSED, CONNECT_ERR, CONNECT_SUCCESS
 
 socket_orig = patcher.original('socket')
-s_error = socket_orig.error
-s_timeout = socket_orig.timeout
 
 AF_INET = socket_orig.AF_INET
 AF_UNIX = socket_orig.AF_UNIX
@@ -20,9 +18,13 @@ SOL_SOCKET = socket_orig.SOL_SOCKET
 SO_ERROR = socket_orig.SO_ERROR
 O_NONBLOCK = getattr(os, 'O_NONBLOCK', 0)  # Windows doesn't have this
 
-dup = socket_orig.dup
-getdefaulttimeout = socket_orig.getdefaulttimeout
-getaddrinfo = socket_orig.getaddrinfo
+# define some module attributes for convenience
+s_error = socket_orig.error
+s_timeout = socket_orig.timeout
+s_dup = socket_orig.dup
+s_getdefaulttimeout = socket_orig.getdefaulttimeout
+s_getaddrinfo = socket_orig.getaddrinfo
+
 cancel_wait_ex = s_error(EBADF, 'File descriptor was closed in another greenlet')
 
 SocketIO = socket_orig.SocketIO
@@ -60,7 +62,7 @@ class socket(_socket.socket):
         return _socket.socket.type.__get__(self) & ~O_NONBLOCK
 
     def dup(self):
-        fd = dup(self.fileno())
+        fd = s_dup(self.fileno())
         sock = socket(self.family, self.type, self.proto, fileno=fd)
         sock.settimeout(self.gettimeout())
         return sock
@@ -147,14 +149,14 @@ class socket(_socket.socket):
                     self._trampoline(self.fileno(), write=True, timeout=end - time.time(),
                                      timeout_exc=s_timeout(errno.EAGAIN))
                     self._socket_checkerr()
-                except socket_orig.error as ex:
+                except s_error as ex:
                     return ex.args[0]
 
     def recv(self, *args):
         while True:
             try:
                 return super().recv(*args)
-            except socket_orig.error as e:
+            except s_error as e:
                 err = e.args[0]
                 if err in SOCKET_BLOCKING:
                     pass
@@ -170,7 +172,7 @@ class socket(_socket.socket):
         while True:
             try:
                 return super().recvfrom(*args)
-            except socket_orig.error as ex:
+            except s_error as ex:
                 if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                     raise
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
@@ -180,7 +182,7 @@ class socket(_socket.socket):
         while True:
             try:
                 return super().recvfrom_into(*args)
-            except socket_orig.error as ex:
+            except s_error as ex:
                 if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                     raise
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
@@ -190,7 +192,7 @@ class socket(_socket.socket):
         while True:
             try:
                 return super().recv_into(*args)
-            except socket_orig.error as ex:
+            except s_error as ex:
                 if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                     raise
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
@@ -199,7 +201,7 @@ class socket(_socket.socket):
     def send(self, data, flags=0):
         try:
             return super().send(data, flags)
-        except socket_orig.error as e:
+        except s_error as e:
             if e.args[0] != EWOULDBLOCK:
                 raise
 
@@ -208,7 +210,7 @@ class socket(_socket.socket):
 
             try:
                 return super().send(data, flags)
-            except socket_orig.error as e2:
+            except s_error as e2:
                 if e2.args[0] == EWOULDBLOCK:
                     return 0
                 raise
@@ -222,7 +224,7 @@ class socket(_socket.socket):
     def sendto(self, *args):
         try:
             return super().sendto(*args)
-        except socket_orig.error as ex:
+        except s_error as ex:
             if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                 raise
 
@@ -231,7 +233,7 @@ class socket(_socket.socket):
 
             try:
                 return super().sendto(*args)
-            except socket_orig.error as ex2:
+            except s_error as ex2:
                 if ex2.args[0] == EWOULDBLOCK:
                     return 0
                 raise
@@ -307,7 +309,7 @@ class socket(_socket.socket):
         try:
             fd, addr = self._accept()
             return fd, addr
-        except socket_orig.error as e:
+        except s_error as e:
             if e.args[0] == errno.EWOULDBLOCK:
                 return None
             raise
@@ -321,13 +323,13 @@ class socket(_socket.socket):
         if err in CONNECT_ERR:
             return None
         if err not in CONNECT_SUCCESS:
-            raise socket_orig.error(err, errno.errorcode[err])
+            raise s_error(err, errno.errorcode[err])
         return True
 
     def _socket_checkerr(self):
         err = self.getsockopt(socket_orig.SOL_SOCKET, socket_orig.SO_ERROR)
         if err not in CONNECT_SUCCESS:
-            raise socket_orig.error(err, errno.errorcode[err])
+            raise s_error(err, errno.errorcode[err])
 
     def __enter__(self):
         return self
@@ -365,7 +367,7 @@ def fromfd(fd, family, type, proto=0):
     Create a socket object from a duplicate of the given file
     descriptor.  The remaining arguments are the same as for socket().
     """
-    nfd = dup(fd)
+    nfd = s_dup(fd)
     return socket(family, type, proto, nfd)
 
 
