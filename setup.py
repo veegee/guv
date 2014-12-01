@@ -1,10 +1,10 @@
-#!/usr/bin/env python
-from setuptools import find_packages, setup
-from guv import __version__
 from os import path
 
+from setuptools import setup
 
-classifiers=[
+from guv import __version__
+
+classifiers = [
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: POSIX",
@@ -26,7 +26,6 @@ setup(
     author='V G',
     author_email='veegee@veegee.org',
     url='http://guv.readthedocs.org',
-    packages=find_packages(exclude=['tests', 'benchmarks']),
     install_requires=['greenlet>=0.4.0', 'cffi>=0.8.0'],
     zip_safe=False,
     long_description=open(path.join(path.dirname(__file__), 'README.rst')).read(),
