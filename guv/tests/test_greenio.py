@@ -1,20 +1,21 @@
 import errno
 import gc
+import socket
 
 import pytest
 
 from .. import spawn
 from ..event import Event
-from ..green import socket
 from ..greenio import socket as green_socket
+from ..green import socket as socket_patched
 
 TIMEOUT_SMALL = 0.01
 BACKLOG = 10
 
 
 def resize_buffer(sock, size):
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, size)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, size)
 
 
 class TestGreenSocket:
@@ -119,9 +120,9 @@ class TestGreenSocket:
 
 class TestGreenModule:
     def test_create_connection(self, pub_addr):
-        sock = socket.create_connection(pub_addr)
+        sock = socket_patched.create_connection(pub_addr)
+        assert sock
 
     def test_create_connection_timeout_error(self, fail_addr):
         with pytest.raises(OSError):
-            sock = socket.create_connection(fail_addr, timeout=0.01)
-
+            socket_patched.create_connection(fail_addr, timeout=0.01)
