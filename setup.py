@@ -8,7 +8,7 @@ classifiers = [
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: POSIX",
-    "Operating System :: Microsoft :: Windows",
+    # "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.2",
     "Programming Language :: Python :: 3.3",
