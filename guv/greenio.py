@@ -9,21 +9,23 @@ from . import patcher
 from .hubs import trampoline
 from .exceptions import IOClosed, SOCKET_BLOCKING, SOCKET_CLOSED, CONNECT_ERR, CONNECT_SUCCESS
 
-osocket = patcher.original('socket')
-AF_INET = osocket.AF_INET
-AF_UNIX = osocket.AF_UNIX
-SOCK_STREAM = osocket.SOCK_STREAM
-SOL_SOCKET = osocket.SOL_SOCKET
-SO_ERROR = osocket.SO_ERROR
+socket_orig = patcher.original('socket')
+s_error = socket_orig.error
+s_timeout = socket_orig.timeout
+
+AF_INET = socket_orig.AF_INET
+AF_UNIX = socket_orig.AF_UNIX
+SOCK_STREAM = socket_orig.SOCK_STREAM
+SOL_SOCKET = socket_orig.SOL_SOCKET
+SO_ERROR = socket_orig.SO_ERROR
 O_NONBLOCK = getattr(os, 'O_NONBLOCK', 0)  # Windows doesn't have this
 
-error = osocket.error
-dup = osocket.dup
-getdefaulttimeout = osocket.getdefaulttimeout
-getaddrinfo = osocket.getaddrinfo
-cancel_wait_ex = error(EBADF, 'File descriptor was closed in another greenlet')
+dup = socket_orig.dup
+getdefaulttimeout = socket_orig.getdefaulttimeout
+getaddrinfo = socket_orig.getaddrinfo
+cancel_wait_ex = s_error(EBADF, 'File descriptor was closed in another greenlet')
 
-SocketIO = osocket.SocketIO
+SocketIO = socket_orig.SocketIO
 
 
 # noinspection PyPep8Naming
@@ -75,7 +77,7 @@ class socket(_socket.socket):
 
             # else: EWOULDBLOCK
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
-                             timeout_exc=osocket.timeout('timed out'))
+                             timeout_exc=s_timeout('timed out'))
 
     def _real_close(self, _ss=_socket.socket):
         # This function should not reference any globals. See Python issue #808164.
@@ -113,10 +115,10 @@ class socket(_socket.socket):
                     return
 
                 if time.time() >= end:
-                    raise osocket.timeout("timed out")
+                    raise s_timeout("timed out")
 
                 self._trampoline(self.fileno(), write=True, timeout=end - time.time(),
-                                 timeout_exc=osocket.timeout("timed out"))
+                                 timeout_exc=s_timeout("timed out"))
                 self._socket_checkerr()
 
     def connect_ex(self, address):
@@ -130,7 +132,7 @@ class socket(_socket.socket):
                 try:
                     self._trampoline(self.fileno(), write=True)
                     self._socket_checkerr()
-                except socket.error as ex:
+                except s_error as ex:
                     return ex.args[0]
             return 0
         else:
@@ -141,18 +143,18 @@ class socket(_socket.socket):
                     if self._socket_connect(address):
                         return 0
                     if time.time() >= end:
-                        raise socket.timeout(errno.EAGAIN)
+                        raise s_timeout(errno.EAGAIN)
                     self._trampoline(self.fileno(), write=True, timeout=end - time.time(),
-                                     timeout_exc=socket.timeout(errno.EAGAIN))
+                                     timeout_exc=s_timeout(errno.EAGAIN))
                     self._socket_checkerr()
-                except socket.error as ex:
+                except socket_orig.error as ex:
                     return ex.args[0]
 
     def recv(self, *args):
         while True:
             try:
                 return super().recv(*args)
-            except error as e:
+            except socket_orig.error as e:
                 err = e.args[0]
                 if err in SOCKET_BLOCKING:
                     pass
@@ -162,51 +164,51 @@ class socket(_socket.socket):
                     raise
 
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
-                             timeout_exc=osocket.timeout("timed out"))
+                             timeout_exc=s_timeout("timed out"))
 
     def recvfrom(self, *args):
         while True:
             try:
                 return super().recvfrom(*args)
-            except error as ex:
+            except socket_orig.error as ex:
                 if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                     raise
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
-                             timeout_exc=osocket.timeout("timed out"))
+                             timeout_exc=s_timeout("timed out"))
 
     def recvfrom_into(self, *args):
         while True:
             try:
                 return super().recvfrom_into(*args)
-            except error as ex:
+            except socket_orig.error as ex:
                 if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                     raise
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
-                             timeout_exc=osocket.timeout("timed out"))
+                             timeout_exc=s_timeout("timed out"))
 
     def recv_into(self, *args):
         while True:
             try:
                 return super().recv_into(*args)
-            except error as ex:
+            except socket_orig.error as ex:
                 if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                     raise
             self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
-                             timeout_exc=osocket.timeout("timed out"))
+                             timeout_exc=s_timeout("timed out"))
 
     def send(self, data, flags=0):
         try:
             return super().send(data, flags)
-        except error as e:
+        except socket_orig.error as e:
             if e.args[0] != EWOULDBLOCK:
                 raise
 
             self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
-                             timeout_exc=osocket.timeout("timed out"))
+                             timeout_exc=s_timeout("timed out"))
 
             try:
                 return super().send(data, flags)
-            except error as e2:
+            except socket_orig.error as e2:
                 if e2.args[0] == EWOULDBLOCK:
                     return 0
                 raise
@@ -220,16 +222,16 @@ class socket(_socket.socket):
     def sendto(self, *args):
         try:
             return super().sendto(*args)
-        except error as ex:
+        except socket_orig.error as ex:
             if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                 raise
 
             self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
-                             timeout_exc=osocket.timeout("timed out"))
+                             timeout_exc=s_timeout("timed out"))
 
             try:
                 return super().sendto(*args)
-            except error as ex2:
+            except socket_orig.error as ex2:
                 if ex2.args[0] == EWOULDBLOCK:
                     return 0
                 raise
@@ -305,7 +307,7 @@ class socket(_socket.socket):
         try:
             fd, addr = self._accept()
             return fd, addr
-        except error as e:
+        except socket_orig.error as e:
             if e.args[0] == errno.EWOULDBLOCK:
                 return None
             raise
@@ -319,13 +321,13 @@ class socket(_socket.socket):
         if err in CONNECT_ERR:
             return None
         if err not in CONNECT_SUCCESS:
-            raise socket.error(err, errno.errorcode[err])
+            raise socket_orig.error(err, errno.errorcode[err])
         return True
 
     def _socket_checkerr(self):
-        err = self.getsockopt(osocket.SOL_SOCKET, osocket.SO_ERROR)
+        err = self.getsockopt(socket_orig.SOL_SOCKET, socket_orig.SO_ERROR)
         if err not in CONNECT_SUCCESS:
-            raise error(err, errno.errorcode[err])
+            raise socket_orig.error(err, errno.errorcode[err])
 
     def __enter__(self):
         return self

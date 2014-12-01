@@ -1,7 +1,12 @@
+import errno
+
 import pytest
 
 from ..green import socket
 from ..greenio import socket as green_socket
+
+TIMEOUT = 0.01
+BACKLOG = 10
 
 
 class TestGreenSocket:
@@ -18,10 +23,35 @@ class TestGreenSocket:
         assert gsock.getpeername()
 
     def test_connect_timeout(self, gsock, fail_addr):
-        gsock.settimeout(0.01)
+        gsock.settimeout(TIMEOUT)
 
         with pytest.raises(socket.timeout):
             gsock.connect(fail_addr)
+
+    def test_connect_ex_timeout(self, gsock, fail_addr):
+        gsock.settimeout(TIMEOUT)
+
+        e = gsock.connect_ex(fail_addr)
+
+        if e not in {errno.EHOSTUNREACH, errno.ENETUNREACH}:
+            assert e == errno.EAGAIN
+
+    def test_accept_timeout(self, gsock):
+        gsock.settimeout(TIMEOUT)
+        gsock.bind(('', 0))
+        gsock.listen(BACKLOG)
+
+        with pytest.raises(socket.timeout):
+            gsock.accept()
+
+    def test_recv_timeout(self, gsock, pub_addr):
+        gsock.settimeout(TIMEOUT)
+        gsock.connect(pub_addr)
+
+        with pytest.raises(socket.timeout) as exc_info:
+            gsock.recv(8192)
+
+        assert exc_info.value.args[0] == 'timed out'
 
     def test_send_to_closed_sock_raises(self, gsock):
         with pytest.raises(BrokenPipeError):
