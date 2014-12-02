@@ -66,7 +66,7 @@ pyuv_cffi Status
 
 - Currently implemented handles: Loop, Handle, Idle, Prepare, Timer, Signal,
   Poll
-- The remaining handles are trivial to handle, and will be implemented after
+- The remaining handles are trivial to implement, and will be implemented after
   high priority goals are completed.
 
 
