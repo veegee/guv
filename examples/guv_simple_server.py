@@ -1,12 +1,13 @@
 import guv
-
 guv.monkey_patch()
+
 import guv.server
 import guv.hubs
 import guv.greenio
 from guv import gyield
-import logging
 from guv.support import PYPY
+
+import logging
 
 import logger
 
@@ -26,10 +27,11 @@ else:
 
 
 def create_response(body, headers):
-    """
+    """Create a simple HTTP response
+
     :type body: str
-    :type headers: dict
-    :rtype: str
+    :type headers: dict[str, str]
+    :rtype: bytes
     """
     final_headers = {
         'Connection': 'keep-alive',
@@ -77,6 +79,7 @@ def handle_http_11(sock, addr):
 def handle_http(sock, addr):
     """A more complicated handler which detects HTTP headers
     """
+
     def recv_request(p):
         while True:
             data = sock.recv(8192)
