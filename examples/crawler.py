@@ -1,13 +1,7 @@
-import logging
-import logger
-logger.configure()
-
 import guv
 guv.monkey_patch()
 
 import requests
-
-log = logging.getLogger()
 
 
 def get_url(url):
@@ -16,8 +10,8 @@ def get_url(url):
 
 
 def main():
-    urls = ['http://reddit.com'] * 3
-    urls += ['https://twitter.com'] * 3
+    urls = ['http://reddit.com'] * 10
+    urls += ['https://twitter.com'] * 10
 
     pool = guv.GreenPool()
 
