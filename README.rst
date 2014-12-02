@@ -78,7 +78,6 @@ High priority:
 - Rewrite tests using py.test and make sure all tests pass. Tests can be based
   on gevent and eventlet tests.
 - Add docs and more examples
-- Address all ``FIXME`` items (these are critical)
 
 Medium priority:
 
