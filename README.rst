@@ -73,16 +73,7 @@ pyuv_cffi Status
 To do
 -----
 
-High priority:
-
-- Rewrite tests using py.test and make sure all tests pass. Tests can be based
-  on gevent and eventlet tests.
-- Add docs and more examples
-
-Medium priority:
-
-- Compatibility with gunicorn
-- Finish implementation of ``pyuv_cffi`` (reorganize modules and write tests)
+High and medium priority tasks are in the `issue tracker`_.
 
 Low priority:
 
@@ -98,3 +89,4 @@ Low priority:
 
 
 .. _wrk: https://github.com/wg/wrk
+.. _issue tracker: https://github.com/veegee/guv/issues
