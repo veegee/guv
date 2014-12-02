@@ -1,3 +1,20 @@
+"""Simple low-level network server
+
+This module demonstrates how to use guv to create fast network servers. In addition, it can be
+used to serve valid HTTP (as far as ``wrk`` is concerned) to benchmark concurrency and requests/sec.
+
+Three basic client handlers are provided:
+
+- :func:`handle_http_10` acts as an HTTP 1.0 server which sends a static message and closes the
+  connection (HTTP header ``Connection: close``, which is default for HTTP 1.0).
+- :func:`handle_http_11` acts as an HTTP 1.1 server which sends a static message, but keeps the
+  connection alive (HTTP header ``Connection: keep-alive``, which is default for HTTP 1.1).
+- :func:`handle_http` is a slightly more complex client handler which actually reads the client's
+  request and decides to either close or keep-alive the connection based on the HTTP version and
+  what the client wants. If the connection is to be kept alive, this handler cooperatively yields
+  control to other greenlets after every request, which significantly improves request/response
+  latency (as reported by wrk).
+"""
 import guv
 guv.monkey_patch()
 
