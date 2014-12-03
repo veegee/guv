@@ -1,3 +1,9 @@
+"""A simple example demonstrating basic usage of pyuv_cffi
+
+This example creates a timer handle and a signal handle, then starts the loop. The timer callback is
+run after 1 second, and repeating every 1 second thereafter. The signal handle registers a listener
+for the INT signal and allows us to exit the loop by pressing ctrl-c.
+"""
 import signal
 
 from pyuv_cffi import Loop, Timer, Signal
