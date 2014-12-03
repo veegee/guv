@@ -14,3 +14,4 @@ If you are submitting a pull request, please adhere to the following guidelines:
 - The code must support Python >= 3.2. Please do not include support for Python
   2.x.
 - Code must be documented with Sphinx docstrings and inline comments.
+- Please use an IDE such as PyCharm to assist with writing high quality code.
