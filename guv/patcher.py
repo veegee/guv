@@ -222,7 +222,7 @@ def monkey_patch(**modules):
     :keyword bool threading: threading module
     :keyword bool psycopg2: psycopg2 module
     """
-    accepted_args = {'os', 'select', 'socket', 'threading', 'time', 'psycopg', '__builtin__'}
+    accepted_args = {'os', 'select', 'socket', 'threading', 'time', 'psycopg2', '__builtin__'}
     default_modules = modules.pop('all', None)
     for k in modules.keys():
         if k not in accepted_args:
