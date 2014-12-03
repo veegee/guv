@@ -579,7 +579,7 @@ class RFC6455WebSocket(WebSocket):
                 dlen = len(d)
                 if masked:
                     d = self._apply_mask(d, mask, length=dlen, offset=received)
-                received = received + dlen
+                received += dlen
                 try:
                     message.push(d, final=finished)
                 except (UnicodeDecodeError, ValueError):
