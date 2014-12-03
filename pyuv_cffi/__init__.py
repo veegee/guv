@@ -7,6 +7,7 @@ import functools
 
 import cffi
 import cffi.verifier
+from cffi import VerificationError
 
 __version__ = '0.1.0'
 version_info = tuple(map(int, __version__.split('.')))
@@ -21,8 +22,12 @@ ffi = cffi.FFI()
 with open(os.path.join(thisdir, 'pyuv_cffi_cdef.c')) as f:
     ffi.cdef(f.read())
 
-with open(os.path.join(thisdir, 'pyuv_cffi.c')) as f:
-    libuv = ffi.verify(f.read(), libraries=['uv'])
+try:
+    with open(os.path.join(thisdir, 'pyuv_cffi.c')) as f:
+        libuv = ffi.verify(f.read(), libraries=['uv'])
+except VerificationError as e:
+    print(e)
+    exit(1)
 
 UV_READABLE = libuv.UV_READABLE
 UV_WRITABLE = libuv.UV_WRITABLE

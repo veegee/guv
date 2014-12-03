@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <uv.h>
 
+#if UV_VERSION_MAJOR < 1
+#error "libuv >= 1.0.0 is required"
+#endif
+
 /**
  * Create a `uv_handle_t *` from a `uv_?_t` specific handle type
  *
