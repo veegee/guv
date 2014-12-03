@@ -7,8 +7,7 @@ Contents
 .. toctree::
     :maxdepth: 2
 
-    api/greenpool
-    api/greenthread
+    modules
 
 
 Introduction

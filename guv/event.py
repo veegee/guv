@@ -56,11 +56,12 @@ class Event:
         self._exc = None
 
     def ready(self):
-        """ Return true if the :meth:`wait` call will return immediately.
-        Used to avoid waiting for things that might take a while to time out.
-        For example, you can put a bunch of events into a list, and then visit
-        them all repeatedly, calling :meth:`ready` until one returns ``True``,
-        and then you can :meth:`wait` on that one."""
+        """Return true if the :meth:`wait` call will return immediately
+
+        Used to avoid waiting for things that might take a while to time out. For example, you can
+        put a bunch of events into a list, and then visit them all repeatedly, calling :meth:`ready`
+        until one returns ``True``, and then you can :meth:`wait` on that one
+        """
         return self._result is not NOT_USED
 
     def has_exception(self):
@@ -90,9 +91,9 @@ class Event:
         return notready
 
     def wait(self):
-        """Wait until another coroutine calls :meth:`send`.
-        Returns the value the other coroutine passed to
-        :meth:`send`.
+        """Wait until another greenthread calls :meth:`send`
+
+        Returns the value the other coroutine passed to :meth:`send`.
 
         >>> from guv import event
         >>> import guv
@@ -123,8 +124,8 @@ class Event:
         return self._result
 
     def send(self, result=None, exc=None):
-        """Makes arrangements for the waiters to be woken with the
-        result and then returns immediately to the parent.
+        """Make arrangements for the waiters to be woken with the result and then return immediately
+        to the parent
 
         >>> from guv import event
         >>> import guv

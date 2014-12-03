@@ -27,7 +27,8 @@ def spawn_n(func, *args, **kwargs):
     """Spawn a greenlet
 
     Execution control returns immediately to the caller; the created greenlet is scheduled to be run
-    at the start of the next event loop iteration.
+    at the start of the next event loop iteration, after other scheduled greenlets, but before
+    greenlets waiting for I/O events.
 
     This is faster than :func:`spawn`, but it is not possible to retrieve the return value of
     the greenlet, or whether it raised any exceptions. It is fastest if there are no keyword
@@ -46,10 +47,11 @@ def spawn_n(func, *args, **kwargs):
 
 
 def spawn(func, *args, **kwargs):
-    """Spawn a a GreenThread
+    """Spawn a GreenThread
 
     Execution control returns immediately to the caller; the created GreenThread is scheduled to
-    be run at the start of the next event loop iteration.
+    be run at the start of the next event loop iteration, after other scheduled greenlets,
+    but before greenlets waiting for I/O events.
 
     :return: GreenThread object which can be used to retrieve the return value of the function
     :rtype: GreenThread
@@ -61,21 +63,17 @@ def spawn(func, *args, **kwargs):
 
 
 def spawn_after(seconds, func, *args, **kwargs):
-    """Spawns *func* after *seconds* have elapsed.  It runs as scheduled even if
-    the current GreenThread has completed.
+    """Spawn a GreenThread after `seconds` have elapsed
 
-    *seconds* may be specified as an integer, or a float if fractional seconds
-    are desired. The *func* will be called with the given *args* and
-    keyword arguments *kwargs*, and will be executed within its own GreenThread.
+    Execution control returns immediately to the caller.
 
-    The return value of :func:`spawn_after` is a :class:`GreenThread` object,
-    which can be used to retrieve the results of the call.
+    To cancel the spawn and prevent *func* from being called, call :meth:`GreenThread.cancel` on the
+    returned GreenThread. This will not abort the function if it's already started running, which is
+    generally the desired behavior. If terminating *func* regardless of whether it's started or not
+    is the desired behavior, call :meth:`GreenThread.kill`.
 
-    To cancel the spawn and prevent *func* from being called,
-    call :meth:`GreenThread.cancel` on the return value of :func:`spawn_after`.
-    This will not abort the function if it's already started running, which is
-    generally the desired behavior.  If terminating *func* regardless of whether
-    it's started or not is the desired behavior, call :meth:`GreenThread.kill`.
+    :return: GreenThread object which can be used to retrieve the return value of the function
+    :rtype: GreenThread
     """
     hub = hubs.get_hub()
     g = GreenThread(hub)
@@ -175,7 +173,7 @@ class GreenThread(greenlet.greenlet):
     def kill(self, *throw_args):
         """Kill the GreenThread using :func:`kill`
 
-        After being killed all calls to :meth:`wait` will raise *throw_args* (which default to
+        After being killed all calls to :meth:`wait` will raise `throw_args` (which default to
         :class:`greenlet.GreenletExit`).
         """
         return kill(self, *throw_args)
@@ -183,30 +181,36 @@ class GreenThread(greenlet.greenlet):
     def cancel(self, *throw_args):
         """Kill the GreenThread using :func:`kill`, but only if it hasn't already started running
 
-        After being canceled, all calls to :meth:`wait` will raise *throw_args* (which default to
+        After being canceled, all calls to :meth:`wait` will raise `throw_args` (which default to
         :class:`greenlet.GreenletExit`).
         """
         return cancel(self, *throw_args)
 
 
 def cancel(g, *throw_args):
-    """Like :func:`kill`, but only terminates the GreenThread if it hasn't already started
-    execution.  If the grenthread has already started execution, :func:`cancel` has no effect."""
+    """Cancel the target greenlet/GreenThread if it hasn't already started
+
+    This is like :func:`kill`, but only has an effect if the target greenlet/GreenThread has not
+    yet started.
+    """
     if not g:
         kill(g, *throw_args)
 
 
 def kill(g, *throw_args):
-    """Terminate the target GreenThread by raising an exception into it
+    """Terminate the target greenlet/GreenThread by raising an exception into it
 
-    Whatever that GreenThread might be doing; be it waiting for I/O or another primitive, it sees an
+    Whatever that GreenThread might be doing, be it waiting for I/O or another primitive, it sees an
     exception right away.
 
     By default, this exception is GreenletExit, but a specific exception may be specified.
-    *throw_args* should be the same as the arguments to raise; either an exception instance or an
+    `throw_args` should be the same as the arguments to raise; either an exception instance or an
     exc_info tuple.
 
     Calling :func:`kill` causes the calling GreenThread to cooperatively yield.
+
+    :param g: target greenlet/GreenThread to kill
+    :type g: greenlet.greenlet or GreenThread
     """
     if g.dead:
         return
