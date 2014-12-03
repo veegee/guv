@@ -71,9 +71,9 @@ def select(read_list, write_list, error_list, timeout=None):
         timers.append(hub.schedule_call_global(timeout, on_timeout))
     try:
         for fd, v in files.items():
-            if v.get('read'):
+            if v.get(READ):
                 listeners.append(hub.add(READ, fd, on_read, on_error, (fd,)))
-            if v.get('write'):
+            if v.get(WRITE):
                 listeners.append(hub.add(WRITE, fd, on_write, on_error, (fd,)))
         try:
             return hub.switch()
