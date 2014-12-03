@@ -1,0 +1,355 @@
+/*
+ * bootstrap-sphinx.css
+ * --------------------
+ *
+ * Sphinx stylesheet -- Bootstrap theme
+ */
+
+/* we need this for bootswatch themes */
+@import url(https://fonts.googleapis.com/css?family=Lato:400,700,700italic,900,900italic,400italic,300italic,300);
+
+/* DejaVu Sans Mono 2.3.4, generated with FontSquirrel, with TTFAutohint option */
+@font-face {
+  font-family: 'DejaVuSansMono';
+  src: url('fonts/dejavusansmono-webfont.woff2') format('woff2'),
+  url('fonts/dejavusansmono-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'DejaVuSansMono';
+  src: url('fonts/dejavusansmono-oblique-webfont.woff2') format('woff2'),
+  url('fonts/dejavusansmono-oblique-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: oblique;
+}
+
+@font-face {
+  font-family: 'DejaVuSansMono';
+  src: url('fonts/dejavusansmono-bold-webfont.woff2') format('woff2'),
+  url('fonts/dejavusansmono-bold-webfont.woff') format('woff');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'DejaVuSansMono';
+  src: url('fonts/dejavusansmono-boldoblique-webfont.woff2') format('woff2'),
+  url('fonts/dejavusansmono-boldoblique-webfont.woff') format('woff');
+  font-weight: bold;
+  font-style: oblique;
+}
+
+.navbar-inverse .brand {
+  color: #FFF;
+}
+
+.page-top {
+  top: 0px;
+}
+
+/* @formatter:off */
+{% if theme_navbar_fixed_top|tobool %}
+  body {
+    {% if theme_bootswatch_theme %}
+      padding-top: 60px;
+    {% else %}
+      padding-top: 40px;
+    {% endif %}
+  }
+
+  .page-top {
+    {% if theme_bootswatch_theme %}
+      top: 60px;
+    {% else %}
+      top: 40px;
+    {% endif %}
+  }
+
+  .navbar-inner {
+    padding-left:  12px !important;
+    padding-right: 12px !important;
+  }
+{% endif %}
+/* @formatter:on */
+
+table {
+  border: 0;
+}
+
+.highlighttable .code pre {
+  font-size: 12px;
+}
+
+.highlighttable .linenos pre {
+  word-break: normal;
+  font-size: 12px;
+}
+
+a.footnote-reference {
+  vertical-align: super;
+  font-size: 75%;
+}
+
+table.footnote td.label {
+  font-size: 100%;
+  display: block;
+  line-height: normal;
+  background: inherit;
+}
+
+table.footnote {
+  width: auto;
+  margin-bottom: 0px;
+}
+
+table.field-list {
+  width: auto;
+}
+
+.footer {
+  width: 100%;
+  border-top: 1px solid #CCC;
+  padding-top: 10px;
+}
+
+.bs-sidenav form, .bs-sidenav #sourcelink {
+  padding: 5px 20px;
+}
+
+/* The code below is based on the bootstrap website sidebar */
+
+.bs-sidenav.affix {
+  position: static;
+}
+
+/* First level of nav */
+.bs-sidenav {
+  margin-top: 30px;
+  margin-bottom: 30px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  text-shadow: 0 1px 0 #FFF;
+  background-color: #F7F5FA;
+  border-radius: 5px;
+}
+
+/* All levels of nav */
+.bs-sidenav .nav > li > a {
+  display: block;
+  color: #716B7A;
+  padding: 5px 20px;
+}
+
+.bs-sidenav .nav > li > a:hover,
+.bs-sidenav .nav > li > a:focus {
+  text-decoration: none;
+  background-color: #E5E3E9;
+  border-right: 1px solid #DBD8E0;
+}
+
+.bs-sidenav .nav > .active > a,
+.bs-sidenav .nav > .active:hover > a,
+.bs-sidenav .nav > .active:focus > a {
+  font-weight: bold;
+  color: #563D7C;
+  background-color: transparent;
+  border-right: 1px solid #563D7C;
+}
+
+.bs-sidenav .nav .nav > li > a {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-left: 30px;
+  font-size: 90%;
+}
+
+.bs-sidenav .nav .nav .nav > li > a {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-left: 40px;
+  font-size: 90%;
+}
+
+.bs-sidenav .nav .nav .nav .nav > li > a {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-left: 50px;
+  font-size: 90%;
+}
+
+/* Show and affix the side nav when space allows it */
+@media screen and (min-width: 992px) {
+  .bs-sidenav .nav > .active > ul {
+    display: block;
+  }
+
+  /* Widen the fixed sidenav */
+  .bs-sidenav.affix,
+  .bs-sidenav.affix-bottom {
+    width: 213px;
+  }
+
+  .bs-sidenav.affix {
+    position: fixed; /* Undo the static from mobile first approach */
+    top: 80px;
+  }
+
+  .bs-sidenav.affix-bottom {
+    position: absolute; /* Undo the static from mobile first approach */
+  }
+
+  .bs-sidenav.affix-bottom .bs-sidenav,
+  .bs-sidenav.affix .bs-sidenav {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  /* Widen the fixed sidenav again */
+  .bs-sidenav.affix-bottom,
+  .bs-sidenav.affix {
+    width: 263px;
+  }
+}
+
+/* custom styles
+ * ============= */
+
+dt {
+  font-weight: normal;
+}
+
+/* entire "class" definition */
+dl.class > dt {
+  font-size: 1.2em;
+}
+
+dl > dd {
+  padding-left: 40px;
+}
+
+/* adjust spacing for field lists */
+table.field-list tbody td, table.field-list tbody th {
+  padding: 3px;
+}
+
+table.field-list tbody th {
+  padding-right: 10px;
+}
+
+div.highlight pre {
+  /* inherit the background set by the Pygments style */
+  /*background: inherit; (disable for now, default looks better) */
+}
+
+{% if sphinx_versioninfo < (1, 3) %}
+/* Sphinx 1.2
+ * ========== */
+tt {
+  font-family: DejaVuSansMono, monospace;
+}
+
+dt {
+  /*font-family: DejaVuSansMono, monospace;*/
+  font-weight: normal;
+}
+
+/* code examples */
+pre {
+  font-family: DejaVuSansMono, monospace;
+  font-size: 0.9em;
+  color: #333;
+}
+
+div.highlight pre {
+  /* inherit the background set by the Pygments style */
+  /*background: inherit; (disable for now, default looks better) */
+}
+
+/* inline literals
+ * --------------- */
+
+/* `some text`, ``code`` */
+cite, code {
+  font-family: DejaVuSansMono, monospace;
+  font-size: 0.90em;
+  padding: 0px 4px;
+  color: #C7254E;
+  background-color: #F9F2F4;
+  border-radius: 4px;
+}
+
+/* :attr:`self.some_variable` */
+tt.xref span.pre {
+  font-weight: normal;
+  font-size: 0.90em;
+  padding: 0px 4px;
+  border-radius: 4px;
+  background-color: #ECF0F1;
+}
+
+{% else %}
+/* Sphinx 1.3
+ * ========== */
+
+/* code and preformatted text */
+cite, code, pre {
+  font-family: DejaVuSansMono, monospace;
+  font-weight: normal;
+  font-size: 0.9em;
+  color: #2C3E50;
+}
+
+/* class/method definitions */
+code.descclassname, code.descname {
+  padding: 0;
+}
+
+/* module path (in class definition) */
+code.descclassname {
+  font-size: 1em;
+}
+
+/* definition name */
+code.descname {
+  font-size: 1.2em;
+}
+
+/* `cite`, ``inline literal`` (red text) */
+cite, code.docutils.literal {
+  background-color: #F9F2F4;
+  border-radius: 4px;
+  color: #C7254E;
+  font-weight: normal;
+  padding: 0 4px;
+}
+
+/* make links in literals the same color as links */
+a code.docutils.literal {
+  color: inherit;
+}
+
+{% endif %}
+
+/* styles for custom roles
+ * ----------------------- */
+
+/* :annotation:`@property` */
+.annotation {
+  border-radius: 4px;
+  padding: 4px;
+  background-color: #DED;
+}
+
+.namedtuple {
+  background-color: #F9F2F4;
+  border-radius: 4px;
+  color: #2C3E50;
+  font-family: DejaVuSansMono, monospace;
+  font-size: 0.9em;
+  font-weight: normal;
+  padding: 0 4px;
+}
