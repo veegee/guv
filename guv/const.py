@@ -1,2 +1,2 @@
-READ = 'read'
-WRITE = 'write'
+READ = 1
+WRITE = 2

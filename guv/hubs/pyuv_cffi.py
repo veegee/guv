@@ -142,13 +142,8 @@ class Hub(abc.AbstractHub):
         self._add_listener(listener)
 
         # start the pyuv Poll object
-        flags = 0
-        if evtype == READ:
-            flags = pyuv_cffi.UV_READABLE
-        elif evtype == WRITE:
-            flags = pyuv_cffi.UV_WRITABLE
-
-        poll_h.start(flags, poll_cb)
+        # note that UV_READABLE and UV_WRITABLE correspond to const.READ and const.WRITE
+        poll_h.start(evtype, poll_cb)
 
         # self.debug()
         return listener
