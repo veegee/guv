@@ -167,39 +167,6 @@ def autodoc_process_signature(app, what, name, obj, options, signature, return_a
             # no docstring defined
             rt = '?'
             print(msg_meth.format(**locals()))
-    elif what == 'class':
-        # modify the signature of classes to look like Python code
-        # check base classes
-        sig_items = []
-        for cls in obj.__bases__:
-            if cls.__module__ == 'builtins':
-                name = cls.__name__
-            else:
-                name = '{}.{}'.format(cls.__module__, cls.__name__)
-
-            if name in ['object']:
-                # exclude 'object'
-                continue
-
-            sig_items.append(name)
-
-        # check metaclass
-        try:
-            definition = inspect.getsourcelines(obj)[0][0].strip()
-            if 'metaclass' in definition:
-                cls = type(obj)
-                name = '{}.{}'.format(cls.__module__, cls.__name__)
-                sig_items.append('metaclass={}'.format(name))
-
-        except OSError:
-            pass
-
-        sig_str = ', '.join(sig_items)
-        sig = '({})'.format(sig_str) if sig_str else ''
-
-        print(msg_class.format(**locals()))
-
-        return sig, None
     else:
         rt = 'skip'
         print(msg_meth.format(**locals()))
