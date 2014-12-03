@@ -6,6 +6,7 @@ from ..exceptions import IOClosed
 from ..support import get_errno
 from .. import hubs, greenthread
 from ..patcher import copy_attributes
+from ..const import READ, WRITE
 
 __all__ = os_orig.__all__
 __patched__ = ['read', 'write', 'wait', 'waitpid', 'open']
@@ -32,7 +33,7 @@ def read(fd, n):
                 return ''
             raise
         try:
-            hubs.trampoline(fd, read=True)
+            hubs.trampoline(fd, READ)
         except IOClosed:
             return ''
 
@@ -49,7 +50,7 @@ def write(fd, data):
         except socket.error as e:
             if get_errno(e) != errno.EPIPE:
                 raise
-        hubs.trampoline(fd, write=True)
+        hubs.trampoline(fd, WRITE)
 
 
 def wait():

@@ -5,6 +5,7 @@ socket_orig = __import__('socket')
 import errno
 
 from ..patcher import copy_attributes
+from ..const import READ, WRITE
 
 copy_attributes(ssl_orig, globals(), srckeys=dir(ssl_orig))
 
@@ -175,14 +176,14 @@ class SSLSocket(socket):
             except SSLWantReadError:
                 if self.timeout == 0.0:
                     raise
-                self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+                self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
                                  timeout_exc=_SSLErrorReadTimeout)
             except SSLWantWriteError:
                 if self.timeout == 0.0:
                     raise
                 # note: using _SSLErrorReadTimeout rather than _SSLErrorWriteTimeout below is
                 # intentional
-                self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
+                self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
                                  timeout_exc=_SSLErrorReadTimeout)
             except SSLError as ex:
                 if ex.args[0] == SSL_ERROR_EOF and self.suppress_ragged_eofs:
@@ -203,12 +204,12 @@ class SSLSocket(socket):
                 if ex.args[0] == SSL_ERROR_WANT_READ:
                     if self.timeout == 0.0:
                         raise
-                    self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+                    self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
                                      timeout_exc=_SSLErrorWriteTimeout)
                 elif ex.args[0] == SSL_ERROR_WANT_WRITE:
                     if self.timeout == 0.0:
                         raise
-                    self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
+                    self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
                                      timeout_exc=_SSLErrorWriteTimeout)
                 else:
                     raise
@@ -257,12 +258,12 @@ class SSLSocket(socket):
                 except SSLWantReadError:
                     if self.timeout == 0.0:
                         return 0
-                    self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+                    self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
                                      timeout_exc=_timeout_exc)
                 except SSLWantWriteError:
                     if self.timeout == 0.0:
                         return 0
-                    self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
+                    self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
                                      timeout_exc=_timeout_exc)
         else:
             return socket.send(self, data, flags)
@@ -380,12 +381,12 @@ class SSLSocket(socket):
             except SSLWantReadError:
                 if self.timeout == 0.0:
                     raise
-                self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+                self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
                                  timeout_exc=_SSLErrorHandshakeTimeout)
             except SSLWantWriteError:
                 if self.timeout == 0.0:
                     raise
-                self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
+                self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
                                  timeout_exc=_SSLErrorHandshakeTimeout)
 
     def _real_connect(self, addr, connect_ex):

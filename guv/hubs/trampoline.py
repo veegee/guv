@@ -1,11 +1,10 @@
 import greenlet
 
 from .hub import get_hub
-from ..const import READ, WRITE
 from ..timeout import Timeout
 
 
-def trampoline(fd, read=False, write=False, timeout=None, timeout_exc=Timeout):
+def trampoline(fd, evtype, timeout=None, timeout_exc=Timeout):
     """Jump from the current greenlet to the hub and wait until the given file descriptor is ready
     for I/O, or the specified timeout elapses
 
@@ -18,11 +17,10 @@ def trampoline(fd, read=False, write=False, timeout=None, timeout_exc=Timeout):
     Conditions:
 
     - must not be called from the hub greenlet (can be called from any other greenlet)
-    - only one of read or write must be true (not possible to watch for both simultaneously)
+    - `mode` must be either READ or WRITE (not possible to watch for both simultaneously)
 
     :param int fd: file descriptor
-    :param bool read: set to True to wait for a *read* event
-    :param bool write: set to True to wait for a *write* event
+    :param int evtype: either the constant READ or WRITE
     :param float timeout: (optional) maximum time to wait in seconds
     :param Exception timeout_exc: (optional) timeout Exception class
 
@@ -33,7 +31,6 @@ def trampoline(fd, read=False, write=False, timeout=None, timeout_exc=Timeout):
     current = greenlet.getcurrent()
 
     assert hub is not current, 'do not call blocking functions from the mainloop'
-    assert bool(read) ^ bool(write), 'only one of read/write must be True'
     assert isinstance(fd, int)
 
     timer = None
@@ -46,10 +43,7 @@ def trampoline(fd, read=False, write=False, timeout=None, timeout_exc=Timeout):
 
     try:
         # add a watcher for this file descriptor
-        if read:
-            listener = hub.add(READ, fd, current.switch, current.throw)
-        else:
-            listener = hub.add(WRITE, fd, current.switch, current.throw)
+        listener = hub.add(evtype, fd, current.switch, current.throw)
 
         # switch to the hub
         try:

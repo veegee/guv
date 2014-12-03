@@ -8,6 +8,7 @@ from errno import (EWOULDBLOCK, EBADF)
 from . import patcher
 from .hubs import trampoline
 from .exceptions import IOClosed, SOCKET_BLOCKING, SOCKET_CLOSED, CONNECT_ERR, CONNECT_SUCCESS
+from .const import READ, WRITE
 
 socket_orig = patcher.original('socket')
 
@@ -41,7 +42,7 @@ class socket(_socket.socket):
         super().setblocking(False)
         self.timeout = _socket.getdefaulttimeout()
 
-    def _trampoline(self, fd, read=False, write=False, timeout=None, timeout_exc=None):
+    def _trampoline(self, fd, evtype, timeout=None, timeout_exc=None):
         """
         We need to trampoline via the event hub. We catch any signal back from the hub indicating
         that the operation we were waiting on was associated with a filehandle that's since been
@@ -52,7 +53,7 @@ class socket(_socket.socket):
             # socket here would be useful.
             raise IOClosed()
         try:
-            return trampoline(fd, read=read, write=write, timeout=timeout, timeout_exc=timeout_exc)
+            return trampoline(fd, evtype, timeout=timeout, timeout_exc=timeout_exc)
         except IOClosed:
             self._closed = True
             raise
@@ -78,7 +79,7 @@ class socket(_socket.socket):
                 return client_sock, addr
 
             # else: EWOULDBLOCK
-            self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+            self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
                              timeout_exc=s_timeout('timed out'))
 
     def _real_close(self, _ss=_socket.socket):
@@ -107,7 +108,7 @@ class socket(_socket.socket):
         if self.gettimeout() is None:
             # blocking mode, no timeout
             while not self._socket_connect(address):
-                self._trampoline(self.fileno(), write=True)
+                self._trampoline(self.fileno(), WRITE)
                 self._socket_checkerr()
         else:
             # blocking mode, with timeout
@@ -119,7 +120,7 @@ class socket(_socket.socket):
                 if time.time() >= end:
                     raise s_timeout("timed out")
 
-                self._trampoline(self.fileno(), write=True, timeout=end - time.time(),
+                self._trampoline(self.fileno(), WRITE, timeout=end - time.time(),
                                  timeout_exc=s_timeout("timed out"))
                 self._socket_checkerr()
 
@@ -132,7 +133,7 @@ class socket(_socket.socket):
             # blocking mode, no timeout
             while not self._socket_connect(address):
                 try:
-                    self._trampoline(self.fileno(), write=True)
+                    self._trampoline(self.fileno(), WRITE)
                     self._socket_checkerr()
                 except s_error as ex:
                     return ex.args[0]
@@ -146,7 +147,7 @@ class socket(_socket.socket):
                         return 0
                     if time.time() >= end:
                         raise s_timeout(errno.EAGAIN)
-                    self._trampoline(self.fileno(), write=True, timeout=end - time.time(),
+                    self._trampoline(self.fileno(), WRITE, timeout=end - time.time(),
                                      timeout_exc=s_timeout(errno.EAGAIN))
                     self._socket_checkerr()
                 except s_error as ex:
@@ -165,7 +166,7 @@ class socket(_socket.socket):
                 else:
                     raise
 
-            self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+            self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
                              timeout_exc=s_timeout("timed out"))
 
     def recvfrom(self, *args):
@@ -175,7 +176,7 @@ class socket(_socket.socket):
             except s_error as ex:
                 if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                     raise
-            self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+            self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
                              timeout_exc=s_timeout("timed out"))
 
     def recvfrom_into(self, *args):
@@ -185,7 +186,7 @@ class socket(_socket.socket):
             except s_error as ex:
                 if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                     raise
-            self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+            self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
                              timeout_exc=s_timeout("timed out"))
 
     def recv_into(self, *args):
@@ -195,7 +196,7 @@ class socket(_socket.socket):
             except s_error as ex:
                 if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                     raise
-            self._trampoline(self.fileno(), read=True, timeout=self.gettimeout(),
+            self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
                              timeout_exc=s_timeout("timed out"))
 
     def send(self, data, flags=0):
@@ -205,7 +206,7 @@ class socket(_socket.socket):
             if e.args[0] != EWOULDBLOCK:
                 raise
 
-            self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
+            self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
                              timeout_exc=s_timeout("timed out"))
 
             try:
@@ -228,7 +229,7 @@ class socket(_socket.socket):
             if ex.args[0] != EWOULDBLOCK or self.timeout == 0.0:
                 raise
 
-            self._trampoline(self.fileno(), write=True, timeout=self.gettimeout(),
+            self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
                              timeout_exc=s_timeout("timed out"))
 
             try:
