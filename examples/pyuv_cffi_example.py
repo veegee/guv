@@ -30,8 +30,11 @@ def run():
 
     status = loop.run()
 
-    timer_h.close()  # stop and free any timers before freeing the loop
+    timer_h.close()  # we must stop and free any other handles before freeing the loop
     print('loop.run() -> ', status)
+
+    # all handles in pyuv_cffi (including the loop) are automatically freed when they go out of
+    # scope
 
 
 def main():
