@@ -16,7 +16,7 @@ class GreenPool:
 
     def __init__(self, size=1000):
         """
-        :param size:
+        :param size: maximum number of active greenlets
         """
         self.size = size
         self.coroutines_running = set()
