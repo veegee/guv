@@ -6,11 +6,11 @@ from .timeout import Timeout
 
 
 class Semaphore(object):
-    """An unbounded semaphore.
-    Optionally initialize with a resource *count*, then :meth:`acquire` and
-    :meth:`release` resources as needed. Attempting to :meth:`acquire` when
-    *count* is zero suspends the calling greenthread until *count* becomes
-    nonzero again.
+    """An unbounded semaphore
+
+    Optionally initialize with a resource *count*, then :meth:`acquire` and :meth:`release`
+    resources as needed. Attempting to :meth:`acquire` when count* is zero suspends the calling
+    greenthread until *count* becomes nonzero again.
 
     This is API-compatible with :class:`threading.Semaphore`.
 
@@ -27,7 +27,6 @@ class Semaphore(object):
       sem = Semaphore()
       ok = sem.acquire(timeout=0.1)
       # True if acquired, False if timed out.
-
     """
 
     def __init__(self, value=1):

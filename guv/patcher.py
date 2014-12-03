@@ -6,7 +6,7 @@ __all__ = ['inject', 'import_patched', 'monkey_patch', 'is_monkey_patched']
 __exclude = {'__builtins__', '__file__', '__name__'}
 
 
-class SysModulesSaver(object):
+class SysModulesSaver:
     """Class that captures some subset of the current state of sys.modules
     """
 
@@ -110,7 +110,7 @@ def import_patched(module_name, *additional_modules, **kw_additional_modules):
 
 def patch_function(func, *additional_modules):
     """Decorator that returns a version of the function that patches some modules for the
-    duration of the function call.
+    duration of the function call
 
     This should only be used for functions that import network libraries within their function
     bodies that there is no way of getting around.
@@ -162,6 +162,8 @@ def original(modname):
     """Return an unpatched version of a module
 
     This is useful for guv itself.
+
+    :param str modname: name of module
     """
     # note that it's not necessary to temporarily install unpatched
     # versions of all patchable modules during the import of the
@@ -200,13 +202,12 @@ already_patched = {}
 def monkey_patch(**on):
     """Globally patch certain system modules to be greenlet-friendly
 
-    The keyword arguments afford some control over which modules are patched.
-    If no keyword arguments are supplied, all possible modules are patched.
-    If keywords are set to True, only the specified modules are patched.  E.g.,
-    ``monkey_patch(socket=True, select=True)`` patches only the select and
-    socket modules.  Most arguments patch the single module of the same name
-    (os, time, select).  The exceptions are socket, which also patches the ssl
-    module if present; and thread, which patches thread, threading, and Queue.
+    The keyword arguments afford some control over which modules are patched. If no keyword
+    arguments are supplied, all possible modules are patched. If keywords are set to True, only the
+    specified modules are patched. E.g., ``monkey_patch(socket=True, select=True)`` patches only
+    the select and socket modules. Most arguments patch the single module of the same name (os,
+    time, select).  The exceptions are socket, which also patches the ssl module if present; and
+    thread, which patches thread, threading, and Queue.
 
     It's safe to call monkey_patch multiple times.
     """
