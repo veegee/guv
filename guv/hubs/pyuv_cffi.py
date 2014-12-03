@@ -5,7 +5,6 @@ import sys
 
 from guv.hubs.abc import AbstractListener
 import pyuv_cffi
-from ..const import READ, WRITE
 from . import abc
 
 log = logging.getLogger('guv')
