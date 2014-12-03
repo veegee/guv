@@ -97,6 +97,10 @@ class GreenThread(greenlet.greenlet):
     """
 
     def __init__(self, parent):
+        """
+        :param parent: parent greenlet
+        :type parent: greenlet.greenlet
+        """
         greenlet.greenlet.__init__(self, self.main, parent)
         self._exit_event = event.Event()
         self._resolving_links = False
