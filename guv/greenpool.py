@@ -163,22 +163,24 @@ def return_stop_iteration():
 
 
 class GreenPile:
-    """GreenPile is an abstraction representing a bunch of I/O-related tasks
+    """An abstraction representing a set of I/O-related tasks
 
-    Construct a GreenPile with an existing GreenPool object.  The GreenPile will
-    then use that pool's concurrency as it processes its jobs.  There can be
-    many GreenPiles associated with a single GreenPool.
+    Construct a GreenPile with an existing GreenPool object. The GreenPile will then use that
+    pool's concurrency as it processes its jobs. There can be many GreenPiles associated with a
+    single GreenPool.
 
-    A GreenPile can also be constructed standalone, not associated with any
-    GreenPool.  To do this, construct it with an integer size parameter instead
-    of a GreenPool.
+    A GreenPile can also be constructed standalone, not associated with any GreenPool. To do this,
+    construct it with an integer size parameter instead of a GreenPool.
 
-    It is not advisable to iterate over a GreenPile in a different greenthread
-    than the one which is calling spawn.  The iterator will exit early in that
-    situation.
+    It is not advisable to iterate over a GreenPile in a different greenlet than the one which is
+    calling spawn.  The iterator will exit early in that situation.
     """
 
     def __init__(self, size_or_pool=1000):
+        """
+        :param size_or_pool: either an existing GreenPool object, or the size a new one to create
+        :type size_or_pool: int or GreenPool
+        """
         if isinstance(size_or_pool, GreenPool):
             self.pool = size_or_pool
         else:
@@ -187,13 +189,19 @@ class GreenPile:
         self.used = False
         self.counter = 0
 
-    def spawn(self, func, *args, **kw):
-        """Runs *func* in its own green thread, with the result available by
-        iterating over the GreenPile object."""
+    def spawn(self, func, *args, **kwargs):
+        """Run `func` in its own GreenThread
+
+        The Result is available by iterating over the GreenPile object.
+
+        :param Callable func: function to call
+        :param args: positional args to pass to `func`
+        :param kwargs: keyword args to pass to `func`
+        """
         self.used = True
         self.counter += 1
         try:
-            gt = self.pool.spawn(func, *args, **kw)
+            gt = self.pool.spawn(func, *args, **kwargs)
             self.waiters.put(gt)
         except:
             self.counter -= 1
@@ -203,8 +211,10 @@ class GreenPile:
         return self
 
     def next(self):
-        """Wait for the next result, suspending the current greenthread until it
-        is available.  Raises StopIteration when there are no more results."""
+        """Wait for the next result, suspending the current GreenThread until it is available
+
+        :raise StopIteration: when there are no more results.
+        """
         if self.counter == 0 and self.used:
             raise StopIteration()
         try:
