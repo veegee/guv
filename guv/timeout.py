@@ -23,6 +23,10 @@ class Timeout(BaseException):
     """
 
     def __init__(self, seconds=None, exception=None):
+        """
+        :param float seconds: timeout seconds
+        :param exception: exception to raise when timeout occurs
+        """
         self.seconds = seconds
         self.exception = exception
         self.timer = None
@@ -104,7 +108,7 @@ class Timeout(BaseException):
 
 def with_timeout(seconds, function, *args, **kwds):
     """Wrap a call to some (yielding) function with a timeout
-    
+
     If the called function fails to return before the timeout, cancel it and return a flag value.
     """
     timeout_value = kwds.pop("timeout_value", _NONE)
