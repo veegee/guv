@@ -2,8 +2,7 @@ import greenlet
 
 from .hubs.hub import get_hub
 
-__all__ = ['Timeout',
-           'with_timeout']
+__all__ = ['Timeout', 'with_timeout']
 
 _NONE = object()
 
@@ -12,16 +11,15 @@ _NONE = object()
 
 
 class Timeout(BaseException):
-    """Raises *exception* in the current greenthread after *timeout* seconds.
+    """Raise `exception` in the current greenthread after `timeout` seconds.
 
-    When *exception* is omitted or ``None``, the :class:`Timeout` instance
-    itself is raised. If *seconds* is None, the timer is not scheduled, and is
-    only useful if you're planning to raise it directly.
+    When `exception` is omitted or ``None``, the :class:`Timeout` instance itself is raised. If
+    `seconds` is None, the timer is not scheduled, and is only useful if you're planning to raise it
+    directly.
 
-    Timeout objects are context managers, and so can be used in with statements.
-    When used in a with statement, if *exception* is ``False``, the timeout is
-    still raised, but the context manager suppresses it, so the code outside the
-    with-block won't see it.
+    Timeout objects are context managers, and so can be used in with statements. When used in a with
+    statement, if `exception` is ``False``, the timeout is still raised, but the context manager
+    suppresses it, so the code outside the with-block won't see it.
     """
 
     def __init__(self, seconds=None, exception=None):
@@ -48,18 +46,20 @@ class Timeout(BaseException):
 
     @property
     def pending(self):
-        """True if the timeout is scheduled to be raised."""
+        """True if the timeout is scheduled to be raised
+        """
         if self.timer is not None:
             return self.timer.pending
         else:
             return False
 
     def cancel(self):
-        """If the timeout is pending, cancel it.  If not using
-        Timeouts in ``with`` statements, always call cancel() in a
-        ``finally`` after the block of code that is getting timed out.
-        If not canceled, the timeout will be raised later on, in some
-        unexpected section of the application."""
+        """If the timeout is pending, cancel it
+
+        If not using Timeouts in ``with`` statements, always call cancel() in a ``finally`` after
+        the block of code that is getting timed out. If not canceled, the timeout will be raised
+        later on, in some unexpected section of the application.
+        """
         if self.timer is not None:
             self.timer.cancel()
             self.timer = None
@@ -78,12 +78,6 @@ class Timeout(BaseException):
             classname, hex(id(self)), self.seconds, exception, pending)
 
     def __str__(self):
-        """
-        >>> raise Timeout  # doctest: +IGNORE_EXCEPTION_DETAIL
-        Traceback (most recent call last):
-            ...
-        Timeout
-        """
         if self.seconds is None:
             return ''
         if self.seconds == 1:
@@ -109,9 +103,9 @@ class Timeout(BaseException):
 
 
 def with_timeout(seconds, function, *args, **kwds):
-    """Wrap a call to some (yielding) function with a timeout; if the called
-    function fails to return before the timeout, cancel it and return a flag
-    value.
+    """Wrap a call to some (yielding) function with a timeout
+    
+    If the called function fails to return before the timeout, cancel it and return a flag value.
     """
     timeout_value = kwds.pop("timeout_value", _NONE)
     timeout = Timeout(seconds)
