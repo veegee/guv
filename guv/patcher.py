@@ -1,7 +1,8 @@
 import imp
 import sys
 
-__all__ = ['inject', 'import_patched', 'monkey_patch', 'is_monkey_patched']
+__all__ = ['monkey_patch', 'original', 'is_monkey_patched', 'inject', 'import_patched',
+           'patch_function']
 
 __exclude = {'__builtins__', '__file__', '__name__'}
 
@@ -199,55 +200,65 @@ def original(modname):
 already_patched = {}
 
 
-def monkey_patch(**on):
-    """Globally patch certain system modules to be greenlet-friendly
+def monkey_patch(**modules):
+    """Globally patch/configure system modules to to be greenlet-friendly
 
-    The keyword arguments afford some control over which modules are patched. If no keyword
-    arguments are supplied, all possible modules are patched. If keywords are set to True, only the
-    specified modules are patched. E.g., ``monkey_patch(socket=True, select=True)`` patches only
-    the select and socket modules. Most arguments patch the single module of the same name (os,
-    time, select).  The exceptions are socket, which also patches the ssl module if present; and
-    thread, which patches thread, threading, and Queue.
+    If no keyword arguments are specified, all possible modules are patched. If keyword arguments
+    are specified, the specified modules (and their dependencies) will be patched.
+
+    - Patching :mod:`socket` will also patch :mod:`ssl`
+    - Patching :mod:`threading` will also patch :mod:`_thread` and :mod:`queue`
 
     It's safe to call monkey_patch multiple times.
+
+    Example::
+
+        monkey_patch(time=True, socket=True, select=True)
+
+    :keyword bool time: time module
+    :keyword bool os: os module
+    :keyword bool socket: socket module
+    :keyword bool select: select module
+    :keyword bool threading: threading module
+    :keyword bool psycopg2: psycopg2 module
     """
-    accepted_args = {'os', 'select', 'socket', 'thread', 'time', 'psycopg', '__builtin__'}
-    default_on = on.pop('all', None)
-    for k in on.keys():
+    accepted_args = {'os', 'select', 'socket', 'threading', 'time', 'psycopg', '__builtin__'}
+    default_modules = modules.pop('all', None)
+    for k in modules.keys():
         if k not in accepted_args:
             raise TypeError('monkey_patch() got an unexpected keyword argument %r' % k)
-    if default_on is None:
-        default_on = not (True in on.values())
+    if default_modules is None:
+        default_modules = not (True in modules.values())
     for modname in accepted_args:
         if modname == '__builtin__':
-            on.setdefault(modname, False)
-        on.setdefault(modname, default_on)
+            modules.setdefault(modname, False)
+        modules.setdefault(modname, default_modules)
 
     modules_to_patch = []
-    if on['os'] and not already_patched.get('os'):
+    if modules['os'] and not already_patched.get('os'):
         modules_to_patch += _green_os_modules()
         already_patched['os'] = True
-    if on['select'] and not already_patched.get('select'):
+    if modules['select'] and not already_patched.get('select'):
         modules_to_patch += _green_select_modules()
         already_patched['select'] = True
-    if on['socket'] and not already_patched.get('socket'):
+    if modules['socket'] and not already_patched.get('socket'):
         modules_to_patch += _green_socket_modules()
         already_patched['socket'] = True
-    if on['thread'] and not already_patched.get('thread'):
+    if modules['threading'] and not already_patched.get('threading'):
         modules_to_patch += _green_thread_modules()
-        already_patched['thread'] = True
-    if on['time'] and not already_patched.get('time'):
+        already_patched['threading'] = True
+    if modules['time'] and not already_patched.get('time'):
         modules_to_patch += _green_time_modules()
         already_patched['time'] = True
-    if on.get('__builtin__') and not already_patched.get('__builtin__'):
+    if modules.get('__builtin__') and not already_patched.get('__builtin__'):
         modules_to_patch += _green_builtins()
         already_patched['__builtin__'] = True
-    if on['psycopg'] and not already_patched.get('psycopg'):
+    if modules['psycopg2'] and not already_patched.get('psycopg2'):
         try:
             from guv.support import psycopg2_patcher
 
             psycopg2_patcher.make_psycopg_green()
-            already_patched['psycopg'] = True
+            already_patched['psycopg2'] = True
         except ImportError:
             # note that if we get an importerror from trying to
             # monkeypatch psycopg, we will continually retry it
