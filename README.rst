@@ -1,6 +1,16 @@
 guv = greenlets + libuv
 =======================
 
+:Version: alpha
+:Web: http://guv.readthedocs.org/
+:Download: http://pypi.python.org/pypi/guv/
+:Source: http://github.com/veegee/guv
+:Keywords: guv, greenlet, gevent, eventlet
+
+
+About
+-----
+
 guv is a fast networking library and WSGI server for Python >= 3.2 and pypy3
 
 The event loop backend is ``pyuv_cffi``, which aims to be fully compatible with
