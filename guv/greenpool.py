@@ -142,14 +142,17 @@ class GreenPool:
         gi.spawn(return_stop_iteration)
 
     def starmap(self, function, iterable):
-        """
-        This is the same as :func:`itertools.starmap`, except that *func* is executed in a
-        separate green thread for each item, with the concurrency limited by the pool's size. In
-        operation, starmap consumes a constant amount of memory, proportional to the size of the
-        pool, and is thus suited for iterating over extremely long input lists.
+        """Apply each item in `iterable` to `function`
+
+        Each item in `iterable` must be an iterable itself, passed to the function as expanded
+        positional arguments. This behaves the same way as :func:`itertools.starmap`,  except that
+        `func` is executed in a separate green thread for each item, with the concurrency limited by
+        the pool's size. In operation, starmap consumes a constant amount of memory, proportional to
+        the size of the pool, and is thus suited for iterating over extremely long input lists.
         """
         if function is None:
-            function = lambda *a: a
+            function = lambda *args: args
+
         gi = GreenMap(self.size)
         greenthread.spawn_n(self._do_map, function, iterable, gi)
         return gi
