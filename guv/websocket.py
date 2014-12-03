@@ -10,10 +10,8 @@ import sys
 import time
 from hashlib import md5, sha1
 
-from guv import semaphore
-from guv import wsgi
-from guv.green import socket
-from guv.support import get_errno, six
+from . import semaphore, wsgi
+from .green import socket
 
 
 class _AlreadyHandled:
@@ -467,7 +465,7 @@ class RFC6455WebSocket(WebSocket):
         if length is None:
             length = len(data)
         cnt = range(length)
-        return b''.join(six.int2byte(six.indexbytes(data, i) ^ mask[(offset + i) % 4]) for i in cnt)
+        return b''.join(int.to_bytes(data[i] ^ mask[(offset + i) % 4], 1, 'big') for i in cnt)
 
     def _handle_control_frame(self, opcode, data):
         if opcode == 8:  # connection close
