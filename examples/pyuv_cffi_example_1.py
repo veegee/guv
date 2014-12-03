@@ -1,3 +1,5 @@
+import signal
+
 from pyuv_cffi import Loop, Timer, Signal
 
 
@@ -12,8 +14,6 @@ def timer_cb(timer_h):
 
 
 def run():
-    import signal
-
     loop = Loop()
 
     timer_h = Timer(loop)
