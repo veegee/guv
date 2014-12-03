@@ -15,7 +15,7 @@ def main():
 
     pool = guv.GreenPool()
 
-    results = pool.imap(get_url, urls)
+    results = pool.starmap(get_url, zip(urls))
     for i, resp in enumerate(results):
         print('{}: done, length: {}'.format(i, len(resp.text)))
 

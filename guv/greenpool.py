@@ -10,9 +10,14 @@ DEBUG = True
 
 class GreenPool:
     """Pool of greenlets/GreenThreads
+
+    This class manages a pool of greenlets/GreenThreads
     """
 
     def __init__(self, size=1000):
+        """
+        :param size:
+        """
         self.size = size
         self.coroutines_running = set()
         self.sem = semaphore.Semaphore(size)
@@ -137,7 +142,8 @@ class GreenPool:
         gi.spawn(return_stop_iteration)
 
     def starmap(self, function, iterable):
-        """This is the same as :func:`itertools.starmap`, except that *func* is executed in a
+        """
+        This is the same as :func:`itertools.starmap`, except that *func* is executed in a
         separate green thread for each item, with the concurrency limited by the pool's size. In
         operation, starmap consumes a constant amount of memory, proportional to the size of the
         pool, and is thus suited for iterating over extremely long input lists.
@@ -147,20 +153,6 @@ class GreenPool:
         gi = GreenMap(self.size)
         greenthread.spawn_n(self._do_map, function, iterable, gi)
         return gi
-
-    def imap(self, function, *iterables):
-        """This is the same as :func:`itertools.imap`, and has the same concurrency and memory
-        behavior as :meth:`starmap`.
-
-        It's quite convenient for, e.g., farming out jobs from a file::
-
-           def worker(line):
-               return do_something(line)
-           pool = GreenPool()
-           for result in pool.imap(worker, open("filename", 'r')):
-               print(result)
-        """
-        return self.starmap(function, zip(*iterables))
 
 
 def return_stop_iteration():
