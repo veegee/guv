@@ -102,10 +102,9 @@ class SSLSocket(socket):
         # Can't use sock.type as other flags (such as SOCK_NONBLOCK) get
         # mixed in.
         if sock.getsockopt(SOL_SOCKET, SO_TYPE) != SOCK_STREAM:
-            raise NotImplementedError("only stream sockets are supported")
+            raise NotImplementedError('only stream sockets are supported')
         if server_side and server_hostname:
-            raise ValueError("server_hostname can only be specified "
-                             "in client mode")
+            raise ValueError('server_hostname can only be specified in client mode')
         self.server_side = server_side
         self.server_hostname = server_hostname
         self.do_handshake_on_connect = do_handshake_on_connect
@@ -145,8 +144,8 @@ class SSLSocket(socket):
                     if timeout == 0.0:
                         # non-blocking
                         raise ValueError(
-                            "do_handshake_on_connect should not be specified for non-blocking "
-                            "sockets")
+                            'do_handshake_on_connect should not be specified for non-blocking '
+                            'sockets')
                     self.do_handshake()
 
             except socket_error as x:
@@ -271,8 +270,7 @@ class SSLSocket(socket):
     def sendto(self, data, flags_or_addr, addr=None):
         self._checkClosed()
         if self._sslobj:
-            raise ValueError("sendto not allowed on instances of %s" %
-                             self.__class__)
+            raise ValueError('sendto not allowed on instances of %s' % self.__class__)
         elif addr is None:
             return socket.sendto(self, data, flags_or_addr)
         else:
@@ -281,16 +279,14 @@ class SSLSocket(socket):
     def sendmsg(self, *args, **kwargs):
         # Ensure programs don't send data unencrypted if they try to
         # use this method.
-        raise NotImplementedError("sendmsg not allowed on instances of %s" %
-                                  self.__class__)
+        raise NotImplementedError('sendmsg not allowed on instances of %s' % self.__class__)
 
     def sendall(self, data, flags=0):
         self._checkClosed()
         if self._sslobj:
             if flags != 0:
                 raise ValueError(
-                    "non-zero flags not allowed in calls to sendall() on %s" %
-                    self.__class__)
+                    'non-zero flags not allowed in calls to sendall() on %s' % self.__class__)
             amount = len(data)
             count = 0
             while (count < amount):
@@ -304,7 +300,7 @@ class SSLSocket(socket):
         self._checkClosed()
         if self._sslobj:
             if flags != 0:
-                raise ValueError("non-zero flags not allowed in calls to recv() on {}"
+                raise ValueError('non-zero flags not allowed in calls to recv() on {}'
                                  .format(self.__class__))
             return self.read(buflen)
         else:
@@ -319,7 +315,7 @@ class SSLSocket(socket):
         if self._sslobj:
             if flags != 0:
                 raise ValueError(
-                    "non-zero flags not allowed in calls to recv_into() on %s" % self.__class__)
+                    'non-zero flags not allowed in calls to recv_into() on %s' % self.__class__)
             return self.read(nbytes, buffer)
         else:
             return socket.recv_into(self, buffer, nbytes, flags)
@@ -327,26 +323,22 @@ class SSLSocket(socket):
     def recvfrom(self, buflen=1024, flags=0):
         self._checkClosed()
         if self._sslobj:
-            raise ValueError("recvfrom not allowed on instances of %s" %
-                             self.__class__)
+            raise ValueError('recvfrom not allowed on instances of %s' % self.__class__)
         else:
             return socket.recvfrom(self, buflen, flags)
 
     def recvfrom_into(self, buffer, nbytes=None, flags=0):
         self._checkClosed()
         if self._sslobj:
-            raise ValueError("recvfrom_into not allowed on instances of %s" %
-                             self.__class__)
+            raise ValueError('recvfrom_into not allowed on instances of %s' % self.__class__)
         else:
             return socket.recvfrom_into(self, buffer, nbytes, flags)
 
     def recvmsg(self, *args, **kwargs):
-        raise NotImplementedError("recvmsg not allowed on instances of %s" %
-                                  self.__class__)
+        raise NotImplementedError('recvmsg not allowed on instances of %s' % self.__class__)
 
     def recvmsg_into(self, *args, **kwargs):
-        raise NotImplementedError("recvmsg_into not allowed on instances of "
-                                  "%s" % self.__class__)
+        raise NotImplementedError('recvmsg_into not allowed on instances of %s' % self.__class__)
 
     def pending(self):
         self._checkClosed()
@@ -366,7 +358,7 @@ class SSLSocket(socket):
             self._sslobj = None
             return s
         else:
-            raise ValueError("No SSL wrapper around " + str(self))
+            raise ValueError('No SSL wrapper around ' + str(self))
 
     def _real_close(self):
         self._sslobj = None
@@ -395,7 +387,7 @@ class SSLSocket(socket):
         # Here we assume that the socket is client-side, and not
         # connected at the time of the call.  We connect it, then wrap it.
         if self._connected:
-            raise ValueError("attempt to connect already-connected SSLSocket!")
+            raise ValueError('attempt to connect already-connected SSLSocket!')
         self._sslobj = self.context._wrap_socket(self, False, self.server_hostname)
         try:
             if connect_ex:
@@ -434,15 +426,15 @@ class SSLSocket(socket):
                                            server_side=True)
         return newsock, addr
 
-    def get_channel_binding(self, cb_type="tls-unique"):
+    def get_channel_binding(self, cb_type='tls-unique'):
         """Get channel binding data for current connection.  Raise ValueError
         if the requested `cb_type` is not supported.  Return bytes of the data
         or None if the data is not available (e.g. before the handshake).
         """
         if cb_type not in CHANNEL_BINDING_TYPES:
-            raise ValueError("Unsupported channel binding type")
+            raise ValueError('Unsupported channel binding type')
         if cb_type != "tls-unique":
-            raise NotImplementedError("{0} channel binding type not implemented".format(cb_type))
+            raise NotImplementedError('{0} channel binding type not implemented'.format(cb_type))
         if self._sslobj is None:
             return None
         return self._sslobj.tls_unique_cb()
