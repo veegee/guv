@@ -41,7 +41,7 @@ alive = []
 
 class Loop:
     def __init__(self):
-        self.loop_h = ffi.new('uv_loopt_t *')
+        self.loop_h = ffi.new('uv_loop_t *')
         libuv.uv_loop_init(self.loop_h)
         self._handles = []
 
