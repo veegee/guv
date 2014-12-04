@@ -35,7 +35,7 @@ def trampoline(fd, evtype, timeout=None, timeout_exc=Timeout):
     - `mode` must be either READ or WRITE (not possible to watch for both simultaneously)
 
     :param int fd: file descriptor
-    :param int evtype: either the constant READ or WRITE
+    :param int evtype: either the constant :attr:`~guv.const.READ` or :attr:`~guv.const.WRITE`
     :param float timeout: (optional) maximum time to wait in seconds
     :param Exception timeout_exc: (optional) timeout Exception class
     """
