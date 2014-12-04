@@ -9,6 +9,7 @@ import errno
 
 from ..patcher import copy_attributes
 from ..const import READ, WRITE
+from ..support import get_errno
 
 copy_attributes(ssl_orig, globals(), srckeys=dir(ssl_orig))
 
@@ -28,24 +29,21 @@ CERT_REQUIRED = ssl_orig.CERT_REQUIRED
 PROTOCOL_SSLv23 = ssl_orig.PROTOCOL_SSLv23
 PROTOCOL_SSLv3 = ssl_orig.PROTOCOL_SSLv3
 
-CHANNEL_BINDING_TYPES = ssl_orig.CHANNEL_BINDING_TYPES
 AF_INET = ssl_orig.AF_INET
 SOCK_STREAM = ssl_orig.SOCK_STREAM
-SOL_SOCKET = ssl_orig.SOL_SOCKET
-SO_TYPE = ssl_orig.SO_TYPE
+SOL_SOCKET = socket_orig.SOL_SOCKET
+SO_TYPE = socket_orig.SO_TYPE
 
 SSL_ERROR_WANT_READ = ssl_orig.SSL_ERROR_WANT_READ
 SSL_ERROR_WANT_WRITE = ssl_orig.SSL_ERROR_WANT_WRITE
 SSL_ERROR_EOF = ssl_orig.SSL_ERROR_EOF
-SSLWantReadError = ssl_orig.SSLWantReadError
-SSLWantWriteError = ssl_orig.SSLWantWriteError
 
 _ssl = ssl_orig._ssl
 socket_error = ssl_orig.socket_error
 SSLError = ssl_orig.SSLError
 timeout_exc = SSLError
 
-create_connection = ssl_orig.create_connection
+create_connection = socket_orig.create_connection
 DER_cert_to_PEM_cert = ssl_orig.DER_cert_to_PEM_cert
 
 # define exceptions for convenience
@@ -175,20 +173,21 @@ class SSLSocket(socket):
                     return self._sslobj.read(len, buffer)
                 else:
                     return self._sslobj.read(len or 1024)
-            except SSLWantReadError:
-                if self.timeout == 0.0:
-                    raise
-                self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
-                                 timeout_exc=_SSLErrorReadTimeout)
-            except SSLWantWriteError:
-                if self.timeout == 0.0:
-                    raise
-                # note: using _SSLErrorReadTimeout rather than _SSLErrorWriteTimeout below is
-                # intentional
-                self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
-                                 timeout_exc=_SSLErrorReadTimeout)
+            except SSLError as e:
+                if get_errno(e) == SSL_ERROR_WANT_READ:
+                    if self.timeout == 0.0:
+                        raise
+                    self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
+                                     timeout_exc=_SSLErrorReadTimeout)
+                elif get_errno(e) == SSL_ERROR_WANT_WRITE:
+                    if self.timeout == 0.0:
+                        raise
+                    # note: using _SSLErrorReadTimeout rather than _SSLErrorWriteTimeout below is
+                    # intentional
+                    self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
+                                     timeout_exc=_SSLErrorReadTimeout)
             except SSLError as ex:
-                if ex.args[0] == SSL_ERROR_EOF and self.suppress_ragged_eofs:
+                if get_errno(e) == SSL_ERROR_EOF and self.suppress_ragged_eofs:
                     if buffer is None:
                         return ''
                     else:
@@ -257,16 +256,17 @@ class SSLSocket(socket):
             while True:
                 try:
                     return self._sslobj.write(data)
-                except SSLWantReadError:
-                    if self.timeout == 0.0:
-                        return 0
-                    self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
-                                     timeout_exc=_timeout_exc)
-                except SSLWantWriteError:
-                    if self.timeout == 0.0:
-                        return 0
-                    self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
-                                     timeout_exc=_timeout_exc)
+                except SSLError as e:
+                    if get_errno(e) == SSL_ERROR_WANT_READ:
+                        if self.timeout == 0.0:
+                            return 0
+                        self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
+                                         timeout_exc=_timeout_exc)
+                    elif get_errno(e) == SSL_ERROR_WANT_WRITE:
+                        if self.timeout == 0.0:
+                            return 0
+                        self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
+                                         timeout_exc=_timeout_exc)
         else:
             return socket.send(self, data, flags)
 
@@ -373,16 +373,17 @@ class SSLSocket(socket):
         while True:
             try:
                 return self._sslobj.do_handshake()
-            except SSLWantReadError:
-                if self.timeout == 0.0:
-                    raise
-                self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
-                                 timeout_exc=_SSLErrorHandshakeTimeout)
-            except SSLWantWriteError:
-                if self.timeout == 0.0:
-                    raise
-                self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
-                                 timeout_exc=_SSLErrorHandshakeTimeout)
+            except SSLError as e:
+                if get_errno(e) == SSL_ERROR_WANT_READ:
+                    if self.timeout == 0.0:
+                        raise
+                    self._trampoline(self.fileno(), READ, timeout=self.gettimeout(),
+                                     timeout_exc=_SSLErrorHandshakeTimeout)
+                elif get_errno(e) == SSL_ERROR_WANT_WRITE:
+                    if self.timeout == 0.0:
+                        raise
+                    self._trampoline(self.fileno(), WRITE, timeout=self.gettimeout(),
+                                     timeout_exc=_SSLErrorHandshakeTimeout)
 
     def _real_connect(self, addr, connect_ex):
         if self.server_side:
@@ -428,19 +429,6 @@ class SSLSocket(socket):
                                            suppress_ragged_eofs=self.suppress_ragged_eofs,
                                            server_side=True)
         return newsock, addr
-
-    def get_channel_binding(self, cb_type='tls-unique'):
-        """Get channel binding data for current connection.  Raise ValueError
-        if the requested `cb_type` is not supported.  Return bytes of the data
-        or None if the data is not available (e.g. before the handshake).
-        """
-        if cb_type not in CHANNEL_BINDING_TYPES:
-            raise ValueError('Unsupported channel binding type')
-        if cb_type != "tls-unique":
-            raise NotImplementedError('{0} channel binding type not implemented'.format(cb_type))
-        if self._sslobj is None:
-            return None
-        return self._sslobj.tls_unique_cb()
 
 
 def wrap_socket(sock, keyfile=None, certfile=None,
