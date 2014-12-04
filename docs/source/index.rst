@@ -13,7 +13,9 @@ Contents
 
 .. toctree::
     :maxdepth: 2
+    :titlesonly:
 
+    How does guv work? <howitworks>
     modules
 
 
