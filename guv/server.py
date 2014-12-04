@@ -1,6 +1,5 @@
 import sys
 import logging
-import errno
 from abc import ABCMeta, abstractmethod
 
 from . import greenpool, patcher, greenthread
@@ -10,8 +9,6 @@ from .hubs import get_hub
 original_socket = patcher.original('socket')
 
 log = logging.getLogger('guv')
-
-NONBLOCKING = {errno.EAGAIN, errno.EWOULDBLOCK}
 
 wrap_ssl_impl = ssl.wrap_socket
 
