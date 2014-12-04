@@ -51,7 +51,7 @@ def inject(module_name, new_globals, *additional_modules):
     the `module_name` module. This is useful when creating a "green" version of some other module.
 
     `additional_modules` should be a collection of two-element tuples, of the form
-    `(name: str,  module: str)`. If it's not specified, a default selection of name/module pairs
+    ``(name: str,  module: str)``. If it's not specified, a default selection of name/module pairs
     is used, which should cover all use cases but may be slower because there are inevitably
     redundant or unnecessary imports.
     """
