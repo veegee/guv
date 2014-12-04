@@ -215,12 +215,12 @@ def monkey_patch(**modules):
 
         monkey_patch(time=True, socket=True, select=True)
 
-    :keyword bool time: time module
-    :keyword bool os: os module
-    :keyword bool socket: socket module
-    :keyword bool select: select module
-    :keyword bool threading: threading module
-    :keyword bool psycopg2: psycopg2 module
+    :keyword bool time: time module: patches sleep()
+    :keyword bool os: os module: patches open(), read(), write(), wait(), waitpid()
+    :keyword bool socket: socket module: patches socket, create_connection()
+    :keyword bool select: select module: patches select()
+    :keyword bool threading: threading module: patches local, Lock(), stack_size(), current_thread()
+    :keyword bool psycopg2: psycopg2 module: registers a wait callback to yield
     """
     accepted_args = {'os', 'select', 'socket', 'threading', 'time', 'psycopg2', '__builtin__'}
     default_modules = modules.pop('all', None)
