@@ -1,18 +1,20 @@
 """Synchronized queues
 
 The :mod:`eventlet.queue` module implements multi-producer, multi-consumer queues that work across
-greenlets, with the API similar to the classes found in the standard :mod:`Queue` and
+greenlets, with the API similar to the classes found in the standard :mod:`queue` and
 :class:`multiprocessing <multiprocessing.Queue>` modules.
 
-A major difference is that queues in this module operate as channels when initialized with *maxsize*
-of zero. In such case, both :meth:`Queue.empty` and :meth:`Queue.full` return ``True`` and
-:meth:`Queue.put` always blocks until a call to :meth:`Queue.get` retrieves the item.
+A major difference is that queues in this module operate as channels when initialized with `maxsize`
+of zero. In such case, both :meth:`~queue.Queue.empty` and :meth:`~queue.Queue.full` return
+``True`` and :meth:`~queue.Queue.put` always blocks until a call to :meth:`~queue.Queue.get`
+retrieves the item.
 
-An interesting difference, made possible because of GreenThreads, is that :meth:`Queue.qsize`,
-:meth:`Queue.empty`, and :meth:`Queue.full` *can* be used as indicators of whether the subsequent
-:meth:`Queue.get` or :meth:`Queue.put` will not block. The new methods :meth:`Queue.getting` and
-:meth:`Queue.putting` report on the number of GreenThreads blocking in :meth:`put <Queue.put>` or
-:meth:`get <Queue.get>` respectively.
+An interesting difference, made possible because of GreenThreads, is that
+:meth:`~queue.Queue.qsize`, :meth:`~queue.Queue.empty`, and :meth:`~queue.Queue.full` *can* be used
+as indicators of whether the subsequent :meth:`~queue.Queue.get` or :meth:`~queue.Queue.put` will
+not block. The new methods :meth:`LightQueue.getting` and :meth:`LightQueue.putting` report on
+the number of GreenThreads blocking in :meth:`~queue.Queue.put` or :meth:`~queue.Queue.get`
+respectively.
 """
 
 import sys
@@ -114,10 +116,9 @@ class Waiter(object):
 
 class LightQueue(object):
     """
-    This is a variant of Queue that behaves mostly like the standard
-    :class:`Queue`.  It differs by not supporting the
-    :meth:`task_done <Queue.task_done>` or :meth:`join <Queue.join>` methods,
-    and is a little faster for not having that overhead.
+    This is a variant of Queue that behaves mostly like the standard :class:`Queue`.  It differs by
+    not supporting the :meth:`~queue.Queue.task_done` or :meth:`~queue.Queue.join` methods, and is a
+    little faster for not having that overhead.
     """
 
     def __init__(self, maxsize=None):
@@ -167,8 +168,8 @@ class LightQueue(object):
         """Resizes the queue's maximum size.
 
         If the size is increased, and there are putters waiting, they may be woken up."""
-        if self.maxsize is not None and (
-                        size is None or size > self.maxsize):  # None is not comparable in 3.x
+        if (self.maxsize is not None and
+                (size is None or size > self.maxsize)):  # None is not comparable in 3.x
             # Maybe wake some stuff up
             self._schedule_unlock()
         self.maxsize = size
@@ -198,12 +199,12 @@ class LightQueue(object):
     def put(self, item, block=True, timeout=None):
         """Put an item into the queue.
 
-        If optional arg *block* is true and *timeout* is ``None`` (the default),
-        block if necessary until a free slot is available. If *timeout* is
-        a positive number, it blocks at most *timeout* seconds and raises
+        If optional arg `block` is true and `timeout` is ``None`` (the default),
+        block if necessary until a free slot is available. If `timeout` is
+        a positive number, it blocks at most `timeout` seconds and raises
         the :class:`queue.Full` exception if no free slot was available within that time.
-        Otherwise (*block* is false), put an item on the queue if a free slot
-        is immediately available, else raise the :class:`queue.Full` exception (*timeout*
+        Otherwise (`block` is false), put an item on the queue if a free slot
+        is immediately available, else raise the :class:`queue.Full` exception (`timeout`
         is ignored in that case).
         """
         if self.maxsize is None or self.qsize() < self.maxsize:
@@ -250,12 +251,12 @@ class LightQueue(object):
     def get(self, block=True, timeout=None):
         """Remove and return an item from the queue.
 
-        If optional args *block* is true and *timeout* is ``None`` (the default),
-        block if necessary until an item is available. If *timeout* is a positive number,
-        it blocks at most *timeout* seconds and raises the :class:`queue.Empty` exception
-        if no item was available within that time. Otherwise (*block* is false), return
+        If optional args `block` is true and `timeout` is ``None`` (the default),
+        block if necessary until an item is available. If `timeout` is a positive number,
+        it blocks at most `timeout` seconds and raises the :class:`queue.Empty` exception
+        if no item was available within that time. Otherwise (`block` is false), return
         an item if one is immediately available, else raise the :class:`queue.Empty` exception
-        (*timeout* is ignored in that case).
+        (`timeout` is ignored in that case).
         """
         if self.qsize():
             if self.putters:
@@ -319,9 +320,8 @@ class LightQueue(object):
                             putter.switch(putter)
                         else:
                             self.putters.add(putter)
-                elif self.putters and (
-                                self.getters or self.maxsize is None or self.qsize() <
-                            self.maxsize):
+                elif (self.putters and (
+                        self.getters or self.maxsize is None or self.qsize() < self.maxsize)):
                     putter = self.putters.pop()
                     putter.switch(putter)
                 else:
@@ -350,14 +350,12 @@ class ItemWaiter(Waiter):
 class Queue(LightQueue):
     """Create a queue object with a given maximum size
 
-    If *maxsize* is less than zero or ``None``, the queue size is infinite.
+    If `maxsize` is less than zero or ``None``, the queue size is infinite.
 
-    ``Queue(0)`` is a channel, that is, its :meth:`put` method always blocks
-    until the item is delivered. (This is unlike the standard :class:`Queue`,
-    where 0 means infinite size).
+    ``Queue(0)`` is a channel, that is, its :meth:`put` method always blocks until the item is
+    delivered. (This is unlike the standard :class:`queue.Queue`, where 0 means infinite size).
 
-    In all other respects, this Queue class resembled the standard library,
-    :class:`Queue`.
+    In all other respects, this Queue class resembles the standard library, :class:`queue.Queue`.
     """
 
     def __init__(self, maxsize=None):
