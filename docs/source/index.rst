@@ -16,6 +16,7 @@ Contents
     :titlesonly:
 
     How does guv work? <howitworks>
+    librarysupport
     modules
 
 
