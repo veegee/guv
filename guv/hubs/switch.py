@@ -24,7 +24,7 @@ def trampoline(fd, evtype, timeout=None, timeout_exc=Timeout):
     for I/O, or the specified timeout elapses
 
     If the specified `timeout` elapses before the socket is ready to read or write, `timeout_exc`
-    will be raised instead of `trampoline()` returning normally.
+    will be raised instead of :func:`trampoline()` returning normally.
 
     When the specified file descriptor is ready for I/O, the hub internally calls the callback to
     switch back to the current (this) greenlet.
@@ -32,7 +32,8 @@ def trampoline(fd, evtype, timeout=None, timeout_exc=Timeout):
     Conditions:
 
     - must not be called from the hub greenlet (can be called from any other greenlet)
-    - `mode` must be either READ or WRITE (not possible to watch for both simultaneously)
+    - `evtype` must be either :attr:`~guv.const.READ` or :attr:`~guv.const.WRITE` (not possible to
+      watch for  both  simultaneously)
 
     :param int fd: file descriptor
     :param int evtype: either the constant :attr:`~guv.const.READ` or :attr:`~guv.const.WRITE`
