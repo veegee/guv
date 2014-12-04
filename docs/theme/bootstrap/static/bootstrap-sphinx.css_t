@@ -272,14 +272,19 @@ div.highlight pre {
 /* inline literals
  * --------------- */
 
-/* `some text`, ``code`` */
-cite, code {
-  font-family: DejaVuSansMono, monospace;
-  font-size: 0.90em;
-  padding: 0px 4px;
-  color: #C7254E;
+/* `cite`, ``inline literal`` (red text) */
+cite, code, tt.docutils.literal {
+  font-size: 0.9em;
   background-color: #F9F2F4;
   border-radius: 4px;
+  color: #C7254E;
+  font-weight: normal;
+  padding: 0 4px;
+}
+
+/* make links in literals the same color as links */
+a tt.docutils.literal {
+  color: inherit;
 }
 
 /* :attr:`self.some_variable` */
