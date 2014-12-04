@@ -85,7 +85,7 @@ it is necessary to provide a support module which calls either
 code will block for I/O.
 
 For examples of support modules for common libraries, see the support modules
-provided in the :pkg:`guv.support` package.
+provided in the :mod:`guv.support` package.
 
 
 .. _greenlets: https://greenlet.readthedocs.org/en/latest/
