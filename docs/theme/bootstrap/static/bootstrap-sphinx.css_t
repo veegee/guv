@@ -288,15 +288,6 @@ a tt.docutils.literal {
   color: inherit;
 }
 
-/* :attr:`self.some_variable` */
-tt.xref span.pre {
-  font-weight: normal;
-  font-size: 0.90em;
-  padding: 0px 4px;
-  border-radius: 4px;
-  background-color: #ECF0F1;
-}
-
 {% else %}
 /* Sphinx 1.3
  * ========== */
