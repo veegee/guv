@@ -5,8 +5,7 @@ import time
 import functools
 
 from . import abc
-
-from ..support import compat
+from guv import compat
 
 _g_debug = False  # if true, captures a stack trace for each timer when constructed, this is useful
 # for debugging leaking timers, to find out where the timer was set up
