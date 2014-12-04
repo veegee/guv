@@ -54,15 +54,15 @@ support modules for libraries such as guv. An excellent example is the high
 quality ``psycopg2`` database driver for PostgreSQL, written as a C extension.
 This library provides a very clean mechanism to call a callback before making
 any operations which could potentially block. This allows guv to
-:func:`~guv.hubs.trampoline` and register the connection's file descriptor
-if the I/O operation would block.
+:func:`~guv.hubs.switch.trampoline` and register the connection's file descriptor if the I/O
+operation would block.
 
 See the `psycopg2 patcher`_ for the implementation.
 
 However, many libraries do not provide such a mechanism to simplify creating a
 support module. In such case, there are several strategies for making these
 libraries cooperative. In all cases, the end goal is the same: call
-:func:`~guv.hubs.trampoline`, which cooperatively yields and waits for the file
+:func:`~guv.hubs.switch.trampoline`, which cooperatively yields and waits for the file
 descriptor to be ready for I/O.
 
 Note: this section is incomplete.

@@ -4,7 +4,7 @@ __version__ = '.'.join(map(str, version_info))
 try:
     from . import greenpool
     from . import queue
-    from .hubs.trampoline import gyield
+    from .hubs.switch import gyield, trampoline
     from .greenthread import sleep, spawn, spawn_n, spawn_after, kill
     from .greenpool import GreenPool, GreenPile
     from .timeout import Timeout, with_timeout

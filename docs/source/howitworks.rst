@@ -50,7 +50,7 @@ extensions will require simple modifications to cooperate with guv, since it is
 not possible to monkey-patch C code which may be making blocking function calls.
 
 
-The hub and :func:`~guv.hubs.trampoline.trampoline`
+The hub and :func:`~guv.hubs.switch.trampoline`
 ---------------------------------------------------
 
 The "hub" (:class:`guv.hubs.abc.AbstractHub`) is the core of guv and serves as
@@ -67,22 +67,22 @@ hub greenlet.
 
 The core function which facilitates the process of registering the file
 descriptor of interest and switching to the hub is
-:func:`guv.hubs.trampoline.trampoline`. Examining the source code of included
+:func:`~guv.hubs.switch.trampoline`.  Examining the source code of included
 green modules reveals that this function is used extensively whenever interest
 in I/O events for a file descriptor needs to be registered. Note that this
 function does not need to be called by normal application code when writing code
 with the guv library; this is only part of the core inner working of guv.
 
 Another important function provided by guv for working with greenlets is
-:func:`guv.hubs.trampoline.gyield`. This is a very simple function which simply
+:func:`~guv.hubs.switch.gyield`. This is a very simple function which simply
 yields the current greenlet, and reigsters a callback to resume on the next
 event loop iteration.
 
 If you require providing support for a library which cannot make use of the
 patched python standard socket module (such as the case for C extensions), then
 it is necessary to provide a support module which calls either
-:func:`trampoline()` or :func:`gyield` when there is a possibility that the C
-code will block for I/O.
+:func:`~guv.hubs.switch.trampoline()` or :func:`~guv.hubs.switch.gyield` when
+there is a possibility that the C code will block for I/O.
 
 For examples of support modules for common libraries, see the support modules
 provided in the :mod:`guv.support` package.

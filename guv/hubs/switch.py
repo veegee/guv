@@ -6,6 +6,19 @@ from ..timeout import Timeout
 __all__ = ['gyield', 'trampoline']
 
 
+def gyield():
+    """Yield to other greenlets
+
+    This is a cooperative yield which suspends the current greenlet and allows other greenlets to
+    run. The current greenlet is resumed at the beginning of the next event loop iteration,
+    before the loop polls for I/O and calls any I/O callbacks.
+    """
+    current = greenlet.getcurrent()
+    hub = get_hub()
+    hub.schedule_call_now(current.switch)
+    hub.switch()
+
+
 def trampoline(fd, evtype, timeout=None, timeout_exc=Timeout):
     """Jump from the current greenlet to the hub and wait until the given file descriptor is ready
     for I/O, or the specified timeout elapses
@@ -54,16 +67,3 @@ def trampoline(fd, evtype, timeout=None, timeout_exc=Timeout):
     finally:
         if timer is not None:
             timer.cancel()
-
-
-def gyield():
-    """Yield to other greenlets
-
-    This is a cooperative yield which suspends the current greenlet and allows other greenlets to
-    run. The current greenlet is resumed at the beginning of the next event loop iteration,
-    before the loop polls for I/O and calls any I/O callbacks.
-    """
-    current = greenlet.getcurrent()
-    hub = get_hub()
-    hub.schedule_call_now(current.switch)
-    hub.switch()
