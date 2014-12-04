@@ -1,8 +1,8 @@
 """Synchronized queues
 
-The :mod:`eventlet.queue` module implements multi-producer, multi-consumer queues that work across
-greenlets, with the API similar to the classes found in the standard :mod:`queue` and
-:class:`multiprocessing <multiprocessing.Queue>` modules.
+This module implements multi-producer, multi-consumer queues that work across greenlets, with the
+API similar to the classes found in the standard :mod:`queue` and :class:`multiprocessing
+<multiprocessing.Queue>` modules.
 
 A major difference is that queues in this module operate as channels when initialized with `maxsize`
 of zero. In such case, both :meth:`~queue.Queue.empty` and :meth:`~queue.Queue.full` return
