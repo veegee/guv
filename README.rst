@@ -46,6 +46,7 @@ package managers yet, so visit their `project page
 While you're there, you can run some examples::
 
     cd examples
+    pip install requests
     python3 crawler.py
 
 Install using pip::
