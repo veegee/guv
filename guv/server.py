@@ -154,4 +154,4 @@ class Server(AbstractServer):
                 return
 
     def stop(self):
-        logging.debug('{0}: stopping'.format(self))
+        log.debug('{0}: stopping'.format(self))
