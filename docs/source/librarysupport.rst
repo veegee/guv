@@ -15,8 +15,9 @@ Quick overview:
 - If your application code depends on libriares that make blocking I/O calls
   *from external C code* (such as is the case for many popular database
   drivers), then a support module must be available to make those specific
-  libraries cooperative. Such modules can be found in the :mod:`guv.support`
-  package and are all enabled by default if the library is installed.
+  libraries cooperative. Such modules can be found in the `guv.support
+  <https://github.com/veegee/guv/tree/develop/guv/support>`_ package and are all
+  enabled by default if the library is installed.
 
 .. note::
 
@@ -33,8 +34,8 @@ modules:
 
 - All standard library modules which make blocking I/O calls on file descriptors
   (such as :mod:`socket`, :mod:`smtplib`, etc), or call :func:`time.sleep`.
-- requests
-- pg8000
+- `requests <https://github.com/kennethreitz/requests>`_
+- `pg8000 <https://github.com/mfenniak/pg8000>`_
 - Many more
 
 This list will be expanded as additional libraries are tested and *confirmed* to
@@ -42,7 +43,7 @@ be compaible.
 
 Libraries containing C extensions which are currently suported:
 
-- psycopg2
+- `psycopg2 <https://github.com/psycopg/psycopg2>`_
 
 
 Writing Support Modules for External Libraries
