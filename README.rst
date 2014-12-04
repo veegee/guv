@@ -39,9 +39,14 @@ recommended to pull often and install manually::
     cd guv
     python setup.py install
 
+You'll need the latest version (> 1.0) of libuv which isn't available on most
+package managers yet, so visit their `project page
+<https://github.com/libuv/libuv#build-instructions>`_ to see how to intall it.
+
 While you're there, you can run some examples::
 
     cd examples
+    pip install requests
     python3 crawler.py
 
 Install using pip::
