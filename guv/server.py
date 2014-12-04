@@ -10,8 +10,6 @@ original_socket = patcher.original('socket')
 
 log = logging.getLogger('guv')
 
-wrap_ssl_impl = ssl.wrap_socket
-
 
 def serve(sock, handle, concurrency=1000):
     pool = greenpool.GreenPool(concurrency)
@@ -48,21 +46,15 @@ def connect(addr, family=socket.AF_INET, bind=None):
 
 
 def wrap_ssl(sock, *a, **kw):
-    """Convenience function for converting a regular socket into an
-    SSL socket.  Has the same interface as :func:`ssl.wrap_socket`,
-    but can also use PyOpenSSL. Though, note that it ignores the
-    `cert_reqs`, `ssl_version`, `ca_certs`, `do_handshake_on_connect`,
-    and `suppress_ragged_eofs` arguments when using PyOpenSSL.
+    """Convenience function for converting a regular socket into an SSL socket
 
-    The preferred idiom is to call wrap_ssl directly on the creation
-    method, e.g., ``wrap_ssl(connect(addr))`` or
-    ``wrap_ssl(listen(addr), server_side=True)``. This way there is
-    no "naked" socket sitting around to accidentally corrupt the SSL
-    session.
+    The preferred idiom is to call wrap_ssl directly on the creation method, e.g.,
+    ``wrap_ssl(connect(addr))`` or ``wrap_ssl(listen(addr), server_side=True)``. This way there is
+    no "naked" socket sitting around to accidentally corrupt the SSL session.
 
-    :return Green SSL object.
+    :return Green SSL socket
     """
-    return wrap_ssl_impl(sock, *a, **kw)
+    return ssl.wrap_socket(sock, *a, **kw)
 
 
 class StopServe(Exception):
