@@ -60,7 +60,8 @@ def gyield():
     """Yield to other greenlets
 
     This is a cooperative yield which suspends the current greenlet and allows other greenlets to
-    run. The current greenlet is resumed at the beginning of the next event loop iteration.
+    run. The current greenlet is resumed at the beginning of the next event loop iteration,
+    before the loop polls for I/O and calls any I/O callbacks.
     """
     current = greenlet.getcurrent()
     hub = get_hub()
