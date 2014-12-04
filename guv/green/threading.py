@@ -64,12 +64,11 @@ __threading = None
 
 
 def _fixup_thread(t):
-    # Some third-party packages (lockfile) will try to patch the
-    # threading.Thread class with a get_name attribute if it doesn't
-    # exist. Since we might return Thread objects from the original
-    # threading package that won't get patched, let's make sure each
-    # individual object gets patched too our patched threading.Thread
-    # class has been patched. This is why monkey patching can be bad...
+    # Some third-party packages (lockfile) will try to patch the threading.Thread class with a
+    # get_name attribute if it doesn't exist. Since we might return Thread objects from the original
+    # threading package that won't get patched, let's make sure each individual object gets patched
+    # to our patched threading.Thread class has been patched. This is why monkey patching can be
+    # bad...
     global __threading
     if not __threading:
         __threading = __import__('threading')
@@ -83,7 +82,7 @@ def _fixup_thread(t):
 def current_thread():
     g = greenlet.getcurrent()
     if not g:
-        # Not currently in a greenthread, fall back to standard function
+        # not currently in a greenlet, fall back to standard function
         return _fixup_thread(threading_orig.current_thread())
 
     try:
