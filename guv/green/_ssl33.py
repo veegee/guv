@@ -1,10 +1,7 @@
 """
 Green SSL module for Python >= 3.3
 """
-ssl_orig = __import__('ssl')
-time_orig = __import__('time')
-socket_orig = __import__('socket')
-
+import ssl as ssl_orig
 import errno
 
 from ..patcher import copy_attributes

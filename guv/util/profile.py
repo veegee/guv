@@ -29,7 +29,8 @@ to profile Eventlet-based applications in preference to either :mod:`profile` or
 """
 # TODO: Write testcases for this module
 
-profile_orig = __import__('profile')
+import profile as profile_orig
+
 __all__ = profile_orig.__all__
 
 from ..patcher import copy_attributes

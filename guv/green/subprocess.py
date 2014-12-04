@@ -7,7 +7,7 @@ from ..green import select
 from ..fileobject import FileObject
 
 patcher.inject('subprocess', globals(), ('select', select))
-subprocess_orig = __import__('subprocess')
+import subprocess as subprocess_orig
 
 if getattr(subprocess_orig, 'TimeoutExpired', None) is None:
     # python < 3.3 needs this defined

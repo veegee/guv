@@ -1,12 +1,9 @@
 import os
-import sys
 import logging
 
 log = logging.getLogger('guv')
 
-# we have to do it this way to access gsocket.__all__ (why?)
-__import__('guv.green._socket3')
-gsocket = sys.modules['guv.green._socket3']
+from ..green import _socket3 as gsocket
 
 __all__ = gsocket.__all__
 __patched__ = gsocket.__patched__ + ['gethostbyname', 'getaddrinfo', 'create_connection']

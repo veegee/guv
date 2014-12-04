@@ -1,9 +1,11 @@
-__select = __import__('select')
-error = __select.error
+import select as select_orig
+
+error = select_orig.error
 from greenlet import getcurrent
 
 from ..hubs import get_hub
 from ..const import READ, WRITE
+
 ERROR = 'error'
 
 __patched__ = ['select']

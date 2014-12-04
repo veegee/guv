@@ -1,5 +1,4 @@
-socket_orig = __import__('socket')
-os = __import__('os')
+import socket as socket_orig
 
 __all__ = socket_orig.__all__
 __patched__ = ['fromfd', 'socketpair', 'ssl', 'socket']
