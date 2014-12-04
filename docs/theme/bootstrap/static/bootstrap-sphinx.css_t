@@ -274,6 +274,7 @@ div.highlight pre {
 
 /* `cite`, ``inline literal`` (red text) */
 cite, code, tt.docutils.literal {
+  font-family: DejaVuSansMono, monospace;
   font-size: 0.9em;
   background-color: #F9F2F4;
   border-radius: 4px;
