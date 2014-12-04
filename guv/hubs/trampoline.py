@@ -3,6 +3,8 @@ import greenlet
 from .hub import get_hub
 from ..timeout import Timeout
 
+__all__ = ['gyield', 'trampoline']
+
 
 def trampoline(fd, evtype, timeout=None, timeout_exc=Timeout):
     """Jump from the current greenlet to the hub and wait until the given file descriptor is ready
@@ -23,8 +25,6 @@ def trampoline(fd, evtype, timeout=None, timeout_exc=Timeout):
     :param int evtype: either the constant READ or WRITE
     :param float timeout: (optional) maximum time to wait in seconds
     :param Exception timeout_exc: (optional) timeout Exception class
-
-    .. note :: |internal|
     """
     #: :type: AbstractHub
     hub = get_hub()

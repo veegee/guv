@@ -13,3 +13,4 @@ Module Reference
     api/timeout
     api/websocket
     api/wsgi
+    api/trampoline
