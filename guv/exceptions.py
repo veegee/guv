@@ -12,6 +12,8 @@ osocket = patcher.original('socket')
 
 from .support import OS_WINDOWS
 
+SYSTEM_ERROR = (KeyboardInterrupt, SystemExit, SystemError)
+
 if OS_WINDOWS:
     # winsock sometimes throws ENOTCONN
     SOCKET_BLOCKING = {EAGAIN, EWOULDBLOCK}

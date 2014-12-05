@@ -2,8 +2,12 @@ from abc import ABCMeta, abstractmethod
 import greenlet
 import sys
 import traceback
+from greenlet import GreenletExit
 
 from ..const import READ, WRITE
+from ..exceptions import SYSTEM_ERROR
+
+NOT_ERROR = (GreenletExit, SystemExit)
 
 
 class AbstractTimer(metaclass=ABCMeta):
@@ -139,16 +143,6 @@ class AbstractHub(greenlet.greenlet, metaclass=ABCMeta):
 
         return found
 
-    def _squelch_exception(self, listener, exc_info):
-        traceback.print_exception(*exc_info)
-        sys.stderr.write('Removing listener: {}\n'.format(listener))
-        sys.stderr.flush()
-        try:
-            self.remove(listener)
-        except Exception as e:
-            sys.stderr.write('Exception while removing listener: {}\n'.format(e))
-            sys.stderr.flush()
-
     def _add_listener(self, listener):
         """Add listener to internal dictionary
 
@@ -174,7 +168,15 @@ class AbstractHub(greenlet.greenlet, metaclass=ABCMeta):
         self.listeners[listener.evtype][listener.fd] = None
         del self.listeners[listener.evtype][listener.fd]
 
-    def _squelch_generic_exception(self, exc_info):
-        if self._debug_exceptions:
+    def _squelch_exception(self, exc_info):
+        if self._debug_exceptions and not issubclass(exc_info[0], NOT_ERROR):
             traceback.print_exception(*exc_info)
             sys.stderr.flush()
+
+        if issubclass(exc_info[0], SYSTEM_ERROR):
+            self._handle_system_error(exc_info)
+
+    def _handle_system_error(self, exc_info):
+        current = greenlet.getcurrent()
+        if current is self or current is self.parent:
+            self.parent.throw(*exc_info)

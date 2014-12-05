@@ -92,7 +92,7 @@ class Hub(abc.AbstractHub):
             try:
                 cb(*args, **kwargs)
             except:
-                self._squelch_generic_exception(sys.exc_info())
+                self._squelch_exception(sys.exc_info())
 
         # Check if more callbacks have been scheduled. Since these may be non-io callbacks (such
         # as calls to `gyield()` or `schedule_call_now()`, start a uv_async_t handle so that libuv
@@ -108,7 +108,7 @@ class Hub(abc.AbstractHub):
             try:
                 cb(*args, **kwargs)
             except:
-                self._squelch_generic_exception(sys.exc_info())
+                self._squelch_exception(sys.exc_info())
 
             # required for cleanup
             if not timer_handle.closed:
@@ -136,7 +136,13 @@ class Hub(abc.AbstractHub):
             try:
                 cb(*cb_args)
             except:
-                self._squelch_exception(listener, sys.exc_info())
+                self._squelch_exception(sys.exc_info())
+
+                try:
+                    self.remove(listener)
+                except Exception as e:
+                    sys.stderr.write('Exception while removing listener: {}\n'.format(e))
+                    sys.stderr.flush()
 
         self._add_listener(listener)
 
