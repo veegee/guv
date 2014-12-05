@@ -1,26 +1,158 @@
-# -*- coding: utf-8 -
-#
-# This file is part of gunicorn released under the MIT license.
-# See the NOTICE for more information.
-
 from functools import partial
 import errno
 import sys
-
-try:
-    import guv
-except ImportError:
-    raise RuntimeError("You need guv installed to use this worker.")
-
-_socket = __import__("socket")
-from guv import hubs, greenthread, greenpool, StopServe, trampoline
-from guv.greenio import socket as gsocket
-from guv.support import get_errno
-from guv.const import READ, WRITE
+from datetime import datetime
+import socket
+import ssl
 import greenlet
 
+from gunicorn import http, util
+from gunicorn.http import wsgi
 from gunicorn.http.wsgi import sendfile as o_sendfile
-from gunicorn.workers.async import AsyncWorker
+from gunicorn.workers import base
+
+import guv
+import guv.wsgi
+from guv import hubs, greenthread, greenpool, StopServe, trampoline, gyield
+from guv.greenio import socket as gsocket
+from guv.support import get_errno, reraise
+from guv.const import WRITE
+from guv.exceptions import BROKEN_SOCK
+
+ALREADY_HANDLED = object()
+
+
+class AsyncWorker(base.Worker):
+    """
+    This class is a copy of the AsyncWorker included in gunicorn, with a few minor modifications:
+
+    - Removed python 2 support
+    - Improved request handling
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(AsyncWorker, self).__init__(*args, **kwargs)
+        self.worker_connections = self.cfg.worker_connections
+
+    def timeout_ctx(self):
+        raise NotImplementedError()
+
+    def handle(self, server_sock, client_sock, addr):
+        """Handle client connection
+
+        The client may send one or more requests.
+        """
+        req = None
+        try:
+            parser = http.RequestParser(self.cfg, client_sock)
+            try:
+                server_name = server_sock.getsockname()
+                if not self.cfg.keepalive:
+                    req = next(parser)
+                    self.handle_request(server_name, req, client_sock, addr)
+                else:
+                    # keepalive loop
+                    while True:
+                        req = None
+                        with self.timeout_ctx():
+                            req = next(parser)
+                        if not req:
+                            break
+                        self.handle_request(server_name, req, client_sock, addr)
+                        gyield()
+            except http.errors.NoMoreData as e:
+                self.log.debug("Ignored premature client disconnection. %s", e)
+            except StopIteration as e:
+                self.log.debug("Closing connection. %s", e)
+            except ssl.SSLError:
+                exc_info = sys.exc_info()
+                # pass to next try-except level
+                reraise(exc_info[0], exc_info[1], exc_info[2])
+            except socket.error:
+                exc_info = sys.exc_info()
+                # pass to next try-except level
+                reraise(exc_info[0], exc_info[1], exc_info[2])
+            except Exception as e:
+                self.handle_error(req, client_sock, addr, e)
+        except ssl.SSLError as e:
+            if get_errno(e) == ssl.SSL_ERROR_EOF:
+                self.log.debug("ssl connection closed")
+                client_sock.close()
+            else:
+                self.log.debug("Error processing SSL request.")
+                self.handle_error(req, client_sock, addr, e)
+        except socket.error as e:
+            if get_errno(e) not in BROKEN_SOCK:
+                self.log.exception("Socket error processing request.")
+            else:
+                if get_errno(e) == errno.ECONNRESET:
+                    self.log.debug("Ignoring connection reset")
+                else:
+                    self.log.debug("Ignoring EPIPE")
+        except Exception as e:
+            self.handle_error(req, client_sock, addr, e)
+        finally:
+            util.close(client_sock)
+
+    def handle_request(self, listener_name, req, sock, addr):
+        request_start = datetime.now()
+        environ = {}
+        resp = None
+        try:
+            self.cfg.pre_request(self, req)
+            resp, environ = wsgi.create(req, sock, addr,
+                                        listener_name, self.cfg)
+            environ["wsgi.multithread"] = True
+            self.nr += 1
+            if self.alive and self.nr >= self.max_requests:
+                self.log.info("Autorestarting worker after current request.")
+                resp.force_close()
+                self.alive = False
+
+            if not self.cfg.keepalive:
+                resp.force_close()
+
+            respiter = self.wsgi(environ, resp.start_response)
+            if respiter == ALREADY_HANDLED:
+                return False
+            try:
+                if isinstance(respiter, environ['wsgi.file_wrapper']):
+                    resp.write_file(respiter)
+                else:
+                    for item in respiter:
+                        resp.write(item)
+                resp.close()
+                request_time = datetime.now() - request_start
+                self.log.access(resp, req, environ, request_time)
+            except socket.error as e:
+                # BROKEN_SOCK not interesting here
+                if not get_errno(e) in BROKEN_SOCK:
+                    raise
+            finally:
+                if hasattr(respiter, "close"):
+                    respiter.close()
+            if resp.should_close():
+                raise StopIteration()
+        except StopIteration:
+            raise
+        except Exception:
+            if resp and resp.headers_sent:
+                # If the requests have already been sent, we should close the
+                # connection to indicate the error.
+                self.log.exception("Error handling request")
+                try:
+                    sock.shutdown(socket.SHUT_RDWR)
+                    sock.close()
+                except socket.error:
+                    pass
+                raise StopIteration()
+            raise
+        finally:
+            try:
+                self.cfg.post_request(self, req, environ, resp)
+            except Exception:
+                self.log.exception("Exception in post_request hook")
+        return True
 
 
 def _guv_sendfile(fdout, fdin, offset, nbytes):
@@ -39,13 +171,6 @@ def _guv_sendfile(fdout, fdin, offset, nbytes):
 
 
 def _guv_serve_slow(sock, handle, concurrency):
-    """
-    Serve requests forever.
-
-    This code is nearly identical to ``eventlet.convenience.serve`` except
-    that it attempts to join the pool at the end, which allows for gunicorn
-    graceful shutdowns.
-    """
     pool = greenpool.GreenPool(concurrency)
     server_gt = greenlet.getcurrent()
 
@@ -61,12 +186,10 @@ def _guv_serve_slow(sock, handle, concurrency):
 
 
 def _guv_serve(sock, handle, concurrency):
-    """
-    Serve requests forever.
+    """Serve requests forever
 
-    This code is nearly identical to ``eventlet.convenience.serve`` except
-    that it attempts to join the pool at the end, which allows for gunicorn
-    graceful shutdowns.
+    This code is nearly identical to :func:`guv.serve` except that it attempts to join the pool at
+    the end, which allows for gunicorn graceful shutdowns.
     """
     while True:
         try:
@@ -78,8 +201,7 @@ def _guv_serve(sock, handle, concurrency):
 
 
 def _guv_stop(client, server, conn):
-    """
-    Stop a greenlet handling a request and close its connection.
+    """Stop a greenlet handling a request and close its connection
 
     This code is lifted from eventlet so as not to depend on undocumented
     functions in the library.
@@ -110,22 +232,21 @@ class GuvWorker(AsyncWorker):
     def init_process(self):
         hubs.use_hub()
         self.patch()
-        super(GuvWorker, self).init_process()
+        super().init_process()
 
     def timeout_ctx(self):
         return guv.Timeout(self.cfg.keepalive or None, False)
 
-    def handle(self, listener, client, addr):
+    def handle(self, server_sock, client_sock, addr):
         if self.cfg.is_ssl:
-            client = guv.wrap_ssl(client, server_side=True,
-                                  **self.cfg.ssl_options)
+            client_sock = guv.wrap_ssl(client_sock, server_side=True, **self.cfg.ssl_options)
 
-        super(GuvWorker, self).handle(listener, client, addr)
+        super().handle(server_sock, client_sock, addr)
 
     def run(self):
         acceptors = []
         for sock in self.sockets:
-            gsock = gsocket(sock.FAMILY, _socket.SOCK_STREAM, fileno=sock.fileno())
+            gsock = gsocket(sock.FAMILY, socket.SOCK_STREAM, fileno=sock.fileno())
             gsock.setblocking(1)
             hfun = partial(self.handle, gsock)
             acceptor = guv.spawn(_guv_serve, gsock, hfun, self.worker_connections)
