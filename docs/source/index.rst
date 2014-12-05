@@ -43,6 +43,24 @@ issues and pull requests, and bugs will be fixed immediately.
 **This project is under active development and any help is appreciated.**
 
 
+Quickstart
+----------
+
+The following examples serve the sample WSGI app found in the ``examples``
+directory.
+
+**Serve your WSGI app using guv directly**::
+
+    if __name__ == '__main__':
+    server_sock = guv.listen(('0.0.0.0', 8001))
+    guv.wsgi.serve(server_sock, app)
+
+**Serve your WSGI app using guv with gunicorn**::
+
+    gunicorn -w 4 -b 127.0.0.1:8001 -k guv.GuvWorker wsgi_app:app
+
+
+
 Guarantees
 ----------
 
