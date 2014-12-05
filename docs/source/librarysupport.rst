@@ -36,6 +36,7 @@ modules:
   (such as :mod:`socket`, :mod:`smtplib`, etc), or call :func:`time.sleep`.
 - `requests <https://github.com/kennethreitz/requests>`_
 - `pg8000 <https://github.com/mfenniak/pg8000>`_
+- `redis-py <https://github.com/andymccurdy/redis-py>`_
 - Many more
 
 This list will be expanded as additional libraries are tested and *confirmed* to
