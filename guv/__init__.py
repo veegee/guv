@@ -10,6 +10,7 @@ try:
     from .timeout import Timeout, with_timeout
     from .patcher import import_patched, monkey_patch
     from .server import serve, listen, connect, StopServe, wrap_ssl
+    from .support.gunicorn_worker import GuvWorker
 
     import pyuv_cffi  # only to compile the shared library before monkey-patching
 
