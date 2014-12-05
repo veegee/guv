@@ -5,6 +5,7 @@ from datetime import datetime
 import socket
 import ssl
 import greenlet
+import logging
 
 from gunicorn import http, util
 from gunicorn.http import wsgi
@@ -21,18 +22,36 @@ from guv.exceptions import BROKEN_SOCK
 
 ALREADY_HANDLED = object()
 
+log = logging.getLogger('guv')
+
 
 class AsyncWorker(base.Worker):
     """
     This class is a copy of the AsyncWorker included in gunicorn, with a few minor modifications:
 
     - Removed python 2 support
-    - Improved request handling
+    - Improved request latency for keep-alive connections by yielding after each request
+    - Graceful quit on ctrl-c by overriding handle_quit
     """
 
     def __init__(self, *args, **kwargs):
-        super(AsyncWorker, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.worker_connections = self.cfg.worker_connections
+
+    def handle_quit(self, sig, frame):
+        """
+        We override this because sys.exit() shouldn't be called. Instead, we should let the
+        worker gracefully quit on its own.
+        """
+        # sys.stderr.write('handle_quit() frame: {0}, '
+        #                  '{0.f_code.co_filename}:{0.f_code.co_name}:{0.f_lineno}\n'
+        #                  .format(frame))
+        sys.stderr.flush()
+        self.alive = False
+        # worker_int callback
+        self.cfg.worker_int(self)
+
+        # sys.exit(0)
 
     def timeout_ctx(self):
         raise NotImplementedError()
@@ -239,16 +258,27 @@ class GuvWorker(AsyncWorker):
             acceptors.append(acceptor)
             guv.gyield()
 
-        while self.alive:
-            self.notify()
-            guv.sleep(1.0)
+        try:
+            while self.alive:
+                self.notify()
+                guv.sleep(self.timeout / 2)
+
+        except (KeyboardInterrupt, SystemExit):
+            log.debug('KeyboardInterrupt, exiting')
 
         self.notify()
         try:
             with guv.Timeout(self.cfg.graceful_timeout) as t:
-                [a.kill(guv.StopServe()) for a in acceptors]
-                [a.wait() for a in acceptors]
+                for a in acceptors:
+                    a.kill(guv.StopServe())
+
+                for a in acceptors:
+                    a.wait()
         except guv.Timeout as te:
             if te != t:
                 raise
-            [a.kill() for a in acceptors]
+
+            for a in acceptors:
+                a.kill()
+
+        log.debug('GuvWorker exited')
