@@ -60,7 +60,6 @@ directory.
     gunicorn -w 4 -b 127.0.0.1:8001 -k guv.GuvWorker wsgi_app:app
 
 
-
 Guarantees
 ----------
 
