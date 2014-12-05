@@ -49,11 +49,13 @@ Quickstart
 The following examples serve the sample WSGI app found in the ``examples``
 directory.
 
-**Serve your WSGI app using guv directly**::
+**Serve your WSGI app using guv directly**:
+
+.. code-block:: python
 
     if __name__ == '__main__':
-    server_sock = guv.listen(('0.0.0.0', 8001))
-    guv.wsgi.serve(server_sock, app)
+        server_sock = guv.listen(('0.0.0.0', 8001))
+        guv.wsgi.serve(server_sock, app)
 
 **Serve your WSGI app using guv with gunicorn**::
 
