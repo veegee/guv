@@ -170,7 +170,7 @@ def _guv_sendfile(fdout, fdin, offset, nbytes):
                 raise
 
 
-def _guv_serve_slow(sock, handle, concurrency):
+def _guv_serve(sock, handle, concurrency):
     pool = greenpool.GreenPool(concurrency)
     server_gt = greenlet.getcurrent()
 
@@ -182,21 +182,6 @@ def _guv_serve_slow(sock, handle, concurrency):
             conn, addr, gt = None, None, None
         except StopServe:
             pool.waitall()
-            return
-
-
-def _guv_serve(sock, handle, concurrency):
-    """Serve requests forever
-
-    This code is nearly identical to :func:`guv.serve` except that it attempts to join the pool at
-    the end, which allows for gunicorn graceful shutdowns.
-    """
-    while True:
-        try:
-            conn, addr = sock.accept()
-            gt = greenthread.spawn_n(handle, conn, addr)
-            conn, addr, gt = None, None, None
-        except StopServe:
             return
 
 
