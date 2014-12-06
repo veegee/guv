@@ -1,7 +1,9 @@
-version_info = (0, 33, 2)
+version_info = (0, 33, 4)
 __version__ = '.'.join(map(str, version_info))
 
 try:
+    import pyuv_cffi  # only to compile the shared library before monkey-patching
+
     from . import greenpool
     from . import queue
     from .hubs.switch import gyield, trampoline
@@ -16,7 +18,6 @@ try:
     except ImportError:
         pass
 
-    import pyuv_cffi  # only to compile the shared library before monkey-patching
 
 except ImportError as e:
     # This is to make Debian packaging easier, it ignores import errors of greenlet so that the
