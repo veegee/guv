@@ -56,9 +56,10 @@ The hub and :func:`~guv.hubs.switch.trampoline`
 ---------------------------------------------------
 
 The "hub" (:class:`guv.hubs.abc.AbstractHub`) is the core of guv and serves as
-the "scheduler" for greenlets All calls to :func:`spawn` (and related functions)
-actually enqueue a request with the hub to spawn the greenlet on the next event
-loop iteration. The hub itself is a subclass of :class:`greenlet.greenlet`
+the "scheduler" for greenlets. All calls to :func:`spawn` (and related
+functions) actually enqueue a request with the hub to spawn the greenlet on the
+next event loop iteration. The hub itself is a subclass of
+:class:`greenlet.greenlet`
 
 The hub also manages the underlying event loop (currently libuv only, but
 implementations for any event loop library, or even custom event loops can
