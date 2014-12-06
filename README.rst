@@ -42,7 +42,7 @@ is recommended to pull often and install manually::
     python setup.py install
 
 Note: libuv_ >= 1.0.0 is required. This is the first stable version but is a
-recent release and may not available in Debian/Ubuntu stable repositories, so
+recent release and may not be available in Debian/Ubuntu stable repositories, so
 you must compile and install manually.
 
 Serve your WSGI app using guv directly
