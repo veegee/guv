@@ -46,12 +46,11 @@ issues and pull requests, and bugs will be fixed immediately.
 Quickstart
 ----------
 
-The following examples serve the sample WSGI app found in the ``examples``
-directory.
-
 **Serve your WSGI app using guv directly**:
 
 .. code-block:: python
+
+    app = <your WSGI app>
 
     if __name__ == '__main__':
         server_sock = guv.listen(('0.0.0.0', 8001))
@@ -60,6 +59,35 @@ directory.
 **Serve your WSGI app using guv with gunicorn**::
 
     gunicorn -w 4 -b 127.0.0.1:8001 -k guv.GuvWorker wsgi_app:app
+
+**Crawl the web: efficiently make multiple "simultaneous" requests**:
+
+.. code-block:: python
+
+    import guv
+    guv.monkey_patch()
+
+    import requests
+
+
+    def get_url(url):
+        print('get_url({})'.format(url))
+        return requests.get(url)
+
+
+    def main():
+        urls = ['http://gnu.org'] * 10
+        urls += ['https://eff.org'] * 10
+
+        pool = guv.GreenPool()
+        results = pool.starmap(get_url, zip(urls))
+
+        for i, resp in enumerate(results):
+            print('{}: done, length: {}'.format(i, len(resp.text)))
+
+
+    if __name__ == '__main__':
+        main()
 
 
 Guarantees
