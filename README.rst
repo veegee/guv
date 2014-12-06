@@ -11,97 +11,103 @@ guv = greenlets + libuv
 About
 -----
 
-guv is a fast networking library and WSGI server for Python >= 3.2 and pypy3
+guv is a fast networking library and WSGI server (like gevent/eventlet) for
+**Python >= 3.2 and pypy3**
 
-The event loop backend is ``pyuv_cffi``, which aims to be fully compatible with
-the ``pyuv`` interface. ``pyuv_cffi`` is fully supported on CPython and pypy3,
-but is still experimental and in heavy development. libuv >= 1.0.0 is required
+The event loop backend is pyuv_cffi_, which aims to be fully compatible with the
+pyuv_ interface. pyuv_cffi is fully supported on CPython and pypy3. libuv_
+>= 1.0.0 is required.
 
-Asynchronous DNS queries are supported via dnspython3 if available (``pip
-install dnspython3``). To forcefully disable greendns, set the environment
-variable ``GUV_NO_GREENDNS`` to any value.
+Asynchronous DNS queries are supported via dnspython3. To forcefully disable
+greendns, set the environment variable ``GUV_NO_GREENDNS`` to any value.
 
-Currently only runs on POSIX-compliant operating systems (no Windows), but
-Windows support is not far off and can be added in the near future if there is a
-demand for this.
+guv currently only runs on POSIX-compliant operating systems, but Windows
+support is not far off and can be added in the near future if there is a demand
+for this.
 
-**This project is under heavy, active development and any help is
-appreciated.**
+This library is actively maintained and has a zero bug policy. Please submit
+issues and pull requests, and bugs will be fixed immediately.
+
+**This project is under active development and any help is appreciated.**
 
 
-Installing
+Quickstart
 ----------
 
-Since guv is in very heavy, active development, it is currently highly
-recommended to pull often and install manually::
+Since guv is currently in alpha release state and under active development, it
+is recommended to pull often and install manually::
 
     git clone https://github.com/veegee/guv.git
     cd guv
     python setup.py install
 
-You'll need the latest version (>= 1.0.0) of libuv which isn't available on most
-package managers yet, so visit their `project page
-<https://github.com/libuv/libuv#build-instructions>`_ to see how to intall it.
+Note: libuv_ >= 1.0.0 is required. This is the first stable version but is a
+recent release and may not available in Debian/Ubuntu stable repositories, so
+you must compile and install manually.
 
-While you're there, you can run some examples::
+Serve your WSGI app using guv directly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    cd examples
-    pip install requests
-    python3 crawler.py
+.. code-block:: python
 
-Install using pip::
+    app = <your WSGI app>
 
-    pip install guv
+    if __name__ == '__main__':
+        server_sock = guv.listen(('0.0.0.0', 8001))
+        guv.wsgi.serve(server_sock, app)
 
+Serve your WSGI app using guv with gunicorn_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Examples
---------
+::
 
-- **examples/crawler.py**: using ``requests`` to crawl the web (both HTTP and HTTPS)
-- **examples/wsgi_app.py**: serving a WSGI application (any WSGI application is
-  fully supported, since the current WSGI server implementation is heavily based
-  on gevent's server).
-- **examples/guv_simple_server.py**: a low-level example showing how to create
-  very fast TCP servers which can easily handle 10,000+ connections.
+    gunicorn -w 4 -b 127.0.0.1:8001 -k guv.GuvWorker wsgi_app:app
 
-With any of these examples, you can use wrk_ to get an idea of guv's performance
-in terms of open connections and requests/sec.
+Note: you can use wrk_ to benchmark the performance of guv.
 
+Crawl the web: efficiently make multiple "simultaneous" requests
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Compatibility
--------------
+.. code-block:: python
 
-guv aims to be compatible with all libraries which are compatible with the
-gevent/eventlet-patched standard library. Out of the box, the provided examples
-show how easy it is to use guv.
+    import guv
+    guv.monkey_patch()
+
+    import requests
 
 
-pyuv_cffi Status
-----------------
-
-- Currently implemented handles: Loop, Handle, Idle, Prepare, Timer, Signal,
-  Poll
-- The remaining handles are trivial to implement, and will be implemented after
-  high priority goals are completed.
+    def get_url(url):
+        print('get_url({})'.format(url))
+        return requests.get(url)
 
 
-To do
------
+    def main():
+        urls = ['http://gnu.org'] * 10
+        urls += ['https://eff.org'] * 10
 
-High and medium priority tasks are in the `issue tracker`_.
+        pool = guv.GreenPool()
+        results = pool.starmap(get_url, zip(urls))
 
-Low priority:
-
-- Optimize the WSGI server by using ``http-parser`` and removing the dependency
-  of socket.makefile(), which seems to be slow on Python 3.
-- Speed up importing and monkey-patching. The initial delay may be caused by
-  CFFI compiling/verifying and the patcher module.
-- Implement the asyncio interface
-- When we drop Python 3.2 support, we can greatly simplify I/O exceptions by
-  using ``BlockingIOError`` rather than ``socket.error`` and checking for
-  ``args[0]``. It would be a good idea to patch ``BlockingIOError`` now to ease
-  the transition to drop Python 3.2 support later.
+        for i, resp in enumerate(results):
+            print('{}: done, length: {}'.format(i, len(resp.text)))
 
 
+    if __name__ == '__main__':
+        main()
+
+
+Guarantees
+----------
+
+This library makes the following guarantees:
+
+* `Semantic versioning`_ is strictly followed
+* Compatible with Python >= 3.2.0 and PyPy3 >= 2.3.1 (Python 3.2.5)
+
+
+.. _pyuv: https://github.com/saghul/pyuv
+.. _pyuv_cffi: https://github.com/veegee/guv/tree/develop/pyuv_cffi
+.. _libuv: https://github.com/libuv/libuv
+.. _gunicorn: https://github.com/benoitc/gunicorn
+.. _Semantic versioning: http://semver.org
 .. _wrk: https://github.com/wg/wrk
-.. _issue tracker: https://github.com/veegee/guv/issues
