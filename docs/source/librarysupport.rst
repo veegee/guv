@@ -40,9 +40,9 @@ modules:
 - Many more
 
 This list will be expanded as additional libraries are tested and *confirmed* to
-be compaible.
+be compatible
 
-Libraries containing C extensions which are currently suported:
+Libraries containing C extensions which are currently supported:
 
 - `psycopg2 <https://github.com/psycopg/psycopg2>`_
 
