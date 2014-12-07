@@ -207,7 +207,7 @@ def kill(g, *throw_args):
     `throw_args` should be the same as the arguments to raise; either an exception instance or an
     exc_info tuple.
 
-    Calling :func:`kill` causes the calling GreenThread to cooperatively yield.
+    Calling :func:`kill` causes the calling greenlet to cooperatively yield.
 
     :param g: target greenlet/GreenThread to kill
     :type g: greenlet.greenlet or GreenThread
