@@ -1,10 +1,13 @@
 import imp
 import sys
+import logging
 
 __all__ = ['monkey_patch', 'original', 'is_monkey_patched', 'inject', 'import_patched',
            'patch_function']
 
 __exclude = {'__builtins__', '__file__', '__name__'}
+
+log = logging.getLogger('guv')
 
 
 class SysModulesSaver:
@@ -220,9 +223,11 @@ def monkey_patch(**modules):
     :keyword bool socket: socket module: patches socket, create_connection()
     :keyword bool select: select module: patches select()
     :keyword bool threading: threading module: patches local, Lock(), stack_size(), current_thread()
-    :keyword bool psycopg2: psycopg2 module: registers a wait callback to yield
+    :keyword bool psycopg2: psycopg2 module: register a wait callback to yield
+    :keyword bool cassandra: cassandra module: set connection class to GuvConnection
     """
-    accepted_args = {'os', 'select', 'socket', 'threading', 'time', 'psycopg2', '__builtin__'}
+    accepted_args = {'os', 'select', 'socket', 'threading', 'time', 'psycopg2',
+                     'cassandra', '__builtin__'}
     default_modules = modules.pop('all', None)
     for k in modules.keys():
         if k not in accepted_args:
@@ -260,11 +265,17 @@ def monkey_patch(**modules):
             psycopg2_patcher.make_psycopg_green()
             already_patched['psycopg2'] = True
         except ImportError:
-            # note that if we get an importerror from trying to
-            # monkeypatch psycopg, we will continually retry it
-            # whenever monkey_patch is called; this should not be a
-            # performance problem but it allows is_monkey_patched to
-            # tell us whether or not we succeeded
+            pass
+    if modules['cassandra'] and not already_patched.get('cassandra'):
+        try:
+            import cassandra.cluster
+            from guv.support.cassandra import GuvConnection
+
+            cassandra.cluster.DefaultConnection = GuvConnection
+            cassandra.cluster.Cluster.connection_class = GuvConnection
+
+            already_patched['cassandra'] = True
+        except ImportError:
             pass
 
     imp.acquire_lock()
