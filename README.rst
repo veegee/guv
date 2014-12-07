@@ -50,6 +50,9 @@ Serve your WSGI app using guv directly
 
 .. code-block:: python
 
+    import guv; guv.monkey_patch()
+    import guv.wsgi
+
     app = <your WSGI app>
 
     if __name__ == '__main__':
@@ -70,16 +73,12 @@ Crawl the web: efficiently make multiple "simultaneous" requests
 
 .. code-block:: python
 
-    import guv
-    guv.monkey_patch()
-
+    import guv; guv.monkey_patch()
     import requests
-
 
     def get_url(url):
         print('get_url({})'.format(url))
         return requests.get(url)
-
 
     def main():
         urls = ['http://gnu.org'] * 10
@@ -90,7 +89,6 @@ Crawl the web: efficiently make multiple "simultaneous" requests
 
         for i, resp in enumerate(results):
             print('{}: done, length: {}'.format(i, len(resp.text)))
-
 
     if __name__ == '__main__':
         main()
