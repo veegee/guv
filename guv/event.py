@@ -2,7 +2,8 @@ import greenlet
 import sys
 from collections import deque
 
-from . import hubs, Timeout
+from . import hubs
+from .timeout import Timeout
 from .hubs import get_hub
 
 __all__ = ['Event', 'TEvent', 'AsyncResult']
