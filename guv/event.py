@@ -95,6 +95,8 @@ class Event:
 
         Returns the value the other coroutine passed to :meth:`send`.
 
+        Returns immediately if the event has already occurred.
+
         >>> from guv import event
         >>> import guv
         >>> evt = event.Event()
@@ -105,9 +107,6 @@ class Event:
         >>> evt.send('result')
         >>> guv.sleep(0)
         waited for result
-
-        Returns immediately if the event has already
-        occured.
 
         >>> evt.wait()
         'result'
