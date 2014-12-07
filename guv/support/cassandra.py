@@ -1,8 +1,6 @@
 from collections import defaultdict
 from functools import partial
 import logging
-import os
-from errno import EALREADY, EINPROGRESS, EWOULDBLOCK, EINVAL
 
 from cassandra import OperationTimedOut
 from cassandra.connection import Connection, ConnectionShutdown
@@ -12,15 +10,10 @@ import guv
 from guv.green import select, socket, ssl
 from guv.event import TEvent
 from guv.queue import Queue
+from guv.support import get_errno
+from guv.exceptions import CONNECT_ERR
 
 log = logging.getLogger(__name__)
-
-
-def is_timeout(err):
-    return (
-        err in (EINPROGRESS, EALREADY, EWOULDBLOCK) or
-        (err == EINVAL and os.name in ('nt', 'ce'))
-    )
 
 
 class GuvConnection(Connection):
@@ -80,6 +73,8 @@ class GuvConnection(Connection):
         self._read_watcher = guv.spawn(self.handle_read)
         self._write_watcher = guv.spawn(self.handle_write)
         self._send_options_message()
+
+        log.debug('Create Cassandra GuvConnection')
 
     def close(self):
         with self.lock:
@@ -142,7 +137,7 @@ class GuvConnection(Connection):
                     if len(buf) < self.in_buffer_size:
                         break
             except socket.error as err:
-                if not is_timeout(err):
+                if not get_errno(err) in CONNECT_ERR:
                     log.debug('Exception during socket recv for %s: %s', self, err)
                     self.defunct(err)
                     return  # leave the read loop
@@ -161,13 +156,12 @@ class GuvConnection(Connection):
 
     def register_watcher(self, event_type, callback, register_timeout=None):
         self._push_watchers[event_type].add(callback)
-        self.wait_for_response(
-            RegisterMessage(event_list=[event_type]),
-            timeout=register_timeout)
+        self.wait_for_response(RegisterMessage(event_list=[event_type]),
+                               timeout=register_timeout)
 
     def register_watchers(self, type_callback_dict, register_timeout=None):
         for event_type, callback in type_callback_dict.items():
             self._push_watchers[event_type].add(callback)
-        self.wait_for_response(
-            RegisterMessage(event_list=type_callback_dict.keys()),
-            timeout=register_timeout)
+
+        self.wait_for_response(RegisterMessage(event_list=type_callback_dict.keys()),
+                               timeout=register_timeout)
