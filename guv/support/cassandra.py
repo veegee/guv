@@ -10,7 +10,7 @@ from cassandra.protocol import RegisterMessage
 
 import guv
 from guv.green import select, socket, ssl
-from guv.event import Event
+from guv.event import TEvent
 from guv.queue import Queue
 
 log = logging.getLogger(__name__)
@@ -42,14 +42,14 @@ class GuvConnection(Connection):
             raise conn.last_error
         elif not conn.connected_event.is_set():
             conn.close()
-            raise OperationTimedOut("Timed out creating connection")
+            raise OperationTimedOut('Timed out creating connection')
         else:
             return conn
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.connected_event = Event()
+        self.connected_event = TEvent()
         self._write_queue = Queue()
 
         self._callbacks = {}
@@ -87,23 +87,22 @@ class GuvConnection(Connection):
                 return
             self.is_closed = True
 
-        log.debug("Closing connection (%s) to %s" % (id(self), self.host))
+        log.debug('Closing connection (%s) to %s' % (id(self), self.host))
         if self._read_watcher:
-            self._read_watcher.kill(block=False)
+            self._read_watcher.kill()
         if self._write_watcher:
-            self._write_watcher.kill(block=False)
+            self._write_watcher.kill()
         if self._socket:
             self._socket.close()
-        log.debug("Closed socket to %s" % (self.host,))
+        log.debug('Closed socket to %s' % (self.host,))
 
         if not self.is_defunct:
-            self.error_all_callbacks(
-                ConnectionShutdown("Connection to %s was closed" % self.host))
+            self.error_all_callbacks(ConnectionShutdown('Connection to %s was closed' % self.host))
             # don't leave in-progress operations hanging
             self.connected_event.set()
 
     def handle_close(self):
-        log.debug("connection closed by server")
+        log.debug('connection closed by server')
         self.close()
 
     def handle_write(self):
@@ -112,28 +111,28 @@ class GuvConnection(Connection):
             try:
                 next_msg = self._write_queue.get()
                 run_select()
-            except Exception as exc:
+            except Exception as e:
                 if not self.is_closed:
-                    log.debug("Exception during write select() for %s: %s", self, exc)
-                    self.defunct(exc)
+                    log.debug('Exception during write select() for %s: %s', self, e)
+                    self.defunct(e)
                 return
 
             try:
                 self._socket.sendall(next_msg)
             except socket.error as err:
-                log.debug("Exception during socket sendall for %s: %s", self, err)
+                log.debug('Exception during socket sendall for %s: %s', self, err)
                 self.defunct(err)
-                return  # Leave the write loop
+                return  # leave the write loop
 
     def handle_read(self):
         run_select = partial(select.select, (self._socket,), (), ())
         while True:
             try:
                 run_select()
-            except Exception as exc:
+            except Exception as e:
                 if not self.is_closed:
-                    log.debug("Exception during read select() for %s: %s", self, exc)
-                    self.defunct(exc)
+                    log.debug('Exception during read select() for %s: %s', self, e)
+                    self.defunct(e)
                 return
 
             try:
@@ -144,14 +143,14 @@ class GuvConnection(Connection):
                         break
             except socket.error as err:
                 if not is_timeout(err):
-                    log.debug("Exception during socket recv for %s: %s", self, err)
+                    log.debug('Exception during socket recv for %s: %s', self, err)
                     self.defunct(err)
                     return  # leave the read loop
 
             if self._iobuf.tell():
                 self.process_io_buffer()
             else:
-                log.debug("Connection %s closed by server", self)
+                log.debug('Connection %s closed by server', self)
                 self.close()
                 return
 
@@ -172,4 +171,3 @@ class GuvConnection(Connection):
         self.wait_for_response(
             RegisterMessage(event_list=type_callback_dict.keys()),
             timeout=register_timeout)
-
