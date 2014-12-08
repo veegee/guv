@@ -2,11 +2,18 @@ import guv
 
 guv.monkey_patch()
 
-from guv import gyield, sleep
+from guv import gyield, patcher
 import threading
 import greenlet
 
+threading_orig = patcher.original('threading')
+
 greenlet_ids = {}
+
+
+def check_thread():
+    current = threading_orig.current_thread()
+    assert type(current) is threading_orig._MainThread
 
 
 def debug(i):
@@ -14,6 +21,7 @@ def debug(i):
 
 
 def f():
+    check_thread()
     greenlet_ids[1] = greenlet.getcurrent()
     debug(2)
 
@@ -25,6 +33,7 @@ def f():
 
 
 def main():
+    check_thread()
     greenlet_ids[0] = greenlet.getcurrent()
     debug(1)
 
