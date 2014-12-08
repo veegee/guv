@@ -3,20 +3,23 @@
 import greenlet
 
 from .. import patcher, event
-from .. import event
+from .. import event, semaphore
 from . import time, thread
 
 threading_orig = patcher.original('threading')
 
 __patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep',
                'local', 'stack_size', 'Lock', 'currentThread',
-               'current_thread', '_after_fork', '_shutdown', 'Event', '_set_sentinel']
+               'current_thread', '_after_fork', '_shutdown', 'Event', '_set_sentinel',
+               'Semaphore', 'BoundedSemaphore']
 
 __threadlocal = threading_orig.local()
 
 patcher.inject('threading', globals(), ('thread', thread), ('time', time))
 
 Event = event.TEvent
+Semaphore = semaphore.Semaphore
+BoundedSemaphore = semaphore.BoundedSemaphore
 _start_new_thread = thread.start_new_thread
 _allocate_lock = thread.allocate_lock
 _set_sentinel = thread._set_sentinel
