@@ -17,6 +17,7 @@ def check_thread():
 
 
 def debug(i):
+    print('current: {}'.format(threading.current_thread()))
     print('{} greenlet_ids: {}'.format(i, greenlet_ids))
 
 
