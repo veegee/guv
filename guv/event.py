@@ -250,7 +250,8 @@ class TEvent:
         self._flag = True
         self._todo.update(self._links)
         if self._todo and not self._notifier:
-            self._notifier = self.hub.loop.run_callback(self._notify_links)
+            self._notifier = True
+            self.hub.schedule_call_now(self._notify_links)
 
     def clear(self):
         """Reset the internal flag to false.
@@ -280,8 +281,8 @@ class TEvent:
                 timer = Timeout(timeout)
                 try:
                     try:
-                        result = self.hub.switch()
-                        assert result is self, 'Invalid switch into Event.wait(): %r' % (result, )
+                        self.hub.switch()
+                        # assert result is self, 'Invalid switch into Event.wait(): %r' % (result, )
                     except Timeout as ex:
                         if ex is not timer:
                             raise
@@ -302,7 +303,8 @@ class TEvent:
         self._links.add(callback)
         if self._flag and not self._notifier:
             self._todo.add(callback)
-            self._notifier = self.hub.loop.run_callback(self._notify_links)
+            self._notifier = True
+            self.hub.schedule_call_now(self._notify_links)
 
     def unlink(self, callback):
         """Remove the callback set by :meth:`rawlink`"""
