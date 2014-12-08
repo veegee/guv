@@ -2,7 +2,7 @@
 """
 import greenlet
 
-from .. import patcher
+from .. import patcher, event
 from .. import event
 from . import time, thread
 
@@ -10,7 +10,7 @@ threading_orig = patcher.original('threading')
 
 __patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep',
                'local', 'stack_size', 'Lock', 'currentThread',
-               'current_thread', '_after_fork', '_shutdown']
+               'current_thread', '_after_fork', '_shutdown', 'Event']
 
 __threadlocal = threading_orig.local()
 
