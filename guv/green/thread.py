@@ -8,10 +8,19 @@ from ..semaphore import Semaphore as LockType
 
 __patched__ = ['get_ident', 'start_new_thread', 'allocate_lock',
                'exit', 'interrupt_main', 'stack_size', '_local',
-               'LockType', '_count']
+               'LockType', '_count', '_set_sentinel']
 
 error = _thread_orig.error
 __threadcount = 0
+
+
+def _set_sentinel():
+    # TODO this is a dummy code, reimplementing this may be needed:
+    # https://hg.python.org/cpython/file/b5e9bc4352e1/Modules/_threadmodule.c#l1203
+    return allocate_lock()
+
+
+TIMEOUT_MAX = _thread_orig.TIMEOUT_MAX
 
 
 def _count():

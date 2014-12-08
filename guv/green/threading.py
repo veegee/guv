@@ -10,7 +10,7 @@ threading_orig = patcher.original('threading')
 
 __patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep',
                'local', 'stack_size', 'Lock', 'currentThread',
-               'current_thread', '_after_fork', '_shutdown', 'Event']
+               'current_thread', '_after_fork', '_shutdown', 'Event', '_set_sentinel']
 
 __threadlocal = threading_orig.local()
 
@@ -19,6 +19,7 @@ patcher.inject('threading', globals(), ('thread', thread), ('time', time))
 Event = event.TEvent
 _start_new_thread = thread.start_new_thread
 _allocate_lock = thread.allocate_lock
+_set_sentinel = thread._set_sentinel
 get_ident = thread.get_ident
 
 _count = 1

@@ -57,7 +57,9 @@ class Semaphore(object):
         return False
 
     def acquire(self, blocking=True, timeout=None):
-        """Acquire a semaphore.
+        """Acquire a semaphore
+
+        This function behaves like :meth:`threading.Lock.acquire`.
 
         When invoked without arguments: if the internal counter is larger than
         zero on entry, decrement it by one and return immediately. If it is zero
@@ -76,9 +78,14 @@ class Semaphore(object):
         same thing as when called without arguments, and return true.
         """
         if not blocking and timeout is not None:
-            raise ValueError("can't specify timeout for non-blocking acquire")
+            raise ValueError('must not specify timeout for non-blocking acquire')
+
         if not blocking and self.locked():
             return False
+
+        if isinstance(timeout, (float, int)) and timeout < 0:
+            timeout = None
+
         if self.counter <= 0:
             self._waiters.add(greenlet.getcurrent())
             try:
