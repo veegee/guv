@@ -1,17 +1,18 @@
 from collections import defaultdict
-from functools import partial
 import logging
 
 from cassandra import OperationTimedOut
 from cassandra.connection import Connection, ConnectionShutdown
 from cassandra.protocol import RegisterMessage
 
-import guv
-from guv.green import select, socket, ssl
+import guv.hubs
+from guv import trampoline
+from guv.green import socket, ssl
 from guv.event import TEvent
 from guv.queue import Queue
 from guv.support import get_errno
 from guv.exceptions import CONNECT_ERR
+from guv.const import READ, WRITE
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +41,8 @@ class GuvConnection(Connection):
             return conn
 
     def __init__(self, *args, **kwargs):
+        guv.hubs.get_hub()
+
         super().__init__(*args, **kwargs)
 
         self.connected_event = TEvent()
@@ -74,7 +77,7 @@ class GuvConnection(Connection):
         self._write_watcher = guv.spawn(self.handle_write)
         self._send_options_message()
 
-        log.debug('Create Cassandra GuvConnection')
+        log.debug('Create Cassandra GuvConnection ({})'.format(id(self)))
 
     def close(self):
         with self.lock:
@@ -101,14 +104,18 @@ class GuvConnection(Connection):
         self.close()
 
     def handle_write(self):
-        run_select = partial(select.select, (), (self._socket,), ())
         while True:
             try:
                 next_msg = self._write_queue.get()
-                run_select()
+                # FIXME: trampoline with WRITE here causes a core dump (why???)
+                # python: src/unix/core.c:823: uv__io_stop: Assertion `loop->watchers[w->fd] ==
+                # w' failed.
+                # [1]    9736 abort (core dumped)  python cassandra_db.py
+                # log.debug('Trampoline on fd: {}, WRITE'.format(self._socket.fileno()))
+                # trampoline(self._socket.fileno(), WRITE)
             except Exception as e:
                 if not self.is_closed:
-                    log.debug('Exception during write select() for %s: %s', self, e)
+                    log.debug('Exception during write trampoline() for %s: %s', self, e)
                     self.defunct(e)
                 return
 
@@ -120,15 +127,15 @@ class GuvConnection(Connection):
                 return  # leave the write loop
 
     def handle_read(self):
-        run_select = partial(select.select, (self._socket,), (), ())
         while True:
             try:
-                run_select()
-            except Exception as e:
+                log.debug('Trampoline on fd: {}, READ'.format(self._socket.fileno()))
+                trampoline(self._socket.fileno(), READ)
+            except Exception as exc:
                 if not self.is_closed:
-                    log.debug('Exception during read select() for %s: %s', self, e)
-                    self.defunct(e)
-                return
+                    log.debug("Exception during read trampoline() for %s: %s", self, exc)
+                    self.defunct(exc)
+                    return
 
             try:
                 while True:
