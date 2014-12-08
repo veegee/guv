@@ -1,6 +1,7 @@
 import logging
 from functools import wraps
 import inspect
+import re
 
 log = logging.getLogger('guv')
 
@@ -21,6 +22,26 @@ CYAN = '\x1B[36m'  # INFO
 WHITE = '\x1B[37m'  # INFO
 BRGREEN = '\x1B[01;32m'  # DEBUG (grey in solarized for terminals)
 
+# regex for extracting from <bound method A.sayhi of <__main__.A object at 0x7fc54e28be80>>
+r_of = re.compile('<.*(?= of <)')
+
+# regex for extracting from <__main__.A object at 0x7fc54e28be80>
+r_at = re.compile('<.*(?= at )')
+
+
+def parse_repr(obj):
+    if inspect.ismethod(obj):
+        pat = r_of
+    else:
+        pat = r_at
+
+    s = repr(obj)
+    m = re.search(pat, s)
+    if m:
+        return '{}>'.format(m.group())
+    else:
+        return s
+
 
 def format_arg(arg):
     """Convert `arg` to a string
@@ -33,7 +54,7 @@ def format_arg(arg):
         return s
     elif isinstance(arg, object) and len(s) > max_param_len:
         # format into a shorter representation
-        return '<{} object>'.format(type(arg).__name__)
+        return parse_repr(arg)
     else:
         # the string representation of `arg` is short enough to display directly
         return s
