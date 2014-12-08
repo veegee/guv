@@ -1,3 +1,11 @@
+"""Cassandra database example
+
+This example demonstrates connecting to a Cassandra database and executing a query. Note that
+using the database driver remains exactly the same. The only  difference is that we're
+monkey-patching everything (including the Cassandra driver), making it guv-friendly.
+
+Adjust this example to your database address, keyspace, and query that you would like to run.
+"""
 import guv
 
 guv.monkey_patch()
