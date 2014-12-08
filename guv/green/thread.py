@@ -6,8 +6,8 @@ import _thread as _thread_orig
 from .. import greenthread
 from ..semaphore import Semaphore as LockType
 
-__patched__ = ['get_ident', 'start_new_thread', 'start_new', 'allocate_lock',
-               'allocate', 'exit', 'interrupt_main', 'stack_size', '_local',
+__patched__ = ['get_ident', 'start_new_thread', 'allocate_lock',
+               'exit', 'interrupt_main', 'stack_size', '_local',
                'LockType', '_count']
 
 error = _thread_orig.error
@@ -40,21 +40,12 @@ def start_new_thread(function, args=(), kwargs=None):
     return get_ident(g)
 
 
-start_new = start_new_thread
-
-
 def allocate_lock(*a):
     return LockType(1)
 
 
-allocate = allocate_lock
-
-
 def exit():
     raise greenlet.GreenletExit
-
-
-exit_thread = _thread_orig.exit_thread
 
 
 def interrupt_main():

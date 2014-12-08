@@ -3,16 +3,23 @@
 import greenlet
 
 from .. import patcher
-from ..green import time, thread
+from .. import event
+from . import time, thread
+
+threading_orig = patcher.original('threading')
 
 __patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep',
                'local', 'stack_size', 'Lock', 'currentThread',
                'current_thread', '_after_fork', '_shutdown']
 
-threading_orig = patcher.original('threading')
 __threadlocal = threading_orig.local()
 
 patcher.inject('threading', globals(), ('thread', thread), ('time', time))
+
+Event = event.TEvent
+_start_new_thread = thread.start_new_thread
+_allocate_lock = thread.allocate_lock
+get_ident = thread.get_ident
 
 _count = 1
 
