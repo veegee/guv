@@ -1,62 +1,10 @@
 from ..semaphore import Semaphore
 import greenlet
 
-
-__all__ = ['Semaphore', 'DummySemaphore', 'BoundedSemaphore', 'RLock']
-
-
-class DummySemaphore(object):
-    # XXX what is this used for?
-    """A Semaphore initialized with "infinite" initial value. None of its methods ever block."""
-
-    def __str__(self):
-        return '<%s>' % self.__class__.__name__
-
-    def locked(self):
-        return False
-
-    def release(self):
-        pass
-
-    def rawlink(self, callback):
-        # XXX should still work and notify?
-        pass
-
-    def unlink(self, callback):
-        pass
-
-    def wait(self, timeout=None):
-        pass
-
-    def acquire(self, blocking=True, timeout=None):
-        pass
-
-    def __enter__(self):
-        pass
-
-    def __exit__(self, typ, val, tb):
-        pass
-
-
-class BoundedSemaphore(Semaphore):
-    """A bounded semaphore checks to make sure its current value doesn't exceed its initial value.
-    If it does, ``ValueError`` is raised. In most situations semaphores are used to guard resources
-    with limited capacity. If the semaphore is released too many times it's a sign of a bug.
-
-    If not given, *value* defaults to 1."""
-
-    def __init__(self, value=1):
-        Semaphore.__init__(self, value)
-        self._initial_value = value
-
-    def release(self):
-        if self.counter >= self._initial_value:
-            raise ValueError("Semaphore released too many times")
-        return Semaphore.release(self)
+__all__ = ['RLock']
 
 
 class RLock(object):
-
     def __init__(self):
         self._block = Semaphore(1)
         self._owner = None

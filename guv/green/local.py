@@ -1,4 +1,4 @@
-"""Greenlet-local objects
+"""greenlet-local objects
 """
 from weakref import WeakKeyDictionary
 from copy import copy
@@ -8,7 +8,7 @@ from greenlet import getcurrent
 __all__ = ["local"]
 
 
-class _localbase(object):
+class _localbase:
     __slots__ = '_local__args', '_local__lock', '_local__dicts'
 
     def __new__(cls, *args, **kw):
