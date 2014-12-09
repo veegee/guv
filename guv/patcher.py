@@ -1,6 +1,7 @@
 import imp
 import sys
 import logging
+import importlib
 
 __all__ = ['monkey_patch', 'original', 'is_monkey_patched', 'inject', 'import_patched',
            'patch_function']
@@ -226,6 +227,7 @@ def monkey_patch(**modules):
     :keyword bool psycopg2: psycopg2 module: register a wait callback to yield
     :keyword bool cassandra: cassandra module: set connection class to GuvConnection
     """
+    log.debug('Begin monkey-patching')
     accepted_args = {'os', 'select', 'socket', 'threading', 'time', 'psycopg2',
                      'cassandra', '__builtin__'}
     default_modules = modules.pop('all', None)
@@ -266,6 +268,22 @@ def monkey_patch(**modules):
             already_patched['psycopg2'] = True
         except ImportError:
             pass
+
+    imp.acquire_lock()
+    try:
+        for name, mod in modules_to_patch:
+            log.debug('patch: {:20} -> {}'.format(name, mod))
+            orig_mod = sys.modules.get(name)
+            if orig_mod is None:
+                orig_mod = importlib.import_module(name)
+            for attr_name in mod.__patched__:
+                patched_attr = getattr(mod, attr_name, None)
+                if patched_attr is not None:
+                    setattr(orig_mod, attr_name, patched_attr)
+    finally:
+        imp.release_lock()
+
+    # Cassandra must be patched after other modules have been patched
     if modules['cassandra'] and not already_patched.get('cassandra'):
         try:
             import cassandra.cluster
@@ -277,19 +295,6 @@ def monkey_patch(**modules):
             already_patched['cassandra'] = True
         except ImportError:
             pass
-
-    imp.acquire_lock()
-    try:
-        for name, mod in modules_to_patch:
-            orig_mod = sys.modules.get(name)
-            if orig_mod is None:
-                orig_mod = __import__(name)
-            for attr_name in mod.__patched__:
-                patched_attr = getattr(mod, attr_name, None)
-                if patched_attr is not None:
-                    setattr(orig_mod, attr_name, patched_attr)
-    finally:
-        imp.release_lock()
 
 
 def is_monkey_patched(module):
@@ -347,9 +352,7 @@ def _green_socket_modules():
 
 
 def _green_thread_modules():
-    from guv.green import Queue
-    from guv.green import thread
-    from guv.green import threading
+    from guv.green import Queue, thread, threading
 
     return [('queue', Queue), ('_thread', thread), ('threading', threading)]
 
