@@ -45,7 +45,7 @@ def __thread_body(func, args, kwargs):
 
 def start_new_thread(function, args=(), kwargs=None):
     kwargs = kwargs or {}
-    g = greenthread.spawn_n(__thread_body, function, args, kwargs)
+    g = greenthread.spawn(__thread_body, function, args, kwargs)
     return get_ident(g)
 
 
