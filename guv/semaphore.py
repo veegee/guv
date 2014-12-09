@@ -1,11 +1,18 @@
 import greenlet
 
+from .patcher import original
+
+time = original('time')
+import logging
+
 from . import hubs
 
 from .timeout import Timeout
 
+log = logging.getLogger('guv')
 
-class Semaphore(object):
+
+class Semaphore:
     """An unbounded semaphore
 
     Optionally initialize with a resource *count*, then :meth:`acquire` and :meth:`release`
@@ -99,6 +106,12 @@ class Semaphore(object):
                         return False
                 else:
                     while self.counter <= 0:
+                        # running = hubs.get_hub().running
+                        # if not running:
+                        #     log.warn('Loop is no longer running, potential deadlock: (at {}) {}\n'
+                        #              'waiters: {}'
+                        #              .format(id(self), self, self._waiters))
+                        #     return
                         hubs.get_hub().switch()
             finally:
                 self._waiters.discard(greenlet.getcurrent())
@@ -118,7 +131,7 @@ class Semaphore(object):
         """
         self.counter += 1
         if self._waiters:
-            hubs.get_hub().schedule_call_global(0, self._do_acquire)
+            hubs.get_hub().schedule_call_now(self._do_acquire)
         return True
 
     def _do_acquire(self):
@@ -172,7 +185,7 @@ class BoundedSemaphore(Semaphore):
         return super(BoundedSemaphore, self).release(blocking)
 
 
-class CappedSemaphore(object):
+class CappedSemaphore:
     """A blockingly bounded semaphore.
 
     Optionally initialize with a resource *count*, then :meth:`acquire` and
