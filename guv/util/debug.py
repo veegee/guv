@@ -5,6 +5,10 @@ import sys
 import linecache
 import re
 import inspect
+import gc
+import greenlet
+import traceback
+import logging
 
 __all__ = ['spew', 'unspew', 'format_hub_listeners', 'format_hub_timers',
            'hub_listener_stacks', 'hub_exceptions',
@@ -12,6 +16,24 @@ __all__ = ['spew', 'unspew', 'format_hub_listeners', 'format_hub_timers',
            'hub_blocking_detection']
 
 _token_splitter = re.compile('\W+')
+
+log = logging.getLogger('guv')
+
+
+def print_greenlet_strace():
+    num_greenlets = 0
+
+    for ob in gc.get_objects():
+        if not isinstance(ob, greenlet.greenlet):
+            continue
+
+        if not ob:
+            continue
+
+        num_greenlets += 1
+        print(''.join(traceback.format_stack(ob.gr_frame)))
+
+    print('greenlet count: {}'.format(num_greenlets))
 
 
 class Spew(object):
