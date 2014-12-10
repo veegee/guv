@@ -16,22 +16,23 @@ def f2():
 class TestThread:
     def test_thread_create(self):
         t = threading.Thread(target=f1)
-        assert t
+        assert 'green' in repr(t)
 
     def test_thread_start(self):
         t = threading.Thread(target=f1)
+        assert 'green' in repr(t)
         t.start()
-        assert t
 
     def test_thread_join(self):
         t = threading.Thread(target=f1)
+        assert 'green' in repr(t)
         t.start()
         t.join()
-        assert t
 
     def test_thread_active(self):
         initial_count = threading.active_count()
         t = threading.Thread(target=f2)
+        assert 'green' in repr(t)
         t.start()
         assert threading.active_count() > initial_count
         t.join()
