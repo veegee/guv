@@ -1,5 +1,13 @@
-import guv
+"""Threading example
 
+This example demonstrates the use of the :mod:`threading` module to create thread objects
+normally. After monkey-patching, however, these Thread objects are actually wrappers around
+GreenThreads (not POSIX threads), so spawning them and switching to them is extremely efficient.
+
+Remember that calling Thread.start() only schedules the Thread to be started on the beginning of
+the next event loop iteration, and returns immediately in the calling Thread.
+"""
+import guv
 guv.monkey_patch()
 
 from guv import gyield, patcher
@@ -11,18 +19,12 @@ threading_orig = patcher.original('threading')
 greenlet_ids = {}
 
 
-def check_thread():
-    current = threading_orig.current_thread()
-    print('check_thread(): {}'.format(current))
-
-
 def debug(i):
-    print('current: {}'.format(threading.current_thread()))
+    print('current thread: {}'.format(threading.current_thread()))
     print('{} greenlet_ids: {}'.format(i, greenlet_ids))
 
 
 def f():
-    check_thread()
     greenlet_ids[1] = greenlet.getcurrent()
     debug(2)
 
@@ -34,12 +36,12 @@ def f():
 
 
 def main():
-    check_thread()
     greenlet_ids[0] = greenlet.getcurrent()
     debug(1)
 
     t = threading.Thread(target=f)
     t.start()
+    gyield()  # `t` doesn't actually run until we yield
     debug(3)
 
     print('m: 1')
