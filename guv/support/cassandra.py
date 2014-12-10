@@ -107,7 +107,7 @@ class GuvConnection(Connection):
         while True:
             try:
                 next_msg = self._write_queue.get()
-                # FIXME: trampoline with WRITE here causes a core dump (why???) issue #13
+                # trampoline with WRITE here causes a core dump (why???) issue #13
                 # log.debug('Trampoline with fd: {}, WRITE'.format(self._socket.fileno()))
                 # trampoline(self._socket.fileno(), WRITE)
             except Exception as e:
