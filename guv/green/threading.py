@@ -28,30 +28,21 @@ _allocate_lock = thread.allocate_lock
 _set_sentinel = thread._set_sentinel
 get_ident = thread.get_ident
 
-_count = 1
-
-# the main GreenThread
-# FIXME: this needs to be set
-_main_gt = None
-
-# IDs of active GreenThreads
-active_ids = set()
-
-# active Thread objects
-active_threads = set()
+# active Thread objects dict[greenlet.greenlet: Thread]
+active_threads = {}
 
 
 def active_count() -> int:
-    return len(active_ids)
+    return len(active_threads)
 
 
-def enumerate() -> list:
-    return active_threads
+def enumerate():
+    return list(active_threads.values())
 
 
 def main_thread():
-    assert isinstance(_main_gt, greenlet.greenlet)
-    return _main_gt
+    assert isinstance(_main_thread, Thread)
+    return _main_thread
 
 
 def settrace():
@@ -62,11 +53,14 @@ def setprofile():
     raise NotImplemented('Not implemented for greenlets')
 
 
-def current_thread() -> greenlet.greenlet or GreenThread:
+def current_thread() -> Thread:
     g = greenlet.getcurrent()
-    assert g
+    assert isinstance(g, greenlet.greenlet)
 
-    return g
+    if g and g not in active_threads:
+        return _main_thread
+
+    return active_threads[g]
 
 
 def _cleanup(g):
@@ -74,13 +68,13 @@ def _cleanup(g):
 
     This function is called when the underlying GreenThread object of a "green" Thread exits.
     """
-    active_ids.discard(id(g))
-    active_threads.discard(g.thread)
+    del active_threads[g]
 
 
 class Thread:
     def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None):
         self._name = name or 'Thread'
+        self.daemon = True
 
         self.target = target or self.run
 
@@ -91,16 +85,13 @@ class Thread:
         self._gt = None
 
     def __repr__(self):
-        return '<(green) Thread (%s, %r)>' % (self._name, self._g)
+        return '<(green) Thread (%s, %r)>' % (self._name, self._gt)
 
     def start(self):
         self._gt = spawn(self.target, *self.args, **self.kwargs)
         self._gt.link(_cleanup)
 
-        active_ids.add(id(self._gt))
-
-        self._gt.thread = self
-        active_threads.add(self)
+        active_threads[self._gt] = self
 
     def run(self):
         pass
@@ -123,7 +114,6 @@ class Thread:
 
     name = property(get_name, set_name)
     ident = property(lambda self: id(self._g))
-    daemon = property(lambda self: True)
 
     getName = get_name
     setName = set_name
@@ -131,3 +121,8 @@ class Thread:
     isDaemon = is_daemon
 
 
+_main_thread = Thread()
+_main_thread.name = 'MainThread'
+_main_thread._gt = greenlet.getcurrent()
+
+active_threads[greenlet.getcurrent()] = _main_thread
