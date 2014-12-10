@@ -4,10 +4,10 @@ import socket
 
 import pytest
 
-from .. import spawn
-from ..event import Event
-from ..greenio import socket as green_socket
-from ..green import socket as socket_patched
+from guv import spawn
+from guv.event import Event
+from guv.greenio import socket as green_socket
+from guv.green import socket as socket_patched
 
 TIMEOUT_SMALL = 0.01
 BACKLOG = 10

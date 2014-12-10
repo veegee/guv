@@ -1,7 +1,7 @@
 import pytest
 
-from ..greenio import socket
-from .. import listen
+from guv.greenio import socket
+from guv import listen
 
 
 @pytest.fixture(scope='session')
