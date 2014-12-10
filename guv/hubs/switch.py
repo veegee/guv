@@ -6,16 +6,26 @@ from ..timeout import Timeout
 __all__ = ['gyield', 'trampoline']
 
 
-def gyield():
+def gyield(switch_back=True):
     """Yield to other greenlets
 
     This is a cooperative yield which suspends the current greenlet and allows other greenlets to
-    run. The current greenlet is resumed at the beginning of the next event loop iteration,
-    before the loop polls for I/O and calls any I/O callbacks.
+    run by switching to the hub.
+
+    - If `switch_back` is True (default), the current greenlet is resumed at the beginning of the
+      next event loop iteration, before the loop polls for I/O and calls any I/O callbacks. This
+      is the intended use for this function the vast majority of the time.
+    - If `switch_back` is False, the hub will will never resume the current greenlet (use with
+      caution). This is mainly useful for situations where other greenlets (not the hub) are
+      responsible for switching back to this greenlet. An example is the Event class,
+      where waiters are switched to when the event is ready.
+
+    :param bool switch_back: automatically switch back to this greenlet on the next event loop cycle
     """
     current = greenlet.getcurrent()
     hub = get_hub()
-    hub.schedule_call_now(current.switch)
+    if switch_back:
+        hub.schedule_call_now(current.switch)
     hub.switch()
 
 

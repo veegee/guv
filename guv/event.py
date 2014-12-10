@@ -5,6 +5,7 @@ from collections import deque
 from . import hubs
 from .timeout import Timeout
 from .hubs import get_hub
+from .hubs.switch import gyield
 
 __all__ = ['Event', 'TEvent', 'AsyncResult']
 
@@ -121,7 +122,7 @@ class Event:
         if self._result is _NONE:
             self._waiters.add(current)
             try:
-                return hubs.get_hub().switch()
+                gyield(False)
             finally:
                 self._waiters.discard(current)
         if self._exc is not None:
@@ -281,7 +282,7 @@ class TEvent:
                 timer = Timeout(timeout)
                 try:
                     try:
-                        self.hub.switch()
+                        gyield(False)
                         # assert result is self, 'Invalid switch into Event.wait(): %r' % (result, )
                     except Timeout as ex:
                         if ex is not timer:
