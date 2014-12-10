@@ -4,7 +4,7 @@ import greenlet
 import logging
 
 from .. import patcher, event, semaphore
-from ..greenthread import GreenThread, spawn
+from ..greenthread import spawn
 from . import time, thread, greenlet_local
 
 log = logging.getLogger('guv')
@@ -23,21 +23,21 @@ Event = event.TEvent
 Semaphore = semaphore.Semaphore
 BoundedSemaphore = semaphore.BoundedSemaphore
 Lock = semaphore.Semaphore
+get_ident = thread.get_ident
 _start_new_thread = thread.start_new_thread
 _allocate_lock = thread.allocate_lock
 _set_sentinel = thread._set_sentinel
-get_ident = thread.get_ident
 
 # active Thread objects dict[greenlet.greenlet: Thread]
-active_threads = {}
+_active_threads = {}
 
 
 def active_count() -> int:
-    return len(active_threads)
+    return len(_active_threads)
 
 
 def enumerate():
-    return list(active_threads.values())
+    return list(_active_threads.values())
 
 
 def main_thread():
@@ -57,11 +57,12 @@ def current_thread() -> Thread:
     g = greenlet.getcurrent()
     assert isinstance(g, greenlet.greenlet)
 
-    if g and g not in active_threads:
-        # this greenlet was spawned outside of the threading module
+    if g and g not in _active_threads:
+        # This greenlet was spawned outside of the threading module, so in order to have the same
+        # semantics as the original threading module, the "main thread" should be returned.
         return _main_thread
 
-    return active_threads[g]
+    return _active_threads[g]
 
 
 def _cleanup(g):
@@ -69,21 +70,18 @@ def _cleanup(g):
 
     This function is called when the underlying GreenThread object of a "green" Thread exits.
     """
-    del active_threads[g]
+    del _active_threads[g]
 
 
 class Thread:
     def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None):
-        self._name = name or 'Thread'
-        self.daemon = True
-
-        self.target = target or self.run
-
-        self.args = args
-        self.kwargs = kwargs
-
         #: :type: GreenThread
         self._gt = None
+        self._name = name or 'Thread'
+        self.daemon = True
+        self.target = target or self.run
+        self.args = args
+        self.kwargs = kwargs
 
     def __repr__(self):
         return '<(green) Thread (%s, %r)>' % (self._name, self._gt)
@@ -92,7 +90,7 @@ class Thread:
         self._gt = spawn(self.target, *self.args, **self.kwargs)
         self._gt.link(_cleanup)
 
-        active_threads[self._gt] = self
+        _active_threads[self._gt] = self
 
     def run(self):
         pass
@@ -126,4 +124,4 @@ _main_thread = Thread()
 _main_thread.name = 'MainThread'
 _main_thread._gt = greenlet.getcurrent()
 
-active_threads[greenlet.getcurrent()] = _main_thread
+_active_threads[greenlet.getcurrent()] = _main_thread
