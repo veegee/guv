@@ -6,11 +6,13 @@ monkey-patching everything (including the Cassandra driver), making it guv-frien
 
 Adjust this example to your database address, keyspace, and query that you would like to run.
 """
-import logger
-logger.configure()
-
 import guv
+
 guv.monkey_patch()
+
+import logger
+
+logger.configure()
 
 import logging
 
@@ -30,7 +32,6 @@ def main():
     for row in rows:
         log.info(row)
 
-    log.warn('Cassandra support is currently incomplete and buggy.')
     c.shutdown()
 
 
