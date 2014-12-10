@@ -58,6 +58,7 @@ def current_thread() -> Thread:
     assert isinstance(g, greenlet.greenlet)
 
     if g and g not in active_threads:
+        # this greenlet was spawned outside of the threading module
         return _main_thread
 
     return active_threads[g]
