@@ -11,9 +11,9 @@ log = logging.getLogger('guv')
 
 threading_orig = patcher.original('threading')
 
-__patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep',
-               'local', 'stack_size', 'Lock', 'currentThread',
-               'current_thread', '_after_fork', '_shutdown', 'Event', '_set_sentinel',
+__patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep', '_after_fork',
+               '_shutdown', '_set_sentinel',
+               'local', 'stack_size', 'currentThread', 'current_thread', 'Lock', 'Event',
                'Semaphore', 'BoundedSemaphore']
 
 __threadlocal = threading_orig.local()
