@@ -13,7 +13,7 @@ greenlet_ids = {}
 
 def check_thread():
     current = threading_orig.current_thread()
-    assert type(current) is threading_orig._MainThread
+    print('check_thread(): {}'.format(current))
 
 
 def debug(i):
@@ -47,6 +47,8 @@ def main():
     print('m: 2')
     gyield()
     print('m: 3')
+
+    t.join()
 
 
 if __name__ == '__main__':
