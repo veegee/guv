@@ -3,9 +3,9 @@
 import greenlet
 import logging
 
-from .. import patcher
-from .. import event, semaphore
-from . import time, thread
+from .. import patcher, event, semaphore
+from ..greenthread import GreenThread, spawn
+from . import time, thread, greenlet_local
 
 log = logging.getLogger('guv')
 
@@ -14,12 +14,11 @@ threading_orig = patcher.original('threading')
 __patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep', '_after_fork',
                '_shutdown', '_set_sentinel',
                'local', 'stack_size', 'currentThread', 'current_thread', 'Lock', 'Event',
-               'Semaphore', 'BoundedSemaphore']
-
-__threadlocal = threading_orig.local()
+               'Semaphore', 'BoundedSemaphore', 'Thread']
 
 patcher.inject('threading', globals(), ('thread', thread), ('time', time))
 
+local = greenlet_local.local
 Event = event.TEvent
 Semaphore = semaphore.Semaphore
 BoundedSemaphore = semaphore.BoundedSemaphore
@@ -29,29 +28,77 @@ _allocate_lock = thread.allocate_lock
 _set_sentinel = thread._set_sentinel
 get_ident = thread.get_ident
 
-_count = 1
+# active Thread objects dict[greenlet.greenlet: Thread]
+active_threads = {}
 
 
-class GThread:
-    """Wrapper for GreenThread objects to provide Thread-like attributes and methods
+def active_count() -> int:
+    return len(active_threads)
+
+
+def enumerate():
+    return list(active_threads.values())
+
+
+def main_thread():
+    assert isinstance(_main_thread, Thread)
+    return _main_thread
+
+
+def settrace():
+    raise NotImplemented('Not implemented for greenlets')
+
+
+def setprofile():
+    raise NotImplemented('Not implemented for greenlets')
+
+
+def current_thread() -> Thread:
+    g = greenlet.getcurrent()
+    assert isinstance(g, greenlet.greenlet)
+
+    if g and g not in active_threads:
+        return _main_thread
+
+    return active_threads[g]
+
+
+def _cleanup(g):
+    """Clean up GreenThread
+
+    This function is called when the underlying GreenThread object of a "green" Thread exits.
     """
+    del active_threads[g]
 
-    def __init__(self, g):
-        """
-        :param g: GreenThread object (cannot be a plain greenlet object)
-        :type g: GreenThread
-        """
-        global _count
-        self._g = g
-        self._name = 'GThread-%d' % _count
-        _count += 1
+
+class Thread:
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, *, daemon=None):
+        self._name = name or 'Thread'
+        self.daemon = True
+
+        self.target = target or self.run
+
+        self.args = args
+        self.kwargs = kwargs
+
+        #: :type: GreenThread
+        self._gt = None
 
     def __repr__(self):
-        return '<GThread(%s, %r)>' % (self._name, self._g)
+        return '<(green) Thread (%s, %r)>' % (self._name, self._gt)
+
+    def start(self):
+        self._gt = spawn(self.target, *self.args, **self.kwargs)
+        self._gt.link(_cleanup)
+
+        active_threads[self._gt] = self
+
+    def run(self):
+        pass
 
     def join(self, timeout=None):
         # FIXME: add support for timeouts
-        return self._g.wait()
+        return self._gt.wait()
 
     def get_name(self):
         return self._name
@@ -60,14 +107,13 @@ class GThread:
         self._name = str(value)
 
     def is_alive(self):
-        return True
+        return bool(self._gt)
 
     def is_daemon(self):
         return self.daemon
 
     name = property(get_name, set_name)
     ident = property(lambda self: id(self._g))
-    daemon = property(lambda self: True)
 
     getName = get_name
     setName = set_name
@@ -75,36 +121,8 @@ class GThread:
     isDaemon = is_daemon
 
 
-def _cleanup(g):
-    active = __threadlocal.active
-    del active[id(g)]
+_main_thread = Thread()
+_main_thread.name = 'MainThread'
+_main_thread._gt = greenlet.getcurrent()
 
-
-def current_thread():
-    g = greenlet.getcurrent()
-    if not g:
-        # not currently in a greenlet, fall back to original function
-        return threading_orig.current_thread()
-
-    try:
-        active = __threadlocal.active
-    except AttributeError:
-        active = __threadlocal.active = {}
-
-    try:
-        t = active[id(g)]
-    except KeyError:
-        try:
-            g.link(_cleanup)
-        except AttributeError:
-            # Not a GreenThread type, so there's no way to hook into
-            # the green thread exiting. Fall back to the standard
-            # function then.
-            t = threading_orig.current_thread()
-        else:
-            t = active[id(g)] = GThread(g)
-
-    return t
-
-
-currentThread = current_thread
+active_threads[greenlet.getcurrent()] = _main_thread

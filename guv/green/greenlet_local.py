@@ -2,7 +2,7 @@
 """
 from weakref import WeakKeyDictionary
 from copy import copy
-from gevent.lock import RLock
+from .lock import RLock
 from greenlet import getcurrent
 
 __all__ = ["local"]
