@@ -352,9 +352,9 @@ def _green_socket_modules():
 
 
 def _green_thread_modules():
-    from guv.green import Queue, thread, threading
+    from guv.green import queue, thread, threading
 
-    return [('queue', Queue), ('_thread', thread), ('threading', threading)]
+    return [('queue', queue), ('_thread', thread), ('threading', threading)]
 
 
 def _green_time_modules():
