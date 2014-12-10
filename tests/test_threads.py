@@ -1,10 +1,16 @@
-from guv.green import threading
+from guv.green import threading, time
 
 
 def f1():
     """A simple function
     """
     print('Hello, world!')
+
+
+def f2():
+    """A simple function that sleeps for a short period of time
+    """
+    time.sleep(0.1)
 
 
 class TestThread:
@@ -22,3 +28,11 @@ class TestThread:
         t.start()
         t.join()
         assert t
+
+    def test_thread_active(self):
+        initial_count = threading.active_count()
+        t = threading.Thread(target=f2)
+        t.start()
+        assert threading.active_count() > initial_count
+        t.join()
+        assert threading.active_count() == initial_count
