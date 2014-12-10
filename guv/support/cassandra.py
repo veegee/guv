@@ -107,11 +107,8 @@ class GuvConnection(Connection):
         while True:
             try:
                 next_msg = self._write_queue.get()
-                # FIXME: trampoline with WRITE here causes a core dump (why???)
-                # python: src/unix/core.c:823: uv__io_stop: Assertion `loop->watchers[w->fd] ==
-                # w' failed.
-                # [1]    9736 abort (core dumped)  python cassandra_db.py
-                # log.debug('Trampoline on fd: {}, WRITE'.format(self._socket.fileno()))
+                # FIXME: trampoline with WRITE here causes a core dump (why???) issue #13
+                # log.debug('Trampoline with fd: {}, WRITE'.format(self._socket.fileno()))
                 # trampoline(self._socket.fileno(), WRITE)
             except Exception as e:
                 if not self.is_closed:
@@ -128,14 +125,15 @@ class GuvConnection(Connection):
 
     def handle_read(self):
         while True:
-            try:
-                log.debug('Trampoline on fd: {}, READ'.format(self._socket.fileno()))
-                trampoline(self._socket.fileno(), READ)
-            except Exception as exc:
-                if not self.is_closed:
-                    log.debug("Exception during read trampoline() for %s: %s", self, exc)
-                    self.defunct(exc)
-                    return
+            # try:
+            #     # log.debug('Trampoline with fd: {}, READ'.format(self._socket.fileno()))
+            #     # trampoline(self._socket.fileno(), READ)
+            #     pass
+            # except Exception as exc:
+            #     if not self.is_closed:
+            #         log.debug("Exception during read trampoline() for %s: %s", self, exc)
+            #         self.defunct(exc)
+            #         return
 
             try:
                 while True:
