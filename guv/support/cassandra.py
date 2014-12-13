@@ -4,15 +4,12 @@ import logging
 from cassandra import OperationTimedOut
 from cassandra.connection import Connection, ConnectionShutdown
 from cassandra.protocol import RegisterMessage
-
 import guv.hubs
-from guv import trampoline
 from guv.green import socket, ssl
 from guv.event import TEvent
 from guv.queue import Queue
 from guv.support import get_errno
 from guv.exceptions import CONNECT_ERR
-from guv.const import READ, WRITE
 
 log = logging.getLogger(__name__)
 
