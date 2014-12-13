@@ -120,9 +120,9 @@ class Hub(abc.AbstractHub):
         # exit safely.
         prepare_h.ref = bool(self.callbacks)
 
-
     def schedule_call_now(self, cb, *args, **kwargs):
         self.callbacks.append((cb, args, kwargs))
+        self.prepare_h.ref = True  # ensure that prepare_h is ref because we want this cb to run
 
     def schedule_call_global(self, seconds, cb, *args, **kwargs):
         def timer_callback(timer_h):
