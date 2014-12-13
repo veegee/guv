@@ -18,8 +18,6 @@ __threadcount = 0
 
 
 def _set_sentinel():
-    # TODO this is a dummy code, reimplementing this may be needed:
-    # https://hg.python.org/cpython/file/b5e9bc4352e1/Modules/_threadmodule.c#l1203
     return allocate_lock()
 
 
