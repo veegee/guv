@@ -14,9 +14,9 @@ threading_orig = patcher.original('threading')
 __patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep', '_after_fork',
                '_shutdown', '_set_sentinel',
                'local', 'stack_size', 'currentThread', 'current_thread', 'Lock', 'RLock', 'Event',
-               'Semaphore', 'BoundedSemaphore', 'Thread']
+               'Semaphore', 'BoundedSemaphore', 'Thread', 'Condition']
 
-patcher.inject('threading', globals(), ('thread', thread), ('time', time))
+patcher.inject('threading', globals(), ('_thread', thread), ('time', time))
 
 local = greenlet_local.local
 Event = event.TEvent

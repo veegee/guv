@@ -1,6 +1,5 @@
 from guv import gyield, spawn
 from guv.green import threading, time
-from guv.hubs import get_hub
 
 
 def f1():
@@ -54,7 +53,6 @@ class TestCondition:
     def test_condition(self):
         print()
         cv = threading.Condition()
-        assert cv._lock.green  # make sure we're using a green lock
 
         items = []
 
