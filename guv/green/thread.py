@@ -5,10 +5,13 @@ import _thread as _thread_orig
 
 from .. import greenthread
 from ..semaphore import Semaphore as LockType
+from . import lock
 
 __patched__ = ['get_ident', 'start_new_thread', 'allocate_lock',
                'exit', 'interrupt_main', 'stack_size', '_local',
-               'LockType', '_count', '_set_sentinel']
+               'LockType', '_count', '_set_sentinel', 'RLock']
+
+RLock = lock.RLock
 
 error = _thread_orig.error
 __threadcount = 0

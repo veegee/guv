@@ -5,7 +5,7 @@ import logging
 
 from .. import patcher, event, semaphore
 from ..greenthread import spawn
-from . import time, thread, greenlet_local
+from . import time, thread, greenlet_local, lock as _lock
 
 log = logging.getLogger('guv')
 
@@ -13,7 +13,7 @@ threading_orig = patcher.original('threading')
 
 __patched__ = ['_start_new_thread', '_allocate_lock', '_get_ident', '_sleep', '_after_fork',
                '_shutdown', '_set_sentinel',
-               'local', 'stack_size', 'currentThread', 'current_thread', 'Lock', 'Event',
+               'local', 'stack_size', 'currentThread', 'current_thread', 'Lock', 'RLock', 'Event',
                'Semaphore', 'BoundedSemaphore', 'Thread']
 
 patcher.inject('threading', globals(), ('thread', thread), ('time', time))
@@ -23,6 +23,7 @@ Event = event.TEvent
 Semaphore = semaphore.Semaphore
 BoundedSemaphore = semaphore.BoundedSemaphore
 Lock = semaphore.Semaphore
+RLock = _lock.RLock
 get_ident = thread.get_ident
 _start_new_thread = thread.start_new_thread
 _allocate_lock = thread.allocate_lock
