@@ -44,7 +44,7 @@ class Loop:
         self.loop_h = ffi.new('uv_loop_t *')
         libuv.uv_loop_init(self.loop_h)
 
-        self._handles = []  # temporary list of handle_t pointers
+        self._handles = []  # temporary list of Handle objects
         self._ffi_walk_cb = ffi.callback('void (*)(uv_handle_t *handle, void *arg)', self._walk_cb)
 
     def _walk_cb(self, handle_p, arg):
@@ -54,7 +54,7 @@ class Loop:
         afterwards, to prevent storing a reference to the handle.
 
         :param cdata handle_p: underlying handle pointer
-        :param cdata arg: user-defined argument (None for our purposes)
+        :param cdata arg: user-defined argument (NULL for our purposes)
         """
         handle_obj = ffi.from_handle(handle_p.data)
         self._handles.append(handle_obj)
