@@ -1,6 +1,6 @@
 """pyuv_cffi - an implementation of pyuv via CFFI
 
-Compatible with Python 3 and pypy3
+Compatible with CPython 3 and pypy3
 """
 import os
 import functools
@@ -43,13 +43,29 @@ class Loop:
     def __init__(self):
         self.loop_h = ffi.new('uv_loop_t *')
         libuv.uv_loop_init(self.loop_h)
-        self._handles = []
+
+        self._handles = []  # temporary list of handle_t pointers
+        self._ffi_walk_cb = ffi.callback('void (*)(uv_handle_t *handle, void *arg)', self._walk_cb)
+
+    def _walk_cb(self, handle_p, arg):
+        """Callback passed to uv_walk()
+
+        Note: the handle_p cdata object is appended to `self._handles`, and the list is destroyed
+        afterwards, to prevent storing a reference to the handle.
+
+        :param cdata handle_p: underlying handle pointer
+        :param cdata arg: user-defined argument (None for our purposes)
+        """
+        handle_obj = ffi.from_handle(handle_p.data)
+        self._handles.append(handle_obj)
 
     @classmethod
     def default_loop(cls):
         loop = Loop.__new__(cls)
         loop.loop_h = libuv.uv_default_loop()
-        loop.loop_h_allocated = False  # the default loop can't be freed
+
+        loop._handles = []  # temporary list of handle_t pointers
+        loop._ffi_walk_cb = ffi.callback('void (*)(uv_handle_t *handle, void *arg)', loop._walk_cb)
         return loop
 
     @property
@@ -58,9 +74,15 @@ class Loop:
 
     @property
     def handles(self):
-        # TODO: implement this method
-        raise NotImplementedError()
-        return self._handles
+        """List of handles
+
+        :return: list of specific pyuv_cffi Handle objects (Poll, Signal, etc.)
+        :rtype: list[Handle]
+        """
+        libuv.uv_walk(self.loop_h, self._ffi_walk_cb, ffi.NULL)
+        handles = self._handles
+        self._handles = []  # don't keep references to handles alive in this list
+        return handles
 
     def run(self, mode=UV_RUN_DEFAULT):
         return libuv.uv_run(self.loop_h, mode)
@@ -86,13 +108,19 @@ def default_close_cb(uv_handle_t, handle):
 
 class Handle:
     def __init__(self, handle):
-        #: uv_handle_t
+        """
+        :param cdata handle: specific handle type (uv_signal_t, uv_poll_t, etc.)
+        """
+        # uv_handle_t
         self.uv_handle = libuv.cast_handle(handle)
-
         self._ffi_cb = None
         self._ffi_close_cb = None
-
         self._close_called = False
+
+        # store a reference to `self` in the underlying `uv_handle_t.data`
+        self_h = ffi.new_handle(self)
+        self.uv_handle.data = self_h
+        self.__self_h = self_h  # keep the cdata object alive as long as `self` is alive
 
         alive.append(self)  # store a reference to self in the global scope
 
