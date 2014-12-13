@@ -83,7 +83,7 @@ class Hub(abc.AbstractHub):
 
         self.loop.stop()
 
-    def _fire_callbacks(self, prepare_handle):
+    def _fire_callbacks(self, prepare_h):
         """Fire immediate callbacks
         """
         callbacks = self.callbacks
@@ -94,8 +94,8 @@ class Hub(abc.AbstractHub):
             except:
                 self._squelch_exception(sys.exc_info())
 
-        # Check if more callbacks have been scheduled. Since these may be non-io callbacks (such
-        # as calls to `gyield()` or `schedule_call_now()`, start a uv_async_t handle so that libuv
+        # Check if more callbacks have been scheduled. Since these may be non-I/O callbacks (such
+        # as calls to `gyield()` or `schedule_call_now()`, start a uv_idle_t handle so that libuv
         # can do a zero-timeout poll and quickly start another loop iteration.
         if self.callbacks:
             self.idle_h.start(self._idle_cb)
