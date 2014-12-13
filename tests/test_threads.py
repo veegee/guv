@@ -43,7 +43,9 @@ class TestThread:
 class TestCondition:
     """
     :class:`threading.Condition` is not explicitly patched, but since its dependencies are patched,
-    it shall behave in a cooperative manner.
+    it shall behave in a cooperative manner. The Cassandra driver relies on a ThreadPoolExecutor,
+    which itself relies on threading.Condition. This class must be working for the driver to
+    operate in a cooperative manner.
     """
 
     def test_condition_init(self):
