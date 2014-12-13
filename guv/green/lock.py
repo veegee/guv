@@ -5,15 +5,17 @@ __all__ = ['RLock']
 
 
 class RLock(object):
+    green = True
+
     def __init__(self):
         self._block = Semaphore(1)
         self._owner = None
         self._count = 0
 
     def __repr__(self):
-        return "<%s at 0x%x _block=%s _count=%r _owner=%r)>" % (
+        return "<%s at %s _block=%s _count=%r _owner=%r)>" % (
             self.__class__.__name__,
-            id(self),
+            hex(id(self)),
             self._block,
             self._count,
             self._owner)
