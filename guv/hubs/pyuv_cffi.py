@@ -1,3 +1,13 @@
+"""Loop implementation using pyuv_cffi
+
+To ensure compatibility with pyuv, doing `import pyuv as pyuv_cffi` must cause the loop to behave in
+exactly the same way as with pyuv_cffi.
+
+Notes:
+
+- The loop is free to exit (:meth:`Loop.run` is free to return) when there are no non-internal
+  handles remaining.
+"""
 import signal
 import logging
 import greenlet
@@ -44,15 +54,17 @@ class Hub(abc.AbstractHub):
         #: :type: pyuv.Loop
         self.loop = pyuv_cffi.Loop.default_loop()
 
-        sig = pyuv_cffi.Signal(self.loop)
-        sig.start(self.signal_received, signal.SIGINT)
+        # create a signal handle to listen for SIGINT
+        self.sig_h = pyuv_cffi.Signal(self.loop)
+        self.sig_h.start(self.signal_received, signal.SIGINT)
+        self.sig_h.ref = False  # don't keep loop alive just for this handle
 
-        # set up a uv_idle handle to help make sure that non-io callbacks get called quickly
+        # create a uv_idle handle to allow non-I/O callbacks to get called quickly
         self.idle_h = pyuv_cffi.Idle(self.loop)
 
-        # fire immediate callbacks every loop iteration
-        self.prepare = pyuv_cffi.Prepare(self.loop)
-        self.prepare.start(self._fire_callbacks)
+        # create a prepare handle to fire immediate callbacks every loop iteration
+        self.prepare_h = pyuv_cffi.Prepare(self.loop)
+        self.prepare_h.start(self._fire_callbacks)
 
     def _idle_cb(self, idle_h):
         idle_h.stop()
@@ -85,6 +97,9 @@ class Hub(abc.AbstractHub):
 
     def _fire_callbacks(self, prepare_h):
         """Fire immediate callbacks
+
+        This is called by `self.prepare_h` and calls callbacks scheduled by methods such as
+        :meth:`schedule_call_now()` or `gyield()`.
         """
         callbacks = self.callbacks
         self.callbacks = []
@@ -94,26 +109,32 @@ class Hub(abc.AbstractHub):
             except:
                 self._squelch_exception(sys.exc_info())
 
-        # Check if more callbacks have been scheduled. Since these may be non-I/O callbacks (such
-        # as calls to `gyield()` or `schedule_call_now()`, start a uv_idle_t handle so that libuv
-        # can do a zero-timeout poll and quickly start another loop iteration.
+        # Check if more callbacks have been scheduled by the callbacks that were just executed.
+        # Since these may be non-I/O callbacks (such as calls to `gyield()` or
+        # `schedule_call_now()`, start a uv_idle_t handle so that libuv can do a zero-timeout poll
+        # and quickly start another loop iteration.
         if self.callbacks:
             self.idle_h.start(self._idle_cb)
+
+        # If no callbacks are scheduled, unref the prepare_h to allow the loop to automatically
+        # exit safely.
+        prepare_h.ref = bool(self.callbacks)
+
 
     def schedule_call_now(self, cb, *args, **kwargs):
         self.callbacks.append((cb, args, kwargs))
 
     def schedule_call_global(self, seconds, cb, *args, **kwargs):
-        def timer_callback(timer_handle):
+        def timer_callback(timer_h):
             try:
                 cb(*args, **kwargs)
             except:
                 self._squelch_exception(sys.exc_info())
 
             # required for cleanup
-            if not timer_handle.closed:
-                timer_handle.stop()
-                timer_handle.close()
+            if not timer_h.closed:
+                timer_h.stop()
+                timer_h.close()
 
         timer_handle = pyuv_cffi.Timer(self.loop)
         timer_handle.start(timer_callback, seconds, 0)
