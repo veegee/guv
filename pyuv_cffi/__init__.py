@@ -124,6 +124,13 @@ class Handle:
 
         alive.append(self)  # store a reference to self in the global scope
 
+    def __repr__(self):
+        cls = '{}.{}'.format(self.__module__, self.__class__.__name__)
+        addr = hex(id(self))
+        ref = self.ref
+        active = self.active
+        return '<{cls} at {addr} ref={ref} active={active}>'.format(**locals())
+
     @property
     def ref(self):
         return bool(libuv.uv_has_ref(self.uv_handle))
