@@ -89,7 +89,7 @@ def configure():
     logging.addLevelName(29, 'INFO')
 
     h = ColouredHandler()
-    h.formatter = ColouredFormatter('{asctime} {name:8} {levelname:8} {message}',
+    h.formatter = ColouredFormatter('{asctime} {name} {levelname} {message}',
                                     '%Y-%m-%d %H:%M:%S', '{')
     if sys.version_info >= (3, 3):
         logging.basicConfig(level=logging.DEBUG, handlers=[h])

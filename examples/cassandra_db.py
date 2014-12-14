@@ -7,18 +7,21 @@ monkey-patching everything (including the Cassandra driver), making it guv-frien
 Adjust this example to your database address, keyspace, and query that you would like to run.
 """
 import guv
-
 guv.monkey_patch()
 
-import logger
-
-logger.configure()
-
 import logging
-
+import logger
 from cassandra import cluster
 
+logger.configure()
 log = logging.getLogger()
+
+
+def do_query(session):
+    rows = session.execute('SELECT * FROM numbers')
+
+    for row in rows:
+        log.info(row)
 
 
 def main():
@@ -27,14 +30,14 @@ def main():
     c = cluster.Cluster(nodes, port=9042)
     session = c.connect('test')
     log.info('Execute commands')
-    rows = session.execute('SELECT * FROM numbers')
 
-    for row in rows:
-        log.info(row)
+    pool = guv.GreenPool()
+    for i in range(5):
+        pool.spawn(do_query, session)
 
+    pool.waitall()
     c.shutdown()
 
 
 if __name__ == '__main__':
     main()
-
