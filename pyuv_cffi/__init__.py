@@ -235,6 +235,31 @@ class Prepare(Handle):
         libuv.uv_prepare_stop(self.handle)
 
 
+class Check(Handle):
+    def __init__(self, loop):
+        """
+        :type loop: Loop
+        """
+        self.loop = loop
+        self.handle = ffi.new('uv_check_t *')
+        libuv.uv_check_init(loop.loop_h, self.handle)
+        super().__init__(self.handle)
+
+    def start(self, callback):
+        """
+        :type callback: Callable(check_handle: check)
+        """
+
+        def cb_wrapper(check_h):
+            callback(self)
+
+        self._ffi_cb = ffi.callback('void (*)(uv_check_t *)', cb_wrapper)
+        libuv.uv_check_start(self.handle, self._ffi_cb)
+
+    def stop(self):
+        libuv.uv_check_stop(self.handle)
+
+
 class Timer(Handle):
     def __init__(self, loop):
         """
