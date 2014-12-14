@@ -8,13 +8,14 @@ Notes:
 - The loop is free to exit (:meth:`Loop.run` is free to return) when there are no non-internal
   handles/callbacks remaining - that is, when there are no more Poll/Timer handles and no more
   callbacks scheduled.
-- The loop has three internal handles at all times: Signal (to watch for SIGINT), Prepare (to run
-  scheduled callbacks), and Idle (to ensure a zero-timeout poll when callbacks are scheduled).
-  The Signal handle is unreferenced since it is static and will not keep the loop alive. The Idle
-  handle is *only* active if callbacks are scheduled and will not keep the loop alive. The
-  Prepare handle is therefore the only remaining handle which has any control over whether or not
-  the loop exits when no other handles are active. Therefore, the Prepare handle must only be
-  unreferenced when there are no callbacks scheduled and *must* be referenced at all other times.
+- The loop has four internal handles at all times: Signal (to watch for SIGINT), Prepare (to run
+  scheduled callbacks), Idle (to ensure a zero-timeout poll when callbacks are scheduled),  and
+  Check (to unref the Prepare handle if there are no remaining scheduled callbacks). The Signal and
+  Check handles are unreferenced since they are static and will not keep the loop alive. The Idle
+  handle is *only* active if callbacks are scheduled and will not keep the loop alive. The Prepare
+  handle is therefore the only remaining handle which has any control over whether or not the loop
+  exits when no other handles are active. Therefore, the Prepare handle must only be unreferenced
+  when there are no callbacks scheduled and *must* be referenced at all other times.
 """
 import signal
 import logging
@@ -74,8 +75,22 @@ class Hub(abc.AbstractHub):
         self.prepare_h = pyuv_cffi.Prepare(self.loop)
         self.prepare_h.start(self._fire_callbacks)
 
+        # create a check handle to unref the prepare handle and allow the loop to exit if necessary
+        self.check_h = pyuv_cffi.Check(self.loop)
+        self.check_h.start(self._check_cb)
+        self.check_h.ref = False
+
     def _idle_cb(self, idle_h):
         idle_h.stop()
+
+    def _check_cb(self, check_h):
+        """
+        The Prepare handle's only purpose is to run scheduled callbacks. If there are no
+        remaining scheduled callbacks, then it must be unreferenced so it does not keep the loop
+        alive after all handles and callbacks have been completed.
+        """
+        if not self.callbacks:
+            self.prepare_h.ref = False
 
     def run(self):
         assert self is greenlet.getcurrent()
@@ -130,8 +145,6 @@ class Hub(abc.AbstractHub):
 
     def schedule_call_now(self, cb, *args, **kwargs):
         self.callbacks.append((cb, args, kwargs))
-        # TODO: this operation incurs some overhead, since this is a very-frequently called function
-        self.prepare_h.ref = True  # ensure that prepare_h is ref because we want this cb to run
 
     def schedule_call_global(self, seconds, cb, *args, **kwargs):
         def timer_callback(timer_h):
