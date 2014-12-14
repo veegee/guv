@@ -1,6 +1,7 @@
 import errno
 import gc
 import socket
+import sys
 
 import pytest
 
@@ -8,6 +9,9 @@ from guv import spawn
 from guv.event import Event
 from guv.greenio import socket as green_socket
 from guv.green import socket as socket_patched
+from guv.support import get_errno
+
+pyversion = sys.version_info[:2]
 
 TIMEOUT_SMALL = 0.01
 BACKLOG = 10
@@ -90,8 +94,15 @@ class TestGreenSocket:
         g.wait()
 
     def test_send_to_closed_sock_raises(self, gsock):
-        with pytest.raises(BrokenPipeError):
+        try:
             gsock.send(b'hello')
+        except socket.error as e:
+            assert get_errno(e) == errno.EPIPE
+
+        if pyversion >= (3, 3):
+            # on python 3.3+, the exception can be caught like this as well
+            with pytest.raises(BrokenPipeError):
+                gsock.send(b'hello')
 
     def test_del_closes_socket(self, gsock, server_sock):
         def accept_once(sock):
@@ -118,11 +129,21 @@ class TestGreenSocket:
         killer.wait()
 
 
-class TestGreenModule:
+class TestGreenSocketModule:
     def test_create_connection(self, pub_addr):
         sock = socket_patched.create_connection(pub_addr)
         assert sock
 
     def test_create_connection_timeout_error(self, fail_addr):
-        with pytest.raises(OSError):
+        try:
             socket_patched.create_connection(fail_addr, timeout=0.01)
+        except socket.timeout as e:
+            assert str(e) == 'timed out'
+
+        if pyversion >= (3, 3):
+            # on python 3.3+, socket.timeout is an alias for OSError
+            try:
+                socket_patched.create_connection(fail_addr, timeout=0.01)
+            except OSError as e:
+                assert str(e) == 'timed out'
+

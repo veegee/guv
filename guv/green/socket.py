@@ -3,6 +3,7 @@ import logging
 
 log = logging.getLogger('guv')
 
+from .. import patcher
 from ..green import _socket3 as gsocket
 
 __all__ = gsocket.__all__
@@ -13,10 +14,12 @@ from ..patcher import copy_attributes
 copy_attributes(gsocket, globals(), srckeys=dir(gsocket))
 
 # explicitly define globals to silence IDE errors
-SOCK_STREAM = gsocket.SOCK_STREAM
 socket = gsocket.socket
-error = gsocket.error
-_GLOBAL_DEFAULT_TIMEOUT = gsocket._GLOBAL_DEFAULT_TIMEOUT
+
+socket_orig = patcher.original('socket')
+SOCK_STREAM = socket_orig.SOCK_STREAM
+_GLOBAL_DEFAULT_TIMEOUT = socket_orig._GLOBAL_DEFAULT_TIMEOUT
+error = socket_orig.error
 
 if os.environ.get('GUV_NO_GREENDNS') is None:
     try:
@@ -39,6 +42,7 @@ def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT, source_address=N
     """
     msg = 'getaddrinfo returns an empty list'
     host, port = address
+    err = None
     for res in getaddrinfo(host, port, 0, SOCK_STREAM):
         af, socktype, proto, canonname, sa = res
         sock = None
@@ -52,8 +56,9 @@ def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT, source_address=N
             return sock
 
         except error as e:
-            msg = e
+            err = e
             if sock is not None:
                 sock.close()
 
-    raise error(msg)
+    if err is not None:
+        raise err
