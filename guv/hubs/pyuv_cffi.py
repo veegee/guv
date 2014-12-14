@@ -6,7 +6,15 @@ exactly the same way as with pyuv_cffi.
 Notes:
 
 - The loop is free to exit (:meth:`Loop.run` is free to return) when there are no non-internal
-  handles remaining.
+  handles/callbacks remaining - that is, when there are no more Poll/Timer handles and no more
+  callbacks scheduled.
+- The loop has three internal handles at all times: Signal (to watch for SIGINT), Prepare (to run
+  scheduled callbacks), and Idle (to ensure a zero-timeout poll when callbacks are scheduled).
+  The Signal handle is unreferenced since it is static and will not keep the loop alive. The Idle
+  handle is *only* active if callbacks are scheduled and will not keep the loop alive. The
+  Prepare handle is therefore the only remaining handle which has any control over whether or not
+  the loop exits when no other handles are active. Therefore, the Prepare handle must only be
+  unreferenced when there are no callbacks scheduled and *must* be referenced at all other times.
 """
 import signal
 import logging
@@ -122,6 +130,7 @@ class Hub(abc.AbstractHub):
 
     def schedule_call_now(self, cb, *args, **kwargs):
         self.callbacks.append((cb, args, kwargs))
+        # TODO: this operation incurs some overhead, since this is a very-frequently called function
         self.prepare_h.ref = True  # ensure that prepare_h is ref because we want this cb to run
 
     def schedule_call_global(self, seconds, cb, *args, **kwargs):
