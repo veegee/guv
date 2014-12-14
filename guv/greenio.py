@@ -3,7 +3,7 @@ import time
 import os
 import _socket
 import errno
-from errno import (EWOULDBLOCK, EBADF)
+from errno import EWOULDBLOCK, EBADF
 
 from . import patcher
 from .hubs import trampoline
