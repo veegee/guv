@@ -89,8 +89,7 @@ class Hub(abc.AbstractHub):
         remaining scheduled callbacks, then it must be unreferenced so it does not keep the loop
         alive after all handles and callbacks have been completed.
         """
-        if not self.callbacks:
-            self.prepare_h.ref = False
+        self.prepare_h.ref = bool(self.callbacks)
 
     def run(self):
         assert self is greenlet.getcurrent()
