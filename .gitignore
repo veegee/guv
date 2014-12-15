@@ -1,6 +1,5 @@
 *.egg*
 *.pyc
-.*
 build/
 dist/
 examples/*.profile
@@ -10,9 +9,6 @@ pyuv_cffi/uv.h
 
 # virtual env
 venv*
-
-# config files
-config.yaml
 
 # documentation
 docs/build

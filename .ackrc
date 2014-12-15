@@ -1,0 +1,4 @@
+--ignore-dir=.idea
+--ignore-dir=.tox
+--ignore-dir=build
+--ignore-dir=guv.egg-info
