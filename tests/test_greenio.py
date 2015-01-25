@@ -135,15 +135,14 @@ class TestGreenSocketModule:
         assert sock
 
     def test_create_connection_timeout_error(self, fail_addr):
+        # Inspired by eventlet Greenio_test
         try:
             socket_patched.create_connection(fail_addr, timeout=0.01)
+            pytest.fail('Timeout not raised')
         except socket.timeout as e:
             assert str(e) == 'timed out'
-
-        if pyversion >= (3, 3):
-            # on python 3.3+, socket.timeout is an alias for OSError
-            try:
-                socket_patched.create_connection(fail_addr, timeout=0.01)
-            except OSError as e:
-                assert str(e) == 'timed out'
+        except socket.error as e:
+            # unreachable is also a valid outcome
+            if not get_errno(e) in (errno.EHOSTUNREACH, errno.ENETUNREACH):
+                raise
 

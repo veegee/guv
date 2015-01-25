@@ -1,0 +1,24 @@
+language: python
+
+python:
+  - "3.4"
+  - "3.3"
+  - "3.2"
+  - "pypy3"
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -qq git-core build-essential autoconf libtool
+  - sudo apt-get install libffi-dev
+  - curl -L https://github.com/libuv/libuv/archive/v1.2.1.tar.gz | tar xzf -
+  - (cd libuv-1.2.1 && ./autogen.sh && ./configure --prefix=/usr && make && sudo make install)
+
+install:
+  - pip install -r requirements.txt
+
+script:
+  - cd tests
+  - py.test
+
+notifications:
+  email: false
