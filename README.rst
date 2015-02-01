@@ -112,9 +112,9 @@ This library makes the following guarantees:
 
 .. |Version| image:: https://img.shields.io/github/tag/veegee/guv.svg
 
-.. |BuildStatus| image:: https://travis-ci.org/veegee/guv.svg?branch=develop
-    :target: https://travis-ci.org/veegee/guv
-
 .. |PyPI| image:: https://img.shields.io/pypi/v/guv.svg
     :target: https://pypi.python.org/pypi/guv/
     :alt: Latest Version
+
+.. |BuildStatus| image:: https://travis-ci.org/veegee/guv.svg?branch=develop
+    :target: https://travis-ci.org/veegee/guv
