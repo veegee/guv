@@ -115,6 +115,6 @@ This library makes the following guarantees:
 .. |BuildStatus| image:: https://travis-ci.org/veegee/guv.svg?branch=develop
     :target: https://travis-ci.org/veegee/guv
 
-.. |PyPI| image:: https://pypip.in/version/guv/badge.svg
+.. |PyPI| image:: https://img.shields.io/pypi/v/guv.svg
     :target: https://pypi.python.org/pypi/guv/
     :alt: Latest Version
