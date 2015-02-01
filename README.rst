@@ -1,7 +1,7 @@
 guv = greenlets + libuv
 =======================
 
-|Version| |BuildStatus| |PyPI|
+|Version| |PyPI| |BuildStatus|
 
 :Documentation: http://guv.readthedocs.org/
 :Source: http://github.com/veegee/guv
