@@ -1,9 +1,9 @@
 guv = greenlets + libuv
 =======================
 
-:Version: alpha
-:Web: http://guv.readthedocs.org/
-:Download: http://pypi.python.org/pypi/guv/
+|Version| |BuildStatus| |PyPI|
+
+:Documentation: http://guv.readthedocs.org/
 :Source: http://github.com/veegee/guv
 :Keywords: guv, greenlet, gevent, eventlet
 
@@ -109,3 +109,12 @@ This library makes the following guarantees:
 .. _gunicorn: https://github.com/benoitc/gunicorn
 .. _Semantic versioning: http://semver.org
 .. _wrk: https://github.com/wg/wrk
+
+.. |Version| image:: https://img.shields.io/github/tag/veegee/guv.svg
+
+.. |BuildStatus| image:: https://travis-ci.org/veegee/guv.svg?branch=develop
+    :target: https://travis-ci.org/veegee/guv
+
+.. |PyPI| image:: https://pypip.in/version/guv/badge.svg
+    :target: https://pypi.python.org/pypi/guv/
+    :alt: Latest Version
