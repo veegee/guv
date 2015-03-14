@@ -17,6 +17,24 @@ socket = _socket3
 DNS_QUERY_TIMEOUT = 10.0
 
 
+def is_ipv4_addr(addr: str):
+    """is_ipv4_addr returns true if host is a valid IPv4 address in
+    dotted quad notation.
+    """
+    try:
+        d1, d2, d3, d4 = map(int, addr.split('.'))
+    except (ValueError, AttributeError):
+        return False
+
+    if 0 <= d1 <= 255 and 0 <= d2 <= 255 and 0 <= d3 <= 255 and 0 <= d4 <= 255:
+        return True
+    return False
+
+
+def is_ipv6(addr: str):
+    return ':' in addr
+
+
 class FakeAnswer(list):
     expiration = 0
 
@@ -42,22 +60,27 @@ class ResolverProxy:
         except (IOError, OSError) as e:
             print('Error: {}'.format(e), file=sys.stderr)
             return
-        # contents = [line for line in contents.split('\n') if line and not line[0] == '#']
         contents = list(filter(lambda ln: ln if ln and not ln.startswith('#') else None,
                                contents.split('\n')))
+
+        hosts = self._hosts
         for line in contents:
             # split line into tokens, each a component of the hosts line
             parts = [p for p in line.split() if p]
+
             if not parts:
                 continue
-            addr = parts[0]
-            for part in parts[1:]:
-                self._hosts[part] = addr
 
-                if addr in self._host_names:
-                    self._host_names[addr].append(part)
+            addr = parts[0]
+
+            for name in parts[1:]:
+                # assign, but don't overwrite an ipv4 address with an ipv6 address
+                if name in hosts and is_ipv4_addr(hosts[name]):
+                    # ipv4 address already loaded, leave it alone
+                    continue
                 else:
-                    self._host_names[addr] = [part]
+                    print('ASSIGN: {} = {}'.format(name, addr))
+                    hosts[name] = addr
 
     def clear(self):
         self._resolver = None
@@ -233,20 +256,6 @@ def getnameinfo(sockaddr, flags):
         port = socket.getservbyport(port, proto)
 
     return (host, port)
-
-
-def is_ipv4_addr(host):
-    """is_ipv4_addr returns true if host is a valid IPv4 address in
-    dotted quad notation.
-    """
-    try:
-        d1, d2, d3, d4 = map(int, host.split('.'))
-    except (ValueError, AttributeError):
-        return False
-
-    if 0 <= d1 <= 255 and 0 <= d2 <= 255 and 0 <= d3 <= 255 and 0 <= d4 <= 255:
-        return True
-    return False
 
 
 def _net_read(sock, count, expiration):
