@@ -79,7 +79,7 @@ class ResolverProxy:
                     # ipv4 address already loaded, leave it alone
                     continue
                 else:
-                    print('ASSIGN: {} = {}'.format(name, addr))
+                    # print('ASSIGN: {} = {}'.format(name, addr))
                     hosts[name] = addr
 
     def clear(self):
