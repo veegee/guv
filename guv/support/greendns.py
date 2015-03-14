@@ -1,34 +1,3 @@
-# Portions of this code taken from the gogreen project:
-#   http://github.com/slideinc/gogreen
-#
-# Copyright (c) 2005-2010 Slide, Inc.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are
-# met:
-#
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above
-#       copyright notice, this list of conditions and the following
-#       disclaimer in the documentation and/or other materials provided
-#       with the distribution.
-#     * Neither the name of the author nor the names of other
-#       contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import struct
 import sys
 
@@ -48,19 +17,38 @@ socket = _socket3
 DNS_QUERY_TIMEOUT = 10.0
 
 
+def is_ipv4_addr(addr: str):
+    """is_ipv4_addr returns true if host is a valid IPv4 address in
+    dotted quad notation.
+    """
+    try:
+        d1, d2, d3, d4 = map(int, addr.split('.'))
+    except (ValueError, AttributeError):
+        return False
+
+    if 0 <= d1 <= 255 and 0 <= d2 <= 255 and 0 <= d3 <= 255 and 0 <= d4 <= 255:
+        return True
+    return False
+
+
+def is_ipv6(addr: str):
+    return ':' in addr
+
+
 class FakeAnswer(list):
     expiration = 0
 
 
-class FakeRecord(object):
+class FakeRecord:
     pass
 
 
-class ResolverProxy(object):
+class ResolverProxy:
     def __init__(self, *args, **kwargs):
         self._resolver = None
         self._filename = kwargs.get('filename', '/etc/resolv.conf')
-        self._hosts = {}
+        self._hosts = {}  # dict[name, addr]
+        self._host_names = {}  # dict[addr, list[name]] (actual representation of /etc/hosts)
         if kwargs.pop('dev', False):
             self._load_etc_hosts()
 
@@ -69,18 +57,30 @@ class ResolverProxy(object):
             fd = open('/etc/hosts', 'r')
             contents = fd.read()
             fd.close()
-        except (IOError, OSError):
+        except (IOError, OSError) as e:
+            print('Error: {}'.format(e), file=sys.stderr)
             return
-        contents = [line for line in contents.split('\n') if line and not line[0] == '#']
+        contents = list(filter(lambda ln: ln if ln and not ln.startswith('#') else None,
+                               contents.split('\n')))
+
+        hosts = self._hosts
         for line in contents:
-            line = line.replace('\t', ' ')
-            parts = line.split(' ')
-            parts = [p for p in parts if p]
-            if not len(parts):
+            # split line into tokens, each a component of the hosts line
+            parts = [p for p in line.split() if p]
+
+            if not parts:
                 continue
-            ip = parts[0]
-            for part in parts[1:]:
-                self._hosts[part] = ip
+
+            addr = parts[0]
+
+            for name in parts[1:]:
+                # assign, but don't overwrite an ipv4 address with an ipv6 address
+                if name in hosts and is_ipv4_addr(hosts[name]):
+                    # ipv4 address already loaded, leave it alone
+                    continue
+                else:
+                    print('ASSIGN: {} = {}'.format(name, addr))
+                    hosts[name] = addr
 
     def clear(self):
         self._resolver = None
@@ -91,20 +91,21 @@ class ResolverProxy(object):
             self._resolver.cache = dns.resolver.Cache()
 
         query = args[0]
+
         if query is None:
             args = list(args)
             query = args[0] = '0.0.0.0'
-        if self._hosts and self._hosts.get(query):
+
+        if self._hosts.get(query):
             answer = FakeAnswer()
             record = FakeRecord()
             setattr(record, 'address', self._hosts[query])
             answer.append(record)
             return answer
-        return self._resolver.query(*args, **kwargs)
+        else:
+            return self._resolver.query(*args, **kwargs)
 
-#
-# cache
-#
+
 resolver = ResolverProxy(dev=True)
 
 
@@ -131,9 +132,6 @@ def resolve(name):
     return rrset
 
 
-#
-# methods
-#
 def getaliases(host):
     """Checks for aliases of the given hostname (cname records)
     returns a list of alias targets
@@ -153,7 +151,7 @@ def getaliases(host):
             cnames.append(str(answers[0].target))
 
     if error:
-        sys.stderr.write('DNS error: %r %r\n' % (host, error))
+        print('DNS error: %r %r\n' % (host, error), file=sys.stderr)
 
     return cnames
 
@@ -258,20 +256,6 @@ def getnameinfo(sockaddr, flags):
         port = socket.getservbyport(port, proto)
 
     return (host, port)
-
-
-def is_ipv4_addr(host):
-    """is_ipv4_addr returns true if host is a valid IPv4 address in
-    dotted quad notation.
-    """
-    try:
-        d1, d2, d3, d4 = map(int, host.split('.'))
-    except (ValueError, AttributeError):
-        return False
-
-    if 0 <= d1 <= 255 and 0 <= d2 <= 255 and 0 <= d3 <= 255 and 0 <= d4 <= 255:
-        return True
-    return False
 
 
 def _net_read(sock, count, expiration):

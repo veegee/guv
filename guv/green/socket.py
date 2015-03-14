@@ -40,7 +40,6 @@ if os.environ.get('GUV_NO_GREENDNS') is None:
 def create_connection(address, timeout=_GLOBAL_DEFAULT_TIMEOUT, source_address=None):
     """Connect to `address` and return the socket object
     """
-    msg = 'getaddrinfo returns an empty list'
     host, port = address
     err = None
     for res in getaddrinfo(host, port, 0, SOCK_STREAM):
