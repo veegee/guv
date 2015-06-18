@@ -23,7 +23,13 @@ CERT_NONE = ssl_orig.CERT_NONE
 CERT_REQUIRED = ssl_orig.CERT_REQUIRED
 
 PROTOCOL_SSLv23 = ssl_orig.PROTOCOL_SSLv23
-PROTOCOL_SSLv3 = ssl_orig.PROTOCOL_SSLv3
+DEF_SSL = PROTOCOL_SSLv23
+
+#SSLv3 removed on Debian
+if hasattr(ssl_orig, 'PROTOCOL_SSLv3'):
+    PROTOCOL_SSLv3 = ssl_orig.PROTOCOL_SSLv3
+    DEF_SSL = PROTOCOL_SSLv3
+
 
 CHANNEL_BINDING_TYPES = ssl_orig.CHANNEL_BINDING_TYPES
 AF_INET = ssl_orig.AF_INET
@@ -454,7 +460,7 @@ def wrap_socket(sock, keyfile=None, certfile=None,
                      ciphers=ciphers)
 
 
-def get_server_certificate(addr, ssl_version=PROTOCOL_SSLv3, ca_certs=None):
+def get_server_certificate(addr, ssl_version=DEF_SSL, ca_certs=None):
     """Retrieve the certificate from the server at the specified address,
     and return it as a PEM-encoded string.
     If 'ca_certs' is specified, validate the server cert against it.
