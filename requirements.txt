@@ -1,5 +1,7 @@
-cffi==0.8.6
+cffi==1.1.2
 dnspython3==1.12.0
-greenlet==0.4.5
+greenlet==0.4.7
 http-parser==0.8.3
-pytest==2.6.4
+py==1.4.30
+pycparser==2.14
+pytest==2.7.2
