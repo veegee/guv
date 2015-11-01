@@ -1,0 +1,5 @@
+cffi
+dnspython3
+greenlet
+http-parser
+pytest
