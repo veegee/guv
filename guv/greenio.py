@@ -48,7 +48,7 @@ class socket(_socket.socket):
         that the operation we were waiting on was associated with a filehandle that's since been
         invalidated.
         """
-        if self._closed:
+        if self._closed and self._io_refs <= 0:
             # If we did any logging, alerting to a second trampoline attempt on a closed
             # socket here would be useful.
             raise IOClosed()
