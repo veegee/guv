@@ -112,6 +112,9 @@ class Thread:
     def is_daemon(self):
         return self.daemon
 
+    def set_daemon(self, daemonic):
+        self.daemon = daemonic
+
     name = property(get_name, set_name)
     ident = property(lambda self: id(self._g))
 
@@ -119,6 +122,7 @@ class Thread:
     setName = set_name
     isAlive = is_alive
     isDaemon = is_daemon
+    setDaemon = set_daemon
 
 
 _main_thread = Thread()
