@@ -101,7 +101,7 @@ class Profile(profile_orig.Profile):
 
     def trace_dispatch_return_extend_back(self, frame, t):
         """A hack function to override error checking in parent class.  It
-        allows invalid returns (where frames weren't preveiously entered into
+        allows invalid returns (where frames weren't previously entered into
         the profiler) which can happen for all the tasklets that suddenly start
         to get monitored. This means that the time will eventually be attributed
         to a call high in the chain, when there is a tasklet switch
