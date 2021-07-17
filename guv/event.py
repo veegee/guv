@@ -429,7 +429,7 @@ class AsyncResult:
     def get(self, block=True, timeout=None):
         """Return the stored value or raise the exception.
 
-        If this instance already holds a value / an exception, return / raise it immediatelly.
+        If this instance already holds a value / an exception, return / raise it immediately.
         Otherwise, block until another greenlet calls :meth:`set` or :meth:`set_exception` or
         until the optional timeout occurs.
 
@@ -463,14 +463,14 @@ class AsyncResult:
     def get_nowait(self):
         """Return the value or raise the exception without blocking.
 
-        If nothing is available, raise :class:`gevent.Timeout` immediatelly.
+        If nothing is available, raise :class:`gevent.Timeout` immediately.
         """
         return self.get(block=False)
 
     def wait(self, timeout=None):
         """Block until the instance is ready.
 
-        If this instance already holds a value / an exception, return immediatelly.
+        If this instance already holds a value / an exception, return immediately.
         Otherwise, block until another thread calls :meth:`set` or :meth:`set_exception` or
         until the optional timeout occurs.
 

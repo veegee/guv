@@ -3,7 +3,7 @@ guv Documentation
 
 .. note::
 
-    The documentation is currently in very active developemnt and not yet
+    The documentation is currently in very active development and not yet
     complete. Please keep checking back for updates and filing issues for
     missing sections or suggestions for enhancement.
 
